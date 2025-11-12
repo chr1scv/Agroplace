@@ -1,0 +1,293 @@
+/* ProductoCard.css */
+.producto-card {
+    background: rgba(26, 31, 46, 0.8);
+    border: 1px solid rgba(45, 122, 62, 0.2);
+    border-radius: 12px;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.producto-card:hover {
+    border-color: rgba(45, 122, 62, 0.5);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(45, 122, 62, 0.1);
+}
+
+.producto-image {
+    position: relative;
+    height: 120px;
+    background: rgba(15, 20, 25, 0.5);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.producto-real-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.placeholder-image {
+    font-size: 3rem;
+    opacity: 0.7;
+}
+
+.producto-badges {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.badge.organic {
+    background: rgba(76, 175, 80, 0.2);
+    color: #4caf50;
+    border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.badge.stock.normal {
+    background: rgba(33, 150, 243, 0.2);
+    color: #2196f3;
+    border: 1px solid rgba(33, 150, 243, 0.3);
+}
+
+.badge.stock.bajo {
+    background: rgba(255, 193, 7, 0.2);
+    color: #ffc107;
+    border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+.badge.stock.agotado {
+    background: rgba(244, 67, 54, 0.2);
+    color: #f44336;
+    border: 1px solid rgba(244, 67, 54, 0.3);
+}
+
+.badge.inactivo {
+    background: rgba(158, 158, 158, 0.2);
+    color: #9e9e9e;
+    border: 1px solid rgba(158, 158, 158, 0.3);
+}
+
+.producto-info {
+    margin-bottom: 1rem;
+}
+
+.producto-nombre {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #f9fafb;
+    margin-bottom: 0.5rem;
+    line-height: 1.3;
+}
+
+.producto-categoria {
+    color: #9ca3af;
+    font-size: 0.8rem;
+    margin-bottom: 0.5rem;
+}
+
+.producto-precio {
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: #2d7a3e;
+    margin-bottom: 1rem;
+}
+
+.producto-stats {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.stat-label {
+    font-size: 0.7rem;
+    color: #9ca3af;
+}
+
+.stat-value {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #e5e7eb;
+}
+
+.producto-meta {
+    font-size: 0.8rem;
+    color: #6b7280;
+}
+
+.vendedor {
+    font-style: italic;
+}
+
+.producto-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-editar {
+    flex: 1;
+    background: rgba(255, 193, 7, 0.1);
+    color: #ffc107;
+    border: 1px solid rgba(255, 193, 7, 0.3);
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.btn-editar:hover:not(:disabled) {
+    background: rgba(255, 193, 7, 0.2);
+    transform: translateY(-1px);
+}
+
+.btn-eliminar {
+    flex: 1;
+    background: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+    border: 1px solid rgba(220, 53, 69, 0.3);
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.btn-eliminar:hover:not(:disabled) {
+    background: rgba(220, 53, 69, 0.2);
+    transform: translateY(-1px);
+}
+
+.btn-editar:disabled,
+.btn-eliminar:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Modal de Confirmación */
+.confirmacion-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: rgba(26, 31, 46, 0.95);
+    border: 1px solid rgba(45, 122, 62, 0.3);
+    border-radius: 12px;
+    padding: 2rem;
+    max-width: 400px;
+    width: 90%;
+    backdrop-filter: blur(10px);
+}
+
+.modal-content h3 {
+    color: #f9fafb;
+    margin-bottom: 1rem;
+    font-size: 1.3rem;
+}
+
+.modal-content p {
+    color: #e5e7eb;
+    margin-bottom: 0.5rem;
+    line-height: 1.5;
+}
+
+.advertencia {
+    color: #fca5a5 !important;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.btn-confirmar {
+    flex: 1;
+    background: rgba(220, 53, 69, 0.2);
+    color: #fca5a5;
+    border: 1px solid rgba(220, 53, 69, 0.3);
+    padding: 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-confirmar:hover:not(:disabled) {
+    background: rgba(220, 53, 69, 0.3);
+    transform: translateY(-1px);
+}
+
+.btn-cancelar {
+    flex: 1;
+    background: rgba(107, 114, 128, 0.1);
+    color: #9ca3af;
+    border: 1px solid rgba(107, 114, 128, 0.3);
+    padding: 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-cancelar:hover:not(:disabled) {
+    background: rgba(107, 114, 128, 0.2);
+    transform: translateY(-1px);
+}
+
+.btn-confirmar:disabled,
+.btn-cancelar:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .producto-card {
+        padding: 1rem;
+    }
+    
+    .producto-stats {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .modal-actions {
+        flex-direction: column;
+    }
+}

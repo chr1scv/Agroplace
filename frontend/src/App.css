@@ -1,0 +1,57 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.6;
+  color: #333;
+  background-color: #f8f9fa;
+}
+
+.App {
+  min-height: 100vh;
+}
+
+/* Estilos globales */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* Efectos hover para enlaces de navegación */
+.nav-link:hover {
+  color: #ff6b35 !important;
+}
+
+/* Efectos hover para botones */
+.primary-button:hover {
+  background-color: #e55a2b !important;
+  transform: translateY(-2px);
+}
+
+.secondary-button:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Efectos hover para tarjetas */
+.feature-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 15px rgba(0,0,0,0.1) !important;
+}
+
+/* Animaciones */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .container {
+    padding: 0 0.5rem;
+  }
+}
