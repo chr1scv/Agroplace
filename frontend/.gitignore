@@ -1,0 +1,57 @@
+# -------------------------------------------------------------------------
+# IGNORE LIST COMBINADA: Frontend (Node/React) + Backend (Python/Django)
+# -------------------------------------------------------------------------
+
+# DEPENDENCIAS Y CACHÉ DE NODE/NPM/YARN
+# -------------------------------------------------------------------------
+# Directorios de módulos de dependencias (Node/npm/yarn)
+/node_modules
+/.pnp
+.pnp.js
+
+# Testing
+/coverage
+
+# Directorio de producción del frontend (si aplica)
+/build
+
+# Archivos de depuración y log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+
+# ARCHIVOS DE PYTHON/DJANGO
+# -------------------------------------------------------------------------
+# Archivos temporales de Python
+*.pyc
+__pycache__/
+
+# Base de datos local de Django (no debe subirse)
+db.sqlite3
+
+# Archivos de entorno virtual de Python (venv)
+venv/
+.venv/
+
+# Archivos de base de datos SQL local si se usa otra (ej: SQLite)
+*.sqlite3
+
+# Archivos temporales de logs
+*.log
+
+
+# ARCHIVOS DE ENTORNO Y CONFIGURACIÓN LOCAL
+# -------------------------------------------------------------------------
+# Archivos de entorno que contienen credenciales o variables secretas
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Varios (macOS)
+.DS_Store
+
+# Archivos de estructura que no son necesarios
+estructura_completa.txt
