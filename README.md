@@ -19,3 +19,28 @@ agroplace/
 ├── frontend/ # Proyecto React
 ├── docs/ # Documentación (requerimientos, historias de usuario, diagramas)
 └── README.md
+
+## 🛠️ Funcionalidades Implementadas
+
+✅ Selección de categoría en el formulario de creación de productos.
+
+✅ Creación de productos con flujo de aprobación por parte del administrador.
+
+✅ Panel de administrador con opción para aprobar productos pendientes.
+
+✅ Visualización inmediata de los productos creados una vez aprobados.
+
+🔔 Notificaciones automáticas al aprobarse un producto.
+
+🏙️ Nuevos campos agregados: Ciudad y Comuna en el formulario de productos.
+
+✏️ Edición de productos ya publicados.
+
+🎨 Vista de productos rediseñada para mejor experiencia visual.
+
+🔍 Vista de detalles del producto actualizada con información más clara.
+
+🔧 Filtros mejorados: precio, tipo de cultivo, categoría y más.
+
+🧾 Vista de panel de ventas del vendedor
+
