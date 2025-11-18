@@ -14,7 +14,6 @@ const ProductDetail = () => {
     const [selectedImage, setSelectedImage] = useState(0);
     const [quantity, setQuantity] = useState(1);
 
-    // Función para formatear precios en CLP
     const formatPrice = (price) => {
         return new Intl.NumberFormat('es-CL', {
             style: 'currency',
@@ -27,64 +26,45 @@ const ProductDetail = () => {
         loadProduct();
     }, [id]);
 
-const loadProduct = async () => {
-    try {
-        setLoading(true);
-        
-        // CONECTAR CON LA API REAL DE DJANGO
-        const response = await fetch(`http://localhost:8000/api/productos/${id}/`);
-        
-        if (response.ok) {
-            const productData = await response.json();
-            
-            // Formatear los datos de la API al formato que espera el componente
-            const formattedProduct = {
-                id: productData.id,
-                nombre: productData.nombre,
-                descripcion: productData.descripcion,
-                precio: parseFloat(productData.precio),
-                stock: productData.stock,
-                categoria: productData.categoria,
-                categoria_nombre: productData.categoria_nombre,
-                vendedor_nombre: productData.vendedor_nombre,
-                vendedor_info: 'Más de 10 años cultivando productos orgánicos de la más alta calidad.',
-                origen: productData.origen,
-                certificado_organico: productData.certificado_organico,
-                // CORRECCIÓN: Convertir URL relativa a absoluta
-                imagenes: productData.imagen ? [`http://localhost:8000${productData.imagen}`] : [null],
-                especificaciones: {
-                    'Tipo': productData.origen === 'organico' ? 'Orgánico' : 'Convencional',
-                    'Origen': 'Región Metropolitana',
-                    'Cosecha': 'Temporada Actual',
-                    'Conservación': 'Refrigerar',
-                    'Vida Útil': '2 semanas'
-                },
-                beneficios: [
-                    '🌿 100% Orgánico certificado',
-                    '🚚 Envío gratis en compras sobre $50.000',
-                    '💰 Precio directo del productor',
-                    '✅ Garantía de frescura'
-                ]
-            };
-            
-            setProduct(formattedProduct);
-        } else {
-            throw new Error('Error al cargar el producto desde la API');
+    const loadProduct = async () => {
+        try {
+            setLoading(true);
+            const response = await fetch(`http://localhost:8000/api/productos/${id}/`);
+            if (response.ok) {
+                const productData = await response.json();
+                const formattedProduct = {
+                    id: productData.id,
+                    nombre: productData.nombre,
+                    descripcion: productData.descripcion,
+                    precio: parseFloat(productData.precio),
+                    stock: productData.stock,
+                    categoria_nombre: productData.categoria_nombre,
+                    vendedor_nombre: productData.vendedor_nombre,
+                    ciudad: productData.ciudad || 'Desconocida',
+                    comuna: productData.comuna || 'Desconocida',
+                    vendedor_info: 'Más de 10 años cultivando productos orgánicos de la más alta calidad.',
+                    vendedor_foto: productData.vendedor_foto || null, 
+                    origen: productData.origen,
+                    certificado_organico: productData.certificado_organico,
+                    imagenes: productData.imagen ? [`http://localhost:8000${productData.imagen}`] : [null],
+                    beneficios: [
+                        '🌿 100% Orgánico certificado',
+                        '🚚 Envío gratis en compras sobre $50.000',
+                        '💰 Precio directo del productor',
+                        '✅ Garantía de frescura'
+                    ]
+                };
+                setProduct(formattedProduct);
+            } else {
+                throw new Error('Error al cargar el producto desde la API');
+            }
+        } catch (err) {
+            setError('Error al cargar el producto desde el servidor');
+            console.error('Error:', err);
+        } finally {
+            setLoading(false);
         }
-        
-    } catch (err) {
-        setError('Error al cargar el producto desde el servidor');
-        console.error('Error:', err);
-        
-        // Mantener datos de ejemplo como fallback
-        const exampleProduct = {
-            // ... datos de ejemplo
-        };
-        setProduct(exampleProduct);
-    } finally {
-        setLoading(false);
-    }
-};
+    };
 
     const handleAddToCart = () => {
         for (let i = 0; i < quantity; i++) {
@@ -92,6 +72,20 @@ const loadProduct = async () => {
         }
         alert(`${quantity} ${product.nombre} agregado(s) al carrito`);
     };
+
+    // Función para "Comprar Ahora"
+    const handleBuyNow = () => {
+        if (product.stock === 0) return;
+
+        // 1. Agrega el producto al carrito (similar a handleAddToCart)
+        for (let i = 0; i < quantity; i++) {
+            addToCart(product);
+        }
+        
+        // 2. Redirige al usuario a la página de Checkout/Pago
+        navigate('/checkout'); // *** Asegúrate de que esta ruta sea correcta ***
+    };
+
 
     const handleQuantityChange = (newQuantity) => {
         if (newQuantity >= 1 && newQuantity <= product.stock) {
@@ -121,7 +115,7 @@ const loadProduct = async () => {
 
     return (
         <div style={styles.container}>
-            {/* Navegación */}
+            {/* Breadcrumb */}
             <div style={styles.breadcrumb}>
                 <button onClick={() => navigate('/productos')} style={styles.breadcrumbLink}>
                     Productos
@@ -131,7 +125,7 @@ const loadProduct = async () => {
             </div>
 
             <div style={styles.productContent}>
-                {/* Galería de Imágenes */}
+                {/* Imagen + Beneficios */}
                 <div style={styles.imageSection}>
                     <div style={styles.mainImage}>
                         {product.imagenes[0] ? (
@@ -150,7 +144,7 @@ const loadProduct = async () => {
                             <div style={styles.organicBadge}>🌿 Orgánico Certificado</div>
                         )}
                     </div>
-                    
+
                     {product.imagenes.length > 1 && (
                         <div style={styles.imageThumbnails}>
                             {product.imagenes.map((imagen, index) => (
@@ -178,16 +172,18 @@ const loadProduct = async () => {
                             ))}
                         </div>
                     )}
+
+                    {/* Beneficios debajo de la imagen */}
+                    <div style={styles.benefits}>
+                        {product.beneficios.map((benefit, index) => (
+                            <div key={index} style={styles.benefitItem}>{benefit}</div>
+                        ))}
+                    </div>
                 </div>
 
                 {/* Información del Producto */}
                 <div style={styles.infoSection}>
                     <h1 style={styles.productName}>{product.nombre}</h1>
-                    
-                    <div style={styles.ratingOverview}>
-                        <div style={styles.stars}>★★★★☆</div>
-                        <span style={styles.ratingText}>(4.2 · 15 reseñas)</span>
-                    </div>
 
                     <div style={styles.priceSection}>
                         <span style={styles.price}>{formatPrice(product.precio)}</span>
@@ -200,42 +196,55 @@ const loadProduct = async () => {
                         </span>
                     </div>
 
-                    <div style={styles.vendorInfo}>
-                        <h3 style={styles.vendorTitle}>Vendedor</h3>
-                        <div style={styles.vendorDetails}>
-                            <span style={styles.vendorName}>{product.vendedor_nombre}</span>
-                            <span style={styles.vendorDescription}>{product.vendedor_info}</span>
+                    {/* Vendedor Destacado - ESTILO PROFESIONAL IOS */}
+                    <div style={styles.vendorCard}>
+                        <h3 style={styles.vendorCardTitle}>Vendido por:</h3>
+                        <div style={styles.vendorCardDetails}>
+                            {/* Columna Izquierda: Foto y Rating/Badge */}
+                            <div style={styles.vendorCardProfile}>
+                                <div style={styles.vendorCardImageWrapper}>
+                                    {product.vendedor_foto ? (
+                                        <img 
+                                            src={product.vendedor_foto} 
+                                            alt={product.vendedor_nombre} 
+                                            style={styles.vendorCardImage} 
+                                        />
+                                    ) : (
+                                        <div style={styles.vendorPlaceholderIcon}>
+                                            🧑‍🌾
+                                        </div>
+                                    )}
+                                </div>
+                                <div style={styles.vendorCardRating}>
+                                    <span style={styles.ratingStars}>★★★★☆</span> 
+                                    <span style={styles.ratingNumber}>(4.5)</span>
+                                </div>
+                            </div>
+                    
+                            {/* Columna Derecha: Información del vendedor */}
+                            <div style={styles.vendorCardText}>
+                                <p style={styles.vendorCardName}>{product.vendedor_nombre}</p>
+                                
+                                <div style={styles.vendorCardBadge}>
+                                    <span style={styles.vendorBadgeIcon}>✓</span> Vendedor Verificado
+                                </div>
+
+                                <div style={styles.vendorCardLocation}>
+                                    <span style={styles.locationIcon}>📍</span>
+                                    {product.ciudad}, {product.comuna}
+                                </div>
+                                <p style={styles.vendorCardDescription}>{product.vendedor_info}</p>
+                            </div>
                         </div>
+                        <button style={styles.viewVendorButton}>
+                            Ver perfil del vendedor <span style={styles.viewVendorIcon}>›</span>
+                        </button>
                     </div>
+
 
                     <div style={styles.description}>
                         <h3 style={styles.sectionTitle}>Descripción</h3>
                         <p style={styles.descriptionText}>{product.descripcion}</p>
-                    </div>
-
-                    {/* Especificaciones */}
-                    <div style={styles.specifications}>
-                        <h3 style={styles.sectionTitle}>Especificaciones</h3>
-                        <div style={styles.specsGrid}>
-                            {Object.entries(product.especificaciones).map(([key, value]) => (
-                                <div key={key} style={styles.specItem}>
-                                    <span style={styles.specKey}>{key}:</span>
-                                    <span style={styles.specValue}>{value}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Beneficios */}
-                    <div style={styles.benefits}>
-                        <h3 style={styles.sectionTitle}>Beneficios</h3>
-                        <div style={styles.benefitsList}>
-                            {product.beneficios.map((benefit, index) => (
-                                <div key={index} style={styles.benefitItem}>
-                                    {benefit}
-                                </div>
-                            ))}
-                        </div>
                     </div>
 
                     {/* Acciones de Compra */}
@@ -248,7 +257,7 @@ const loadProduct = async () => {
                                     disabled={quantity <= 1}
                                     style={styles.quantityButton}
                                 >
-                                    -
+                                    −
                                 </button>
                                 <span style={styles.quantity}>{quantity}</span>
                                 <button 
@@ -270,7 +279,11 @@ const loadProduct = async () => {
                             >
                                 🛒 Agregar al Carrito - {formatPrice(product.precio * quantity)}
                             </button>
-                            <button style={styles.buyNowButton}>
+                            <button 
+                                onClick={handleBuyNow} // AHORA REDIRIGE AL CHECKOUT
+                                disabled={product.stock === 0}
+                                style={product.stock > 0 ? styles.buyNowButton : styles.disabledButton}
+                            >
                                 ⚡ Comprar Ahora
                             </button>
                         </div>
@@ -284,340 +297,286 @@ const loadProduct = async () => {
     );
 };
 
-// Los estilos se mantienen iguales...
+// =========================================================================
+// === ESTILOS CSS-IN-JS (Estilo E-commerce iOS Compacto) ==================
+// =========================================================================
 const styles = {
-    container: {
-        maxWidth: '1200px',
-        margin: '0 auto',
-        padding: '2rem 1rem',
-        minHeight: '100vh',
+    // --- Estilos Base y Layout ---
+    container: { maxWidth: '1000px', margin: '0 auto', padding: '1.5rem 1rem', minHeight: '100vh', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' },
+    breadcrumb: { display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', fontSize: '0.85rem', color: '#666' },
+    breadcrumbLink: { backgroundColor: 'transparent', border: 'none', color: '#007AFF', cursor: 'pointer', textDecoration: 'none' },
+    breadcrumbSeparator: { color: '#999' },
+    breadcrumbCurrent: { color: '#333', fontWeight: '500' },
+    productContent: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2.5rem' },
+    infoSection: { display: 'flex', flexDirection: 'column', gap: '1rem' },
+
+    // --- Tipografía y Títulos ---
+    productName: { fontSize: '2rem', color: '#1c1c1e', margin: '0', lineHeight: '1.2', fontWeight: '700' }, 
+    sectionTitle: { fontSize: '1.1rem', color: '#1c1c1e', margin: '0 0 0.8rem 0', fontWeight: '600' }, 
+    descriptionText: { color: '#48484a', lineHeight: '1.5', margin: '0', fontSize: '0.9rem' }, 
+
+    // --- Precios e Stock ---
+    priceSection: { display: 'flex', alignItems: 'baseline', gap: '0.4rem', marginTop: '0.5rem' },
+    price: { fontSize: '2.2rem', fontWeight: 'bold', color: '#2d5016' }, 
+    unit: { color: '#666', fontSize: '0.9rem' },
+    stockInfo: { fontSize: '0.95rem', fontWeight: '500' },
+    inStock: { color: '#4caf50' },
+    outOfStock: { color: '#f44336' },
+    
+    // --- Imágenes y Beneficios ---
+    imageSection: { display: 'flex', flexDirection: 'column', gap: '0.8rem' },
+    mainImage: { width: '100%', height: '350px', backgroundColor: '#f8f9fa', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }, 
+    placeholderImage: { fontSize: '7rem', opacity: 0.7 },
+    organicBadge: { position: 'absolute', top: '0.8rem', right: '0.8rem', backgroundColor: '#2d5016', color: 'white', padding: '6px 10px', borderRadius: '15px', fontSize: '0.75rem', fontWeight: 'bold' },
+    imageThumbnails: { display: 'flex', gap: '0.4rem', justifyContent: 'center' },
+    thumbnail: { width: '50px', height: '50px', borderRadius: '6px', backgroundColor: '#f8f9fa', cursor: 'pointer', border: '2px solid transparent', overflow: 'hidden' },
+    thumbnailActive: { borderColor: '#2d5016' },
+    thumbnailPlaceholder: { width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', opacity: 0.7 },
+    
+    benefits: { backgroundColor: '#f2f2f7', padding: '1rem', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '0.5rem' },
+    benefitItem: { padding: '0', color: '#1c1c1e', fontWeight: '500', fontSize: '0.9rem' },
+
+    // --- 🍏 ESTILOS DE VENDEDOR COMPACTO ---
+    vendorCard: { 
+        backgroundColor: 'white', 
+        padding: '1rem', 
+        borderRadius: '10px', 
+        border: '1px solid #e0e0e0',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+        marginBottom: '1rem' 
     },
-    breadcrumb: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.5rem',
-        marginBottom: '2rem',
-        fontSize: '0.9rem',
-        color: '#666',
-    },
-    breadcrumbLink: {
-        backgroundColor: 'transparent',
-        border: 'none',
-        color: '#4a7c1f',
-        cursor: 'pointer',
-        textDecoration: 'underline',
-    },
-    breadcrumbSeparator: {
-        color: '#999',
-    },
-    breadcrumbCurrent: {
-        color: '#333',
+    vendorCardTitle: { 
+        fontSize: '0.9rem', 
+        color: '#8e8e93',
+        marginBottom: '0.7rem', 
         fontWeight: '500',
     },
-    productContent: {
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: '3rem',
-        marginBottom: '3rem',
-    },
-    // Sección de Imágenes
-    imageSection: {
-        display: 'flex',
-        flexDirection: 'column',
+    vendorCardDetails: { 
+        display: 'flex', 
+        alignItems: 'flex-start', 
         gap: '1rem',
+        marginBottom: '0.8rem' 
     },
-    mainImage: {
-        width: '100%',
-        height: '400px',
-        backgroundColor: '#f8f9fa',
-        borderRadius: '12px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        position: 'relative',
+    vendorCardProfile: { 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        gap: '0.4rem',
+        minWidth: '60px'
+    },
+    vendorCardImageWrapper: {
+        width: '56px',
+        height: '56px',
+        borderRadius: '50%',
         overflow: 'hidden',
+        border: '2px solid #f0f0f0',
     },
-    placeholderImage: {
-        fontSize: '8rem',
-        opacity: 0.7,
+    vendorCardImage: { 
+        width: '100%', 
+        height: '100%', 
+        objectFit: 'cover', 
     },
-    organicBadge: {
-        position: 'absolute',
-        top: '1rem',
-        right: '1rem',
-        backgroundColor: '#4caf50',
-        color: 'white',
-        padding: '8px 12px',
-        borderRadius: '20px',
-        fontSize: '0.8rem',
-        fontWeight: 'bold',
-    },
-    imageThumbnails: {
-        display: 'flex',
-        gap: '0.5rem',
-        justifyContent: 'center',
-    },
-    thumbnail: {
-        width: '60px',
-        height: '60px',
-        borderRadius: '8px',
-        backgroundColor: '#f8f9fa',
-        cursor: 'pointer',
-        border: '2px solid transparent',
-        overflow: 'hidden',
-    },
-    thumbnailActive: {
-        borderColor: '#4a7c1f',
-    },
-    thumbnailPlaceholder: {
+    vendorPlaceholderIcon: {
         width: '100%',
         height: '100%',
+        backgroundColor: '#e8f5e8', 
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontSize: '1.5rem',
-        opacity: 0.7,
+        fontSize: '1.8rem',
     },
-    // Sección de Información
-    infoSection: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '1.5rem',
+    vendorCardRating: { 
+        fontSize: '0.8rem', 
+        color: '#FFD60A',
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: '0.2rem'
     },
-    productName: {
-        fontSize: '2.2rem',
-        color: '#2d5016',
+    ratingStars: { 
+        letterSpacing: '0.5px' 
+    },
+    ratingNumber: { 
+        fontSize: '0.75rem', 
+        color: '#48484a' 
+    },
+    vendorCardText: { 
+        display: 'flex', 
+        flexDirection: 'column', 
+        gap: '0.2rem',
+        flexGrow: 1
+    },
+    vendorCardName: { 
+        fontWeight: '600', 
+        fontSize: '1rem', 
+        color: '#1c1c1e',
         margin: '0',
-        lineHeight: '1.2',
     },
-    ratingOverview: {
+    vendorCardBadge: { 
         display: 'flex',
         alignItems: 'center',
-        gap: '0.5rem',
-    },
-    stars: {
-        fontSize: '1.2rem',
-        color: '#ffc107',
-    },
-    ratingText: {
-        color: '#666',
-        fontSize: '0.9rem',
-    },
-    priceSection: {
-        display: 'flex',
-        alignItems: 'baseline',
-        gap: '0.5rem',
-    },
-    price: {
-        fontSize: '2.5rem',
-        fontWeight: 'bold',
-        color: '#2d5016',
-    },
-    unit: {
-        color: '#666',
-        fontSize: '1rem',
-    },
-    stockInfo: {
-        fontSize: '1rem',
+        gap: '3px',
+        backgroundColor: '#007AFF',
+        color: 'white', 
+        fontSize: '0.7rem', 
+        padding: '2px 8px', 
+        borderRadius: '12px', 
         fontWeight: '500',
+        width: 'fit-content' 
     },
-    inStock: {
-        color: '#4caf50',
-    },
-    outOfStock: {
-        color: '#f44336',
-    },
-    vendorInfo: {
-        backgroundColor: '#f8f9fa',
-        padding: '1rem',
-        borderRadius: '8px',
-        border: '1px solid #e0e0e0',
-    },
-    vendorTitle: {
-        fontSize: '1.1rem',
-        color: '#2d5016',
-        margin: '0 0 0.5rem 0',
-    },
-    vendorDetails: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.25rem',
-    },
-    vendorName: {
-        fontWeight: 'bold',
-        color: '#333',
-    },
-    vendorDescription: {
+    vendorCardLocation: { 
+        fontSize: '0.85rem', 
         color: '#666',
-        fontSize: '0.9rem',
+        marginTop: '0.2rem'
     },
-    description: {
-        lineHeight: '1.6',
+    locationIcon: { 
+        marginRight: '0.3rem' 
     },
-    sectionTitle: {
-        fontSize: '1.2rem',
-        color: '#2d5016',
-        margin: '0 0 1rem 0',
+    vendorCardDescription: { 
+        fontSize: '0.85rem', 
+        color: '#48484a', 
+        lineHeight: '1.3',
+        marginTop: '0.4rem'
     },
-    descriptionText: {
-        color: '#333',
-        lineHeight: '1.6',
-        margin: '0',
-    },
-    specifications: {
-        backgroundColor: '#f8f9fa',
-        padding: '1.5rem',
+    viewVendorButton: {
+        backgroundColor: '#f2f2f7', 
+        color: '#007AFF',
+        border: 'none',
+        padding: '8px 12px',
         borderRadius: '8px',
-    },
-    specsGrid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: '0.75rem',
-    },
-    specItem: {
+        fontSize: '0.9rem',
+        fontWeight: '600',
+        cursor: 'pointer',
+        textAlign: 'left',
+        width: '100%',
         display: 'flex',
         justifyContent: 'space-between',
-        padding: '0.5rem 0',
-        borderBottom: '1px solid #e0e0e0',
-    },
-    specKey: {
-        fontWeight: '600',
-        color: '#333',
-    },
-    specValue: {
-        color: '#666',
-    },
-    benefits: {
-        backgroundColor: '#e8f5e8',
-        padding: '1.5rem',
-        borderRadius: '8px',
-        border: '1px solid #4caf50',
-    },
-    benefitsList: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.5rem',
-    },
-    benefitItem: {
-        padding: '0.5rem 0',
-        color: '#2d5016',
-        fontWeight: '500',
-    },
-    // Sección de Compra
-    purchaseSection: {
-        backgroundColor: 'white',
-        padding: '1.5rem',
-        borderRadius: '12px',
-        border: '2px solid #f0f0f0',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-    },
-    quantitySelector: {
-        display: 'flex',
         alignItems: 'center',
-        gap: '1rem',
-        marginBottom: '1.5rem',
-        flexWrap: 'wrap',
+        marginTop: '0.8rem',
+        transition: 'background-color 0.2s'
     },
-    quantityLabel: {
-        fontWeight: '600',
-        color: '#333',
+    viewVendorIcon: {
+        fontSize: '1.1rem',
+        marginLeft: '5px'
+    },
+
+    // --- 🛒 Estilos de Compra Compactos ---
+    purchaseSection: { 
+        backgroundColor: 'white', 
+        padding: '1.2rem', 
+        borderRadius: '12px', 
+        border: '1px solid #e0e0e0', 
+        boxShadow: '0 2px 8px rgba(0,0,0,0.06)', 
+    },
+    quantitySelector: { 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between', 
+        marginBottom: '1.2rem'
+    },
+    quantityLabel: { 
+        fontWeight: '600', 
+        color: '#1c1c1e', 
+        fontSize: '1rem' 
+    },
+    quantityControls: { 
+        display: 'flex', 
+        alignItems: 'stretch', 
+        border: '1px solid #d1d1d6', 
+        borderRadius: '8px', 
+        overflow: 'hidden', 
+        height: '36px' 
+    },
+    quantityButton: { 
+        width: '36px', 
+        height: '100%', 
+        border: 'none', 
+        backgroundColor: '#f8f8f8', 
+        cursor: 'pointer', 
+        fontSize: '1.1rem', 
+        fontWeight: '500', 
+        color: '#007AFF',
+        transition: 'background-color 0.2s',
+    },
+    quantity: { 
+        minWidth: '40px', 
+        textAlign: 'center', 
+        fontWeight: '600', 
         fontSize: '1rem',
-    },
-    quantityControls: {
         display: 'flex',
         alignItems: 'center',
-        gap: '0.5rem',
-        border: '2px solid #e0e0e0',
-        borderRadius: '8px',
-        padding: '0.25rem',
+        justifyContent: 'center'
     },
-    quantityButton: {
-        width: '35px',
-        height: '35px',
-        border: 'none',
-        backgroundColor: '#f8f9fa',
-        borderRadius: '6px',
+    quantityUnit: { 
+        color: '#666', 
+        fontSize: '0.85rem',
+        marginLeft: '0.5rem'
+    },
+    actionButtons: { 
+        display: 'flex', 
+        flexDirection: 'column', 
+        gap: '0.7rem' 
+    },
+    addToCartButton: { 
+        backgroundColor: '#2d5016', 
+        color: 'white', 
+        border: 'none', 
+        padding: '14px', 
+        borderRadius: '8px', 
+        fontSize: '1rem', 
+        fontWeight: '700', 
+        cursor: 'pointer', 
+        boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+    },
+    buyNowButton: { 
+        backgroundColor: '#1c1c1e', 
+        color: 'white', 
+        border: 'none', 
+        padding: '14px', 
+        borderRadius: '8px', 
+        fontSize: '1rem', 
+        fontWeight: '700', 
         cursor: 'pointer',
-        fontSize: '1.1rem',
-        fontWeight: 'bold',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
     },
-    quantity: {
-        minWidth: '40px',
-        textAlign: 'center',
-        fontWeight: 'bold',
-        fontSize: '1.1rem',
+    disabledButton: { 
+        backgroundColor: '#d1d1d6', 
+        color: '#a1a1a6', 
+        border: 'none', 
+        padding: '14px', 
+        borderRadius: '8px', 
+        fontSize: '1rem', 
+        fontWeight: '700', 
+        cursor: 'not-allowed'
     },
-    quantityUnit: {
-        color: '#666',
-        fontSize: '0.9rem',
+
+    // --- Estilos de Estado ---
+    loading: { 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        minHeight: '30vh', 
+        fontSize: '1rem',
+        color: '#8e8e93' 
     },
-    actionButtons: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '1rem',
+    spinner: { 
+        fontSize: '2.5rem', 
+        marginBottom: '0.8rem', 
+        color: '#007AFF' 
     },
-    addToCartButton: {
-        backgroundColor: '#4a7c1f',
-        color: 'white',
-        border: 'none',
-        padding: '15px',
-        borderRadius: '8px',
-        fontSize: '1.1rem',
-        fontWeight: 'bold',
-        cursor: 'pointer',
-        transition: 'background-color 0.3s',
+    error: { 
+        textAlign: 'center', 
+        padding: '1.5rem', 
+        color: '#ff3b30' 
     },
-    disabledButton: {
-        backgroundColor: '#ccc',
-        color: '#666',
-        border: 'none',
-        padding: '15px',
-        borderRadius: '8px',
-        fontSize: '1.1rem',
-        fontWeight: 'bold',
-        cursor: 'not-allowed',
-    },
-    buyNowButton: {
-        backgroundColor: '#ff6b35',
-        color: 'white',
-        border: 'none',
-        padding: '15px',
-        borderRadius: '8px',
-        fontSize: '1.1rem',
-        fontWeight: 'bold',
-        cursor: 'pointer',
-        transition: 'background-color 0.3s',
-    },
-    // Estados
-    loading: {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '50vh',
-        fontSize: '1.2rem',
-    },
-    spinner: {
-        fontSize: '3rem',
-        marginBottom: '1rem',
-        animation: 'spin 1s linear infinite',
-    },
-    error: {
-        textAlign: 'center',
-        padding: '2rem',
-        color: '#d32f2f',
-    },
-    backButton: {
-        backgroundColor: '#2d5016',
-        color: 'white',
-        border: 'none',
-        padding: '10px 20px',
-        borderRadius: '5px',
-        cursor: 'pointer',
+    backButton: { 
+        backgroundColor: '#007AFF', 
+        color: 'white', 
+        border: 'none', 
+        padding: '8px 16px', 
+        borderRadius: '8px', 
+        cursor: 'pointer', 
         marginTop: '1rem',
+        fontWeight: '600'
     },
 };
 

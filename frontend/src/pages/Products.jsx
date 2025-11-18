@@ -23,7 +23,7 @@ const Products = () => {
 
     // Paginación
     const [currentPage, setCurrentPage] = useState(1);
-    const [productsPerPage] = useState(9); // Máximo 9 productos por página
+    const [productsPerPage] = useState(12);
 
     // Estados para notificaciones y autenticación
     const [toasts, setToasts] = useState([]);
@@ -35,7 +35,6 @@ const Products = () => {
     const user = authService.user;
     const navigate = useNavigate();
 
-    // Función para mostrar notificaciones
     const showToast = (message, type = 'success', duration = 3000) => {
         const id = Date.now();
         setToasts(prev => [...prev, { id, message, type, duration }]);
@@ -45,7 +44,6 @@ const Products = () => {
         setToasts(prev => prev.filter(toast => toast.id !== id));
     };
 
-    // Función para formatear precios en CLP
     const formatPrice = (price) => {
         return new Intl.NumberFormat('es-CL', {
             style: 'currency',
@@ -54,16 +52,14 @@ const Products = () => {
         }).format(price);
     };
 
-    // Cargar productos y categorías al iniciar
     useEffect(() => {
         loadProducts();
         loadCategories();
     }, []);
 
-    // Filtrar productos cuando cambian los filtros
     useEffect(() => {
         filterProducts();
-        setCurrentPage(1); // Resetear a primera página cuando cambian filtros
+        setCurrentPage(1);
     }, [products, searchTerm, selectedCategory, priceRange, selectedOrigin, sortBy, inStockOnly]);
 
     const loadProducts = async () => {
@@ -73,7 +69,6 @@ const Products = () => {
 
             if (response.ok) {
                 const productos = await response.json();
-
                 const productosFormateados = productos.map(producto => ({
                     id: producto.id,
                     nombre: producto.nombre,
@@ -85,9 +80,10 @@ const Products = () => {
                     vendedor_nombre: producto.vendedor_nombre || 'Vendedor',
                     origen: producto.origen,
                     imagen: producto.imagen,
-                    certificado_organico: producto.certificado_organico || false
+                    certificado_organico: producto.certificado_organico || false,
+                    ciudad: producto.ciudad || '',
+                    comuna: producto.comuna || ''
                 }));
-
                 setProducts(productosFormateados);
             } else {
                 throw new Error('Error al cargar productos de la API');
@@ -95,128 +91,7 @@ const Products = () => {
         } catch (err) {
             setError('Error al cargar los productos desde el servidor');
             console.error('Error:', err);
-
-            // Datos de ejemplo como fallback
-            const exampleProducts = [
-                {
-                    id: 1,
-                    nombre: 'Manzanas Orgánicas Premium',
-                    descripcion: 'Manzanas frescas cultivadas de forma orgánica, dulces y jugosas',
-                    precio: 3200,
-                    stock: 25,
-                    categoria: 1,
-                    categoria_nombre: 'Frutas',
-                    vendedor_nombre: 'Granja Orgánica',
-                    origen: 'organico',
-                    imagen: null,
-                    certificado_organico: true
-                },
-                {
-                    id: 2,
-                    nombre: 'Zanahorias Frescas',
-                    descripcion: 'Zanahorias crujientes recién cosechadas, ricas en vitamina A',
-                    precio: 1800,
-                    stock: 40,
-                    categoria: 2,
-                    categoria_nombre: 'Verduras',
-                    vendedor_nombre: 'Huerto Familiar',
-                    origen: 'convencional',
-                    imagen: null,
-                    certificado_organico: false
-                },
-                {
-                    id: 3,
-                    nombre: 'Quinua Real',
-                    descripcion: 'Quinua orgánica de alta calidad, perfecta para ensaladas y platos saludables',
-                    precio: 4500,
-                    stock: 15,
-                    categoria: 3,
-                    categoria_nombre: 'Granos',
-                    vendedor_nombre: 'Cultivos Andinos',
-                    origen: 'organico',
-                    imagen: null,
-                    certificado_organico: true
-                },
-                {
-                    id: 4,
-                    nombre: 'Leche Orgánica',
-                    descripcion: 'Leche fresca de vacas criadas en pastoreo libre sin hormonas',
-                    precio: 2800,
-                    stock: 0,
-                    categoria: 4,
-                    categoria_nombre: 'Lácteos',
-                    vendedor_nombre: 'Estancia Natural',
-                    origen: 'organico',
-                    imagen: null,
-                    certificado_organico: true
-                },
-                {
-                    id: 5,
-                    nombre: 'Albahaca Fresca',
-                    descripcion: 'Albahaca orgánica recién cosechada, ideal para pesto y cocina italiana',
-                    precio: 1200,
-                    stock: 30,
-                    categoria: 5,
-                    categoria_nombre: 'Hierbas',
-                    vendedor_nombre: 'Huerto Aromático',
-                    origen: 'organico',
-                    imagen: null,
-                    certificado_organico: true
-                },
-                {
-                    id: 6,
-                    nombre: 'Tomates Cherry',
-                    descripcion: 'Tomates cherry dulces y jugosos, perfectos para ensaladas',
-                    precio: 2200,
-                    stock: 20,
-                    categoria: 2,
-                    categoria_nombre: 'Verduras',
-                    vendedor_nombre: 'Invernadero Solar',
-                    origen: 'convencional',
-                    imagen: null,
-                    certificado_organico: false
-                },
-                {
-                    id: 7,
-                    nombre: 'Miel Pura de Abeja',
-                    descripcion: 'Miel 100% natural de flores silvestres, sin procesar',
-                    precio: 5800,
-                    stock: 12,
-                    categoria: 6,
-                    categoria_nombre: 'Endulzantes',
-                    vendedor_nombre: 'Apicultura Natural',
-                    origen: 'organico',
-                    imagen: null,
-                    certificado_organico: true
-                },
-                {
-                    id: 8,
-                    nombre: 'Aguacates Hass',
-                    descripcion: 'Aguacates cremosos de la variedad Hass, listos para consumir',
-                    precio: 3800,
-                    stock: 18,
-                    categoria: 1,
-                    categoria_nombre: 'Frutas',
-                    vendedor_nombre: 'Palta Premium',
-                    origen: 'convencional',
-                    imagen: null,
-                    certificado_organico: false
-                },
-                {
-                    id: 9,
-                    nombre: 'Espinacas Orgánicas',
-                    descripcion: 'Espinacas frescas cultivadas sin pesticidas, ricas en hierro',
-                    precio: 1900,
-                    stock: 22,
-                    categoria: 2,
-                    categoria_nombre: 'Verduras',
-                    vendedor_nombre: 'Verduras Salud',
-                    origen: 'organico',
-                    imagen: null,
-                    certificado_organico: true
-                }
-            ];
-            setProducts(exampleProducts);
+            setProducts([]);
         } finally {
             setLoading(false);
         }
@@ -225,32 +100,18 @@ const Products = () => {
     const loadCategories = async () => {
         try {
             const response = await fetch('http://localhost:8000/api/categorias/');
-
             if (response.ok) {
                 const categorias = await response.json();
                 setCategories(categorias);
-            } else {
-                throw new Error('Error al cargar categorías');
             }
         } catch (err) {
             console.error('Error cargando categorías:', err);
-            // Datos de ejemplo como fallback
-            const exampleCategories = [
-                { id: 1, nombre: 'Frutas', descripcion: 'Frutas frescas de temporada' },
-                { id: 2, nombre: 'Verduras', descripcion: 'Verduras orgánicas y convencionales' },
-                { id: 3, nombre: 'Granos', descripcion: 'Granos y cereales nutritivos' },
-                { id: 4, nombre: 'Lácteos', descripcion: 'Productos lácteos frescos' },
-                { id: 5, nombre: 'Hierbas', descripcion: 'Hierbas aromáticas y medicinales' },
-                { id: 6, nombre: 'Endulzantes', descripcion: 'Miel y otros endulzantes naturales' }
-            ];
-            setCategories(exampleCategories);
         }
     };
 
     const filterProducts = () => {
         let filtered = [...products];
 
-        // Filtrar por búsqueda
         if (searchTerm) {
             filtered = filtered.filter(product =>
                 product?.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -259,31 +120,26 @@ const Products = () => {
             );
         }
 
-        // Filtrar por categoría
         if (selectedCategory) {
             filtered = filtered.filter(product =>
                 product?.categoria === parseInt(selectedCategory)
             );
         }
 
-        // Filtrar por rango de precio
         filtered = filtered.filter(product =>
             (product.precio || 0) >= priceRange[0] && (product.precio || 0) <= priceRange[1]
         );
 
-        // Filtrar por origen
         if (selectedOrigin) {
             filtered = filtered.filter(product =>
                 product?.origen === selectedOrigin
             );
         }
 
-        // Filtrar por stock
         if (inStockOnly) {
             filtered = filtered.filter(product => (product.stock || 0) > 0);
         }
 
-        // Ordenar productos
         switch (sortBy) {
             case 'price-low':
                 filtered.sort((a, b) => (a.precio || 0) - (b.precio || 0));
@@ -307,7 +163,6 @@ const Products = () => {
         setFilteredProducts(filtered);
     };
 
-    // Manejo de agregar al carrito con autenticación
     const handleAddToCart = (product) => {
         if (!isAuthenticated) {
             setSelectedProduct(product);
@@ -321,46 +176,15 @@ const Products = () => {
         }
 
         addToCart(product);
-        showToast(`¡${product.nombre} agregado al carrito!`, 'success');
+        showToast(`${product.nombre} agregado al carrito`, 'success');
     };
 
-    // Confirmación rápida de agregar al carrito
-    const handleQuickAddToCart = (product) => {
-        handleAddToCart(product);
-    };
-
-    // Paginación
     const indexOfLastProduct = currentPage * productsPerPage;
     const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
     const currentProducts = filteredProducts.slice(indexOfFirstProduct, indexOfLastProduct);
     const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
 
     const paginate = (pageNumber) => setCurrentPage(pageNumber);
-
-    const handleSearch = (e) => {
-        setSearchTerm(e.target.value);
-    };
-
-    const handleCategoryChange = (e) => {
-        setSelectedCategory(e.target.value);
-    };
-
-    const handlePriceRangeChange = (e) => {
-        const value = parseInt(e.target.value);
-        setPriceRange([0, value]);
-    };
-
-    const handleOriginChange = (e) => {
-        setSelectedOrigin(e.target.value);
-    };
-
-    const handleSortChange = (e) => {
-        setSortBy(e.target.value);
-    };
-
-    const handleStockChange = (e) => {
-        setInStockOnly(e.target.checked);
-    };
 
     const clearFilters = () => {
         setSearchTerm('');
@@ -372,32 +196,26 @@ const Products = () => {
         showToast('Filtros limpiados', 'info');
     };
 
-    const getPriceRangeLabels = () => {
-        const ranges = [
-            { max: 2000, label: 'Menos de $2.000' },
-            { max: 5000, label: 'Menos de $5.000' },
-            { max: 10000, label: 'Menos de $10.000' },
-            { max: 10000, label: 'Todos los precios' }
-        ];
-        return ranges.find(range => range.max === priceRange[1])?.label || 'Todos los precios';
-    };
-
     if (loading) {
         return (
-            <div className="products-loading">
-                <div className="products-spinner"></div>
-                <p>Cargando productos...</p>
+            <div className="products-loading-container">
+                <div className="loading-spinner-modern">
+                    <div className="spinner-ring"></div>
+                    <div className="spinner-ring"></div>
+                    <div className="spinner-ring"></div>
+                </div>
+                <p className="loading-text">Cargando productos frescos...</p>
             </div>
         );
     }
 
     if (error) {
         return (
-            <div className="products-error">
-                <div className="error-icon">⚠️</div>
-                <h3>Error al cargar productos</h3>
-                <p>{error}</p>
-                <button onClick={loadProducts} className="retry-button">
+            <div className="products-error-container">
+                <div className="error-icon-modern">⚠️</div>
+                <h3 className="error-title">Ups, algo salió mal</h3>
+                <p className="error-message">{error}</p>
+                <button onClick={loadProducts} className="retry-button-modern">
                     Reintentar
                 </button>
             </div>
@@ -405,343 +223,416 @@ const Products = () => {
     }
 
     return (
-        <div className="products-container">
-            {/* Header con título y estadísticas */}
-            <div className="products-header">
-                <div className="header-content">
-                    <h1 className="products-title">Nuestros Productos</h1>
-                    <p className="products-subtitle">
-                        Descubre la frescura de productos agrícolas seleccionados
+        <div className="products-page">
+            {/* Hero Section */}
+            <section className="products-hero">
+                <div className="hero-content">
+                    <span className="hero-badge">Productos Frescos</span>
+                    <h1 className="hero-title">
+                        Descubre la <span className="hero-highlight">frescura</span> natural
+                    </h1>
+                    <p className="hero-subtitle">
+                        Productos agrícolas de calidad, directo del campo a tu mesa
                     </p>
-                    <div className="header-stats">
-                        <div className="stat-item">
-                            <span className="stat-number">{products.length}</span>
-                            <span className="stat-label">Productos</span>
+                    
+                    {/* Stats Cards */}
+                    <div className="hero-stats">
+                        <div className="stat-card">
+                            <div className="stat-icon">🛒</div>
+                            <div className="stat-content">
+                                <span className="stat-number">{products.length}</span>
+                                <span className="stat-label">Productos</span>
+                            </div>
                         </div>
-                        <div className="stat-item">
-                            <span className="stat-number">
-                                {products.filter(p => p.origen === 'organico').length}
-                            </span>
-                            <span className="stat-label">Orgánicos</span>
+                        <div className="stat-card">
+                            <div className="stat-icon">🌿</div>
+                            <div className="stat-content">
+                                <span className="stat-number">
+                                    {products.filter(p => p.origen === 'organico').length}
+                                </span>
+                                <span className="stat-label">Orgánicos</span>
+                            </div>
                         </div>
-                        <div className="stat-item">
-                            <span className="stat-number">{categories.length}</span>
-                            <span className="stat-label">Categorías</span>
+                        <div className="stat-card">
+                            <div className="stat-icon">📦</div>
+                            <div className="stat-content">
+                                <span className="stat-number">{categories.length}</span>
+                                <span className="stat-label">Categorías</span>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </section>
 
-            {/* Barra de Búsqueda y Filtros */}
-            <div className="search-filters-container">
-                <div className="search-section">
-                    <div className="search-box">
-                        <div className="search-icon">🔍</div>
+            {/* Search and Filters Section */}
+            <section className="filters-section">
+                <div className="container">
+                    {/* Search Bar */}
+                    <div className="search-bar-modern">
+                        <div className="search-icon-modern"></div>
                         <input
                             type="text"
-                            placeholder="Buscar productos, descripción o vendedor..."
+                            placeholder="Buscar productos, vendedores..."
                             value={searchTerm}
-                            onChange={handleSearch}
-                            className="search-input"
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="search-input-modern"
                         />
+                        {searchTerm && (
+                            <button 
+                                onClick={() => setSearchTerm('')}
+                                className="search-clear"
+                            >
+                                ✕
+                            </button>
+                        )}
                     </div>
-                    <button
-                        onClick={() => setShowFilters(!showFilters)}
-                        className="filter-toggle"
-                    >
-                        {showFilters ? '▲' : '▼'} Filtros Avanzados
-                    </button>
-                </div>
 
-                <div className="quick-controls">
-                    <select
-                        value={sortBy}
-                        onChange={handleSortChange}
-                        className="sort-select"
-                    >
-                        <option value="name">Ordenar por: Nombre</option>
-                        <option value="price-low">Precio: Menor a Mayor</option>
-                        <option value="price-high">Precio: Mayor a Menor</option>
-                        <option value="stock">Más Stock</option>
-                        <option value="newest">Más Recientes</option>
-                    </select>
+                    {/* Filter Pills */}
+                    <div className="filter-controls">
+                        <button
+                            onClick={() => setShowFilters(!showFilters)}
+                            className={`filter-pill ${showFilters ? 'active' : ''}`}
+                        >
+                            <span className="pill-icon">⚙️</span>
+                            <span className="pill-text">Filtros</span>
+                            <span className="pill-arrow">{showFilters ? '▲' : '▼'}</span>
+                        </button>
 
-                    <button onClick={clearFilters} className="clear-filters-btn">
-                        🗑️ Limpiar Filtros
-                    </button>
-                </div>
-            </div>
+                        <select
+                            value={sortBy}
+                            onChange={(e) => setSortBy(e.target.value)}
+                            className="sort-select-modern"
+                        >
+                            <option value="name">Ordenar: A-Z</option>
+                            <option value="price-low">Precio: Menor a Mayor</option>
+                            <option value="price-high">Precio: Mayor a Menor</option>
+                            <option value="stock">Mayor Disponibilidad</option>
+                            <option value="newest">Más Recientes</option>
+                        </select>
 
-            {/* Filtros Avanzados con Animación */}
-            {showFilters && (
-                <div className="advanced-filters">
-                    <div className="filters-grid">
-                        <div className="filter-group">
-                            <label className="filter-label">Categoría</label>
-                            <select
-                                value={selectedCategory}
-                                onChange={handleCategoryChange}
-                                className="filter-select"
-                            >
-                                <option value="">Todas las categorías</option>
-                                {categories.map(category => (
-                                    <option key={category.id} value={category.id}>
-                                        {category.nombre}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
+                        {(searchTerm || selectedCategory || selectedOrigin || inStockOnly) && (
+                            <button onClick={clearFilters} className="clear-button-modern">
+                                <span>✕</span>
+                                Limpiar
+                            </button>
+                        )}
+                    </div>
 
-                        <div className="filter-group">
-                            <label className="filter-label">
-                                Precio Máximo: {formatPrice(priceRange[1])}
-                            </label>
-                            <input
-                                type="range"
-                                min="0"
-                                max="10000"
-                                step="500"
-                                value={priceRange[1]}
-                                onChange={handlePriceRangeChange}
-                                className="price-range"
-                            />
-                            <div className="range-label">{getPriceRangeLabels()}</div>
-                        </div>
+                    {/* Advanced Filters Panel */}
+                    {showFilters && (
+                        <div className="filters-panel-modern">
+                            <div className="filters-grid-modern">
+                                <div className="filter-group-modern">
+                                    <label className="filter-label-modern">Categoría</label>
+                                    <select
+                                        value={selectedCategory}
+                                        onChange={(e) => setSelectedCategory(e.target.value)}
+                                        className="filter-select-modern"
+                                    >
+                                        <option value="">Todas</option>
+                                        {categories.map(category => (
+                                            <option key={category.id} value={category.id}>
+                                                {category.nombre}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
 
-                        <div className="filter-group">
-                            <label className="filter-label">Tipo de Cultivo</label>
-                            <select
-                                value={selectedOrigin}
-                                onChange={handleOriginChange}
-                                className="filter-select"
-                            >
-                                <option value="">Todos los tipos</option>
-                                <option value="organico">🌿 Orgánico</option>
-                                <option value="convencional">🏭 Convencional</option>
-                            </select>
-                        </div>
+                                <div className="filter-group-modern">
+                                    <label className="filter-label-modern">Tipo de Cultivo</label>
+                                    <select
+                                        value={selectedOrigin}
+                                        onChange={(e) => setSelectedOrigin(e.target.value)}
+                                        className="filter-select-modern"
+                                    >
+                                        <option value="">Todos</option>
+                                        <option value="organico">🌿 Orgánico</option>
+                                        <option value="convencional">🏭 Convencional</option>
+                                    </select>
+                                </div>
 
-                        <div className="filter-group">
-                            <label className="filter-label">Disponibilidad</label>
-                            <div className="checkbox-container">
-                                <input
-                                    type="checkbox"
-                                    id="inStockOnly"
-                                    checked={inStockOnly}
-                                    onChange={handleStockChange}
-                                    className="filter-checkbox"
-                                />
-                                <label htmlFor="inStockOnly" className="checkbox-label">
-                                    Solo productos en stock
-                                </label>
+                                <div className="filter-group-modern">
+                                    <label className="filter-label-modern">
+                                        Precio máx: {formatPrice(priceRange[1])}
+                                    </label>
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="10000"
+                                        step="500"
+                                        value={priceRange[1]}
+                                        onChange={(e) => setPriceRange([0, parseInt(e.target.value)])}
+                                        className="range-slider-modern"
+                                    />
+                                </div>
+
+                                <div className="filter-group-modern">
+                                    <label className="checkbox-modern">
+                                        <input
+                                            type="checkbox"
+                                            checked={inStockOnly}
+                                            onChange={(e) => setInStockOnly(e.target.checked)}
+                                            className="checkbox-input-modern"
+                                        />
+                                        <span className="checkbox-label-modern">Solo en stock</span>
+                                    </label>
+                                </div>
                             </div>
                         </div>
+                    )}
+
+                    {/* Results Info */}
+                    <div className="results-bar">
+                        <span className="results-count">
+                            {filteredProducts.length} producto{filteredProducts.length !== 1 ? 's' : ''} encontrado{filteredProducts.length !== 1 ? 's' : ''}
+                        </span>
                     </div>
                 </div>
-            )}
+            </section>
 
-            {/* Información de Resultados */}
-            <div className="results-info">
-                <p>
-                    Mostrando <strong>{filteredProducts.length}</strong> de <strong>{products.length}</strong> productos
-                    {searchTerm && ` para "${searchTerm}"`}
-                    {selectedCategory && ` en ${categories.find(c => c.id === parseInt(selectedCategory))?.nombre}`}
-                    {selectedOrigin && ` · ${selectedOrigin === 'organico' ? 'Orgánicos' : 'Convencionales'}`}
-                    {inStockOnly && ` · Solo en stock`}
-                </p>
-            </div>
+            {/* Products Grid */}
+            <section className="products-grid-section">
+                <div className="container">
+                    {currentProducts.length > 0 ? (
+                        <div className="products-grid-modern">
+                            {currentProducts.map(product => (
+                                <article key={product.id} className="product-card-modern">
+                                    {/* Product Image */}
+                                    <div className="product-image-wrapper">
+                                        {product.imagen ? (
+                                            <img
+                                                src={`http://localhost:8000${product.imagen}`}
+                                                alt={product.nombre}
+                                                className="product-image-modern"
+                                                loading="lazy"
+                                            />
+                                        ) : (
+                                            <div className="product-image-placeholder">
+                                                <span className="placeholder-emoji">
+                                                    {product.categoria_nombre === 'Frutas' ? '🍎' :
+                                                     product.categoria_nombre === 'Verduras' ? '🥕' :
+                                                     product.categoria_nombre === 'Lácteos' ? '🥛' : '🌱'}
+                                                </span>
+                                            </div>
+                                        )}
 
-            {/* Grid de Productos */}
-            <div className="products-grid">
-                {currentProducts.map(product => (
-                    <div key={product.id} className="product-card">
-                        <div className="product-image">
-                            {product.imagen ? (
-                                <img
-                                    src={`http://localhost:8000${product.imagen}`}
-                                    alt={product.nombre}
-                                    className="product-img"
-                                />
-                            ) : (
-                                <div className="placeholder-image">
-                                    {product.categoria_nombre === 'Frutas' ? '🍎' :
-                                        product.categoria_nombre === 'Verduras' ? '🥕' :
-                                            product.categoria_nombre === 'Granos' ? '🌾' :
-                                                product.categoria_nombre === 'Lácteos' ? '🥛' :
-                                                    product.categoria_nombre === 'Hierbas' ? '🌿' : '🌱'}
-                                </div>
-                            )}
+                                        {/* Badges */}
+                                        <div className="product-badges">
+                                            {product.origen === 'organico' && (
+                                                <span className="badge badge-organic">🌿 Orgánico</span>
+                                            )}
+                                            {product.stock === 0 && (
+                                                <span className="badge badge-sold-out">Agotado</span>
+                                            )}
+                                            {product.stock > 0 && product.stock < 10 && (
+                                                <span className="badge badge-low-stock">Últimas unidades</span>
+                                            )}
+                                        </div>
 
-                            {/* Badges */}
-                            {product.origen === 'organico' && (
-                                <div className="organic-badge">🌿 Orgánico</div>
-                            )}
-                            {product.certificado_organico && (
-                                <div className="certified-badge">✅ Certificado</div>
-                            )}
-                            {product.stock === 0 && (
-                                <div className="out-of-stock-badge">⛔ Agotado</div>
-                            )}
-                            {product.stock > 0 && product.stock < 10 && (
-                                <div className="low-stock-badge">⚠️ Últimas unidades</div>
-                            )}
+                                        {/* Quick View Button */}
+                                        <button 
+                                            onClick={() => navigate(`/producto/${product.id}`)}
+                                            className="quick-view-button"
+                                        >
+                                            Vista rápida
+                                        </button>
+                                    </div>
+
+                                    {/* Product Content */}
+                                    <div className="product-content-modern">
+                                        {/* Category Tag */}
+                                        <span className="product-category-tag">
+                                            {product.categoria_nombre}
+                                        </span>
+
+                                        {/* Product Title */}
+                                        <h3 className="product-title-modern">
+                                            {product.nombre}
+                                        </h3>
+
+                                        {/* Product Description */}
+                                        <p className="product-description-modern">
+                                            {product.descripcion && product.descripcion.length > 80
+                                                ? `${product.descripcion.substring(0, 80)}...`
+                                                : product.descripcion}
+                                        </p>
+
+                                        {/* Product Meta */}
+                                        <div className="product-meta-modern">
+                                            <div className="meta-item">
+                                                <span className="meta-icon">👤</span>
+                                                <span className="meta-text">{product.vendedor_nombre}</span>
+                                            </div>
+                                            {(product.ciudad || product.comuna) && (
+                                                <div className="meta-item">
+                                                    <span className="meta-icon">📍</span>
+                                                    <span className="meta-text">
+                                                        {product.ciudad}{product.ciudad && product.comuna ? ', ' : ''}{product.comuna}
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Price and Actions */}
+                                        <div className="product-footer-modern">
+                                            <div className="price-wrapper">
+                                                <span className="product-price-modern">
+                                                    {formatPrice(product.precio || 0)}
+                                                </span>
+                                                <span className="price-unit">/kg</span>
+                                            </div>
+
+                                            <button
+                                                onClick={() => handleAddToCart(product)}
+                                                disabled={product.stock === 0}
+                                                className={`add-to-cart-button-modern ${product.stock === 0 ? 'disabled' : ''}`}
+                                            >
+                                                {product.stock > 0 ? (
+                                                    <>
+                                                        <span className="cart-icon">🛒</span>
+                                                        <span>Agregar</span>
+                                                    </>
+                                                ) : (
+                                                    <span>Agotado</span>
+                                                )}
+                                            </button>
+                                        </div>
+
+                                        {/* Stock Indicator */}
+                                        {product.stock > 0 && (
+                                            <div className="stock-indicator-modern">
+                                                <div className="stock-bar">
+                                                    <div 
+                                                        className="stock-fill"
+                                                        style={{
+                                                            width: `${Math.min((product.stock / 50) * 100, 100)}%`,
+                                                            backgroundColor: product.stock < 10 ? '#ff6b6b' : '#10b981'
+                                                        }}
+                                                    ></div>
+                                                </div>
+                                                <span className="stock-text">
+                                                    {product.stock} disponibles
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </article>
+                            ))}
                         </div>
-
-                        <div className="product-info">
-                            <h3 className="product-name">{product.nombre}</h3>
-                            <p className="product-description">
-                                {product.descripcion && product.descripcion.length > 100
-                                    ? `${product.descripcion.substring(0, 100)}...`
-                                    : product.descripcion}
+                    ) : (
+                        <div className="empty-state-modern">
+                            <div className="empty-icon-modern">🔍</div>
+                            <h3 className="empty-title">No encontramos productos</h3>
+                            <p className="empty-description">
+                                Intenta ajustar los filtros o buscar con otros términos
                             </p>
-
-                            <div className="product-details">
-                                <div className="detail-row">
-                                    <span className="detail-label">Precio:</span>
-                                    <span className="product-price">{formatPrice(product.precio || 0)}</span>
-                                </div>
-
-                                <div className="detail-row">
-                                    <span className="detail-label">Stock:</span>
-                                    <span className={`stock-status ${product.stock > 0 ? 'in-stock' : 'out-of-stock'}`}>
-                                        {product.stock > 0 ? `${product.stock} disponibles` : 'Agotado'}
-                                    </span>
-                                </div>
-
-                                <div className="detail-row">
-                                    <span className="detail-label">Categoría:</span>
-                                    <span className="product-category">{product.categoria_nombre}</span>
-                                </div>
-
-                                <div className="detail-row">
-                                    <span className="detail-label">Vendedor:</span>
-                                    <span className="product-vendor">{product.vendedor_nombre}</span>
-                                </div>
-
-                                <div className="detail-row">
-                                    <span className="detail-label">Origen:</span>
-                                    <span className={`origin-type ${product.origen === 'organico' ? 'organic' : 'conventional'}`}>
-                                        {product.origen === 'organico' ? 'Orgánico' : 'Convencional'}
-                                    </span>
-                                </div>
-                            </div>
-
-                            <div className="product-actions">
-                                <button
-                                    onClick={() => handleAddToCart(product)}
-                                    className={`add-to-cart-btn ${product.stock === 0 ? 'disabled' : ''}`}
-                                    disabled={product.stock === 0}
-                                >
-                                    {product.stock > 0 ? '🛒 Agregar al Carrito' : '❌ Agotado'}
-                                </button>
-                                <button
-                                    onClick={() => navigate(`/producto/${product.id}`)}
-                                    className="view-details-btn"
-                                >
-                                    👁️ Ver Detalles
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                ))}
-            </div>
-
-            {/* Paginación */}
-            {totalPages > 1 && (
-                <div className="pagination-container">
-                    <div className="pagination">
-                        <button
-                            onClick={() => paginate(currentPage - 1)}
-                            disabled={currentPage === 1}
-                            className="pagination-btn"
-                        >
-                            ← Anterior
-                        </button>
-
-                        {Array.from({ length: totalPages }, (_, i) => i + 1).map(number => (
-                            <button
-                                key={number}
-                                onClick={() => paginate(number)}
-                                className={`pagination-number ${currentPage === number ? 'active' : ''}`}
-                            >
-                                {number}
+                            <button onClick={clearFilters} className="empty-action-button">
+                                Ver todos los productos
                             </button>
-                        ))}
+                        </div>
+                    )}
 
-                        <button
-                            onClick={() => paginate(currentPage + 1)}
-                            disabled={currentPage === totalPages}
-                            className="pagination-btn"
-                        >
-                            Siguiente →
-                        </button>
-                    </div>
-                    <div className="pagination-info">
-                        Página {currentPage} de {totalPages}
-                    </div>
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                        <div className="pagination-modern">
+                            <button
+                                onClick={() => paginate(currentPage - 1)}
+                                disabled={currentPage === 1}
+                                className="pagination-button prev"
+                            >
+                                ← Anterior
+                            </button>
+
+                            <div className="pagination-numbers">
+                                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                                    let pageNum;
+                                    if (totalPages <= 5) {
+                                        pageNum = i + 1;
+                                    } else if (currentPage <= 3) {
+                                        pageNum = i + 1;
+                                    } else if (currentPage >= totalPages - 2) {
+                                        pageNum = totalPages - 4 + i;
+                                    } else {
+                                        pageNum = currentPage - 2 + i;
+                                    }
+                                    
+                                    return (
+                                        <button
+                                            key={pageNum}
+                                            onClick={() => paginate(pageNum)}
+                                            className={`pagination-number ${currentPage === pageNum ? 'active' : ''}`}
+                                        >
+                                            {pageNum}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            <button
+                                onClick={() => paginate(currentPage + 1)}
+                                disabled={currentPage === totalPages}
+                                className="pagination-button next"
+                            >
+                                Siguiente →
+                            </button>
+                        </div>
+                    )}
                 </div>
-            )}
+            </section>
 
-            {/* Estado vacío */}
-            {filteredProducts.length === 0 && !loading && (
-                <div className="empty-state">
-                    <div className="empty-icon">🔍</div>
-                    <h3>No se encontraron productos</h3>
-                    <p>Intenta con otros términos de búsqueda o ajusta los filtros</p>
-                    <button onClick={clearFilters} className="clear-filters-btn">
-                        Mostrar Todos los Productos
-                    </button>
-                </div>
-            )}
-
-            {/* Modal de Autenticación */}
+            {/* Auth Modal */}
             {showAuthModal && (
-                <div className="auth-modal-overlay">
-                    <div className="auth-modal">
-                        <div className="modal-header">
-                            <h3>Iniciar Sesión Requerido</h3>
-                            <button
-                                onClick={() => setShowAuthModal(false)}
-                                className="close-modal"
-                            >
-                                ×
-                            </button>
-                        </div>
-                        <div className="modal-content">
-                            <p>Para agregar productos al carrito, necesitas iniciar sesión.</p>
-                            {selectedProduct && (
-                                <div className="selected-product-preview">
-                                    <strong>Producto seleccionado:</strong>
-                                    <p>{selectedProduct.nombre} - {formatPrice(selectedProduct.precio)}</p>
+                <div className="modal-overlay-modern" onClick={() => setShowAuthModal(false)}>
+                    <div className="modal-content-modern" onClick={(e) => e.stopPropagation()}>
+                        <button
+                            onClick={() => setShowAuthModal(false)}
+                            className="modal-close-modern"
+                        >
+                            ✕
+                        </button>
+                        
+                        <div className="modal-icon-modern">🔒</div>
+                        <h3 className="modal-title-modern">Inicia sesión para continuar</h3>
+                        <p className="modal-description-modern">
+                            Crea una cuenta o inicia sesión para agregar productos al carrito
+                        </p>
+                        
+                        {selectedProduct && (
+                            <div className="modal-product-preview">
+                                <div className="preview-image">
+                                    {selectedProduct.imagen ? (
+                                        <img src={`http://localhost:8000${selectedProduct.imagen}`} alt={selectedProduct.nombre} />
+                                    ) : (
+                                        <span>🌱</span>
+                                    )}
                                 </div>
-                            )}
-                        </div>
-                        <div className="modal-actions">
+                                <div className="preview-info">
+                                    <p className="preview-name">{selectedProduct.nombre}</p>
+                                    <p className="preview-price">{formatPrice(selectedProduct.precio)}</p>
+                                </div>
+                            </div>
+                        )}
+                        
+                        <div className="modal-actions-modern">
                             <button
                                 onClick={() => navigate('/login')}
-                                className="login-btn"
+                                className="modal-button-primary"
                             >
                                 Iniciar Sesión
                             </button>
                             <button
                                 onClick={() => navigate('/register')}
-                                className="register-btn"
+                                className="modal-button-secondary"
                             >
                                 Crear Cuenta
-                            </button>
-                            <button
-                                onClick={() => setShowAuthModal(false)}
-                                className="cancel-btn"
-                            >
-                                Cancelar
                             </button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Container de Notificaciones */}
-            <div className="toast-container">
+            {/* Toast Notifications */}
+            <div className="toast-container-modern">
                 {toasts.map(toast => (
                     <Toast
                         key={toast.id}

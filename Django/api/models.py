@@ -65,6 +65,9 @@ class Producto(models.Model):
     origen = models.CharField(max_length=20, choices=TIPO_ORIGEN, default='convencional')
     certificado_organico = models.FileField(upload_to='certificados/', blank=True, null=True)
     activo = models.BooleanField(default=True)
+    aprobado = models.BooleanField(default=False)  # ← AGREGAR ESTA LÍNEA
+    ciudad = models.CharField(max_length=100, blank=True)  # ← AGREGAR ESTA LÍNEA
+    comuna = models.CharField(max_length=100, blank=True)  # ← AGREGAR ESTA LÍNEA
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_actualizacion = models.DateTimeField(auto_now=True)
     
@@ -119,3 +122,32 @@ class DireccionEnvio(models.Model):
     
     def __str__(self):
         return f"{self.usuario.username} - {self.ciudad}"
+    
+
+class Notificacion(models.Model):
+    TIPOS_NOTIFICACION = [
+        ('producto_aprobado', 'Producto Aprobado'),
+        ('producto_rechazado', 'Producto Rechazado'),
+        ('nuevo_pedido', 'Nuevo Pedido'),
+        ('pedido_actualizado', 'Pedido Actualizado'),
+        ('sistema', 'Sistema'),
+    ]
+    
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='notificaciones')
+    tipo = models.CharField(max_length=50, choices=TIPOS_NOTIFICACION)
+    titulo = models.CharField(max_length=200)
+    mensaje = models.TextField()
+    leida = models.BooleanField(default=False)
+    fecha = models.DateTimeField(auto_now_add=True)
+    
+    producto = models.ForeignKey(Producto, on_delete=models.SET_NULL, null=True, blank=True)
+    pedido = models.ForeignKey(Pedido, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    class Meta:
+        ordering = ['-fecha']
+        verbose_name = 'Notificación'
+        verbose_name_plural = 'Notificaciones'
+    
+    def __str__(self):
+        return f"{self.usuario.username} - {self.titulo}"
+    

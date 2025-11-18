@@ -46,6 +46,25 @@ const AdminPanel = () => {
         checkAuth();
     }, [navigate]);
 
+    // Cargar datos automáticamente al cambiar de pestaña
+useEffect(() => {
+    if (activeTab === 'vendedoresPendientes') {
+        cargarVendedoresPendientes();
+    }
+    if (activeTab === 'productosPendientes') {
+        cargarProductosPendientes();
+    }
+    if (activeTab === 'usuarios') {
+        cargarUsuarios();
+    }
+    if (activeTab === 'productos') {
+        cargarProductos();
+    }
+    if (activeTab === 'pedidos') {
+        cargarPedidos();
+    }
+}, [activeTab]);
+
     const cargarDatosIniciales = async () => {
         try {
             await Promise.all([
@@ -223,81 +242,84 @@ const AdminPanel = () => {
         }
     };
 
-    // ===== FUNCIONES EXISTENTES (MANTENER) =====
+    
+    // ===== APROBAR / RECHAZAR VENDEDORES =====
+const aprobarVendedor = async (id) => {
+    try {
+        await axios.patch(`http://localhost:8000/api/usuarios/${id}/`, {
+            estado: 'aprobado'
+        });
 
-    const aprobarVendedor = async (usuarioId) => {
-        try {
-            await axios.patch(`http://localhost:8000/api/usuarios/${usuarioId}/`, {
-                estado: 'activo'
-            });
+        showToast('✅ Vendedor aprobado', 'success');
 
-            await cargarVendedoresPendientes();
-            await cargarUsuarios();
-            await cargarEstadisticas();
+        await cargarVendedoresPendientes();
+        await cargarUsuarios();
+        await cargarEstadisticas();
 
-            showToast('✅ Vendedor aprobado exitosamente', 'success');
-        } catch (error) {
-            console.error('Error aprobando vendedor:', error);
-            showToast('❌ Error al aprobar vendedor', 'error');
-        }
-    };
+    } catch (error) {
+        console.error('Error aprobando vendedor:', error);
+        showToast('❌ Error al aprobar vendedor', 'error');
+    }
+};
 
-    const rechazarVendedor = async (usuarioId) => {
-        if (window.confirm('¿Estás seguro de que quieres rechazar este vendedor?')) {
-            try {
-                await axios.patch(`http://localhost:8000/api/usuarios/${usuarioId}/`, {
-                    estado: 'rechazado'
-                });
+const rechazarVendedor = async (id) => {
+    try {
+        await axios.patch(`http://localhost:8000/api/usuarios/${id}/`, {
+            estado: 'rechazado'
+        });
 
-                await cargarVendedoresPendientes();
-                await cargarUsuarios();
-                await cargarEstadisticas();
+        showToast('❌ Vendedor rechazado', 'success');
 
-                showToast('✅ Vendedor rechazado', 'warning');
-            } catch (error) {
-                console.error('Error rechazando vendedor:', error);
-                showToast('❌ Error al rechazar vendedor', 'error');
-            }
-        }
-    };
+        await cargarVendedoresPendientes();
+        await cargarUsuarios();
+        await cargarEstadisticas();
 
-    const aprobarProducto = async (productoId) => {
-        try {
-            await axios.patch(`http://localhost:8000/api/productos/${productoId}/`, {
-                aprobado: true,
-                activo: true
-            });
+    } catch (error) {
+        console.error('Error rechazando vendedor:', error);
+        showToast('❌ Error al rechazar vendedor', 'error');
+    }
+};
 
-            await cargarProductos();
-            await cargarProductosPendientes();
-            await cargarEstadisticas();
 
-            showToast('✅ Producto aprobado exitosamente', 'success');
-        } catch (error) {
-            console.error('Error aprobando producto:', error);
-            showToast('❌ Error al aprobar producto', 'error');
-        }
-    };
+   // ===== APROBAR / RECHAZAR PRODUCTOS =====
+const aprobarProducto = async (id) => {
+    try {
+        await axios.patch(`http://localhost:8000/api/productos/${id}/`, {
+            aprobado: true
+        });
 
-    const rechazarProducto = async (productoId) => {
-        if (window.confirm('¿Estás seguro de que quieres rechazar este producto?')) {
-            try {
-                await axios.patch(`http://localhost:8000/api/productos/${productoId}/`, {
-                    aprobado: false,
-                    activo: false
-                });
+        showToast('✅ Producto aprobado', 'success');
 
-                await cargarProductos();
-                await cargarProductosPendientes();
-                await cargarEstadisticas();
+        await cargarProductosPendientes();
+        await cargarProductos();
+        await cargarEstadisticas();
 
-                showToast('✅ Producto rechazado', 'warning');
-            } catch (error) {
-                console.error('Error rechazando producto:', error);
-                showToast('❌ Error al rechazar producto', 'error');
-            }
-        }
-    };
+    } catch (error) {
+        console.error('Error aprobando producto:', error);
+        showToast('❌ Error al aprobar producto', 'error');
+    }
+};
+
+const rechazarProducto = async (id) => {
+    try {
+        await axios.patch(`http://localhost:8000/api/productos/${id}/`, {
+            aprobado: false,
+            rechazado: true
+        });
+
+        showToast('❌ Producto rechazado', 'success');
+
+        await cargarProductosPendientes();
+        await cargarProductos();
+        await cargarEstadisticas();
+
+    } catch (error) {
+        console.error('Error rechazando producto:', error);
+        showToast('❌ Error al rechazar producto', 'error');
+    }
+};
+
+
 
     const eliminarUsuario = async (usuarioId, username) => {
         const confirmar = window.confirm(

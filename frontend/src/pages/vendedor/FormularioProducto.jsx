@@ -15,6 +15,8 @@ const FormularioProducto = ({
         stock: '',
         categoria: '',
         origen: 'convencional',
+        ciudad: '',      // ✅ NUEVO
+        comuna: '',      // ✅ NUEVO
         activo: true
     });
     const [imagen, setImagen] = useState(null);
@@ -52,6 +54,8 @@ const FormularioProducto = ({
                 stock: productoEditar.stock?.toString() || '',
                 categoria: productoEditar.categoria?.toString() || '',
                 origen: productoEditar.origen || 'convencional',
+                ciudad: productoEditar.ciudad || '',      // ✅ NUEVO
+                comuna: productoEditar.comuna || '',      // ✅ NUEVO
                 activo: productoEditar.activo !== false
             });
             
@@ -152,6 +156,14 @@ const FormularioProducto = ({
             formDataToSend.append('categoria', formData.categoria);
             formDataToSend.append('origen', formData.origen);
             formDataToSend.append('activo', formData.activo.toString());
+            
+            // ✅ AGREGAR CIUDAD Y COMUNA
+            if (formData.ciudad) {
+                formDataToSend.append('ciudad', formData.ciudad);
+            }
+            if (formData.comuna) {
+                formDataToSend.append('comuna', formData.comuna);
+            }
 
             // ✅ AGREGAR VENDEDOR AUTOMÁTICAMENTE (solo para productos nuevos)
             if (!productoEditar && vendedorId) {
@@ -159,9 +171,19 @@ const FormularioProducto = ({
                 console.log('👨‍🌾 Agregando vendedor ID:', vendedorId);
             }
 
+            // ✅ Para edición, usar el vendedor del producto existente
+            if (productoEditar && productoEditar.vendedor) {
+                formDataToSend.append('vendedor', productoEditar.vendedor.toString());
+                 console.log('👨‍🌾 Usando vendedor del producto:', productoEditar.vendedor);
+            }
+
             // IMPORTANTE: Para productos nuevos, no están aprobados inicialmente
             if (!productoEditar) {
-                formDataToSend.append('aprobado', 'false'); // Requiere aprobación del admin
+                formDataToSend.append('aprobado', 'false');
+            } else {
+                // Productos editados: mantener su estado de aprobación actual
+                formDataToSend.append('aprobado', productoEditar.aprobado ? 'true' : 'false');
+                console.log('✅ Manteniendo aprobación:', productoEditar.aprobado);
             }
 
             // Archivos
@@ -206,6 +228,8 @@ const FormularioProducto = ({
                     formDataToSend,
                     config
                 );
+                console.log('✅ Respuesta completa:', response.data);
+                console.log('✅ Status:', response.data.id);
                 console.log('✅ Producto actualizado:', response.data);
             } else {
                 // Crear nuevo producto (requiere aprobación)
@@ -278,6 +302,8 @@ const FormularioProducto = ({
             stock: '',
             categoria: '',
             origen: 'convencional',
+            ciudad: '',      // ✅ NUEVO
+            comuna: '',      // ✅ NUEVO
             activo: true
         });
         setImagen(null);
@@ -397,6 +423,35 @@ const FormularioProducto = ({
                             min="0"
                             className="form-input"
                             placeholder="50"
+                            disabled={loading}
+                        />
+                    </div>
+                </div>
+
+                {/* ✅ CIUDAD Y COMUNA - NUEVO */}
+                <div className="form-row">
+                    <div className="form-group">
+                        <label className="form-label">📍 Ciudad</label>
+                        <input
+                            type="text"
+                            name="ciudad"
+                            value={formData.ciudad}
+                            onChange={handleInputChange}
+                            className="form-input"
+                            placeholder="Ej: Talca, Curicó, Linares..."
+                            disabled={loading}
+                        />
+                    </div>
+                    
+                    <div className="form-group">
+                        <label className="form-label">🏘️ Comuna</label>
+                        <input
+                            type="text"
+                            name="comuna"
+                            value={formData.comuna}
+                            onChange={handleInputChange}
+                            className="form-input"
+                            placeholder="Ej: San Clemente, Molina..."
                             disabled={loading}
                         />
                     </div>
