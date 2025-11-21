@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { getAxiosConfigMultipart } from '../../utils/csrf';
 import './FormularioProducto.css'; // <--- IMPORTAR EL CSS EXTERNO AQUÍ
 
 const FormularioProducto = ({ 
@@ -202,18 +203,7 @@ const FormularioProducto = ({
                 formDataToSend.append('certificado_organico', certificadoOrganico);
             }
 
-            const csrfToken = getCsrfToken();
-            if (!csrfToken) {
-                throw new Error('No se pudo obtener el token de seguridad. Por favor, recarga la página.');
-            }
-
-            const config = {
-                withCredentials: true,
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                    'X-CSRFToken': csrfToken
-                }
-            };
+            const config = getAxiosConfigMultipart();
 
             let response;
             const baseUrl = 'http://localhost:8000/api/productos/';

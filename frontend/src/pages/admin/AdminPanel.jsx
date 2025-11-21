@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { getCsrfToken, getAxiosConfig } from '../../utils/csrf';
 import authService from '../../services/auth';
 import './adminStyles.css';
 import { useToast } from '../../hooks/useToast';
@@ -155,7 +156,8 @@ useEffect(() => {
 
             await axios.patch(
                 `http://localhost:8000/api/usuarios/${usuarioId}/`,
-                datosActualizados
+                datosActualizados,
+                getAxiosConfig()
             );
 
             showToast('✅ Usuario actualizado exitosamente', 'success');
@@ -179,7 +181,8 @@ useEffect(() => {
 
             await axios.patch(
                 `http://localhost:8000/api/productos/${productoId}/`,
-                datosActualizados
+                datosActualizados,
+                getAxiosConfig()
             );
 
             showToast('✅ Producto actualizado exitosamente', 'success');
@@ -304,7 +307,7 @@ const aprobarProducto = async (id) => {
 
             await axios.patch(`http://localhost:8000/api/productos/${id}/`, {
                 aprobado: true
-            });
+            }, getAxiosConfig());
 
             showToast('✅ Producto aprobado', 'success');
 
@@ -327,17 +330,13 @@ const rechazarProducto = async (id) => {
 
             // Usar el endpoint de rechazo si existe, sino usar patch
             try {
-                await axios.post(`http://localhost:8000/api/productos/${id}/rechazar/`, {}, {
-                    withCredentials: true
-                });
+                await axios.post(`http://localhost:8000/api/productos/${id}/rechazar/`, {}, getAxiosConfig());
             } catch (e) {
                 // Fallback a patch
                 await axios.patch(`http://localhost:8000/api/productos/${id}/`, {
                     aprobado: false,
                     activo: false
-                }, {
-                    withCredentials: true
-                });
+                }, getAxiosConfig());
             }
 
             showToast('❌ Producto rechazado', 'success');
@@ -362,7 +361,7 @@ const rechazarProducto = async (id) => {
 
         if (confirmar) {
             try {
-                await axios.delete(`http://localhost:8000/api/usuarios/${usuarioId}/`);
+                await axios.delete(`http://localhost:8000/api/usuarios/${usuarioId}/`, getAxiosConfig());
 
                 await cargarUsuarios();
                 await cargarEstadisticas();
@@ -383,7 +382,7 @@ const rechazarProducto = async (id) => {
 
         if (confirmar) {
             try {
-                await axios.delete(`http://localhost:8000/api/productos/${productoId}/`);
+                await axios.delete(`http://localhost:8000/api/productos/${productoId}/`, getAxiosConfig());
 
                 await cargarProductos();
                 await cargarEstadisticas();

@@ -258,7 +258,8 @@ const EditarProductoModal = ({ producto, categorias, onClose, onSave, formatPric
                             </svg>
                             Estado del Producto
                         </h3>
-                        
+
+                        {/* Estado de Aprobación */}
                         <div style={styles.formGroup}>
                             <label style={styles.label}>Estado de Aprobación</label>
                             <select
@@ -271,10 +272,61 @@ const EditarProductoModal = ({ producto, categorias, onClose, onSave, formatPric
                                 <option value="aprobado">✅ Aprobado</option>
                             </select>
                             <span style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>
-                                {formData.aprobado 
-                                    ? 'El producto está aprobado y puede ser visible' 
+                                {formData.aprobado
+                                    ? 'El producto está aprobado por el administrador'
                                     : 'El producto requiere aprobación de un administrador'}
                             </span>
+                        </div>
+
+                        {/* Estado de Visibilidad */}
+                        <div style={styles.formGroup}>
+                            <label style={styles.label}>Visibilidad</label>
+                            <select
+                                name="activo"
+                                value={formData.activo ? 'activo' : 'inactivo'}
+                                onChange={(e) => setFormData(prev => ({ ...prev, activo: e.target.value === 'activo' }))}
+                                style={styles.select}
+                            >
+                                <option value="activo">👁️ Activo (Visible)</option>
+                                <option value="inactivo">🚫 Inactivo (Oculto)</option>
+                            </select>
+                            <span style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+                                {formData.activo
+                                    ? 'El producto es visible en la plataforma'
+                                    : 'El producto está oculto para los clientes'}
+                            </span>
+                        </div>
+
+                        {/* Indicador de Estado Final */}
+                        <div style={{
+                            padding: '12px',
+                            borderRadius: '8px',
+                            backgroundColor: formData.aprobado && formData.activo
+                                ? 'rgba(16, 185, 129, 0.1)'
+                                : formData.aprobado && !formData.activo
+                                    ? 'rgba(107, 114, 128, 0.1)'
+                                    : !formData.aprobado && formData.activo
+                                        ? 'rgba(245, 158, 11, 0.1)'
+                                        : 'rgba(239, 68, 68, 0.1)',
+                            border: `1px solid ${formData.aprobado && formData.activo
+                                ? 'rgba(16, 185, 129, 0.3)'
+                                : formData.aprobado && !formData.activo
+                                    ? 'rgba(107, 114, 128, 0.3)'
+                                    : !formData.aprobado && formData.activo
+                                        ? 'rgba(245, 158, 11, 0.3)'
+                                        : 'rgba(239, 68, 68, 0.3)'
+                                }`,
+                            marginTop: '12px'
+                        }}>
+                            <div style={{ fontSize: '0.875rem', fontWeight: '600', marginBottom: '4px' }}>
+                                Estado Final:
+                            </div>
+                            <div style={{ fontSize: '0.875rem' }}>
+                                {formData.aprobado && formData.activo && '✅ Publicado - Visible y disponible para compra'}
+                                {formData.aprobado && !formData.activo && '💤 Aprobado pero Inactivo - No visible para clientes'}
+                                {!formData.aprobado && formData.activo && '⏳ Pendiente - Esperando aprobación del administrador'}
+                                {!formData.aprobado && !formData.activo && '❌ Rechazado/Inactivo - No aprobado y desactivado'}
+                            </div>
                         </div>
                     </div>
 

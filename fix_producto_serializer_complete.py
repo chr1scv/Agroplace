@@ -1,4 +1,9 @@
-from rest_framework import serializers
+"""
+Script para mejorar el ProductoSerializer y asegurar que retorne
+toda la información de vendedor y categoría
+"""
+
+serializer_content = """from rest_framework import serializers
 from .models import Usuario, Categoria, Producto, Pedido, DetallePedido, DireccionEnvio
 
 class UsuarioSerializer(serializers.ModelSerializer):
@@ -14,25 +19,23 @@ class CategoriaSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class ProductoSerializer(serializers.ModelSerializer):
-    # Campos de solo lectura para mostrar nombres
     categoria_nombre = serializers.CharField(source='categoria.nombre', read_only=True)
     vendedor_nombre = serializers.CharField(source='vendedor.username', read_only=True)
+    # Agregar objetos completos anidados
+    categoria = CategoriaSerializer(read_only=True)
+    vendedor = UsuarioSerializer(read_only=True)
     
     class Meta:
         model = Producto
         fields = '__all__'
     
     def to_representation(self, instance):
-        """
-        Personalizar la representación para incluir objetos anidados en lectura
-        """
         data = super().to_representation(instance)
-        
         # Para desarrollo: convertir URL absoluta a relativa
         if data.get('imagen') and 'http://localhost:8000' in data['imagen']:
             data['imagen'] = data['imagen'].replace('http://localhost:8000', '')
         
-        # Agregar objetos anidados para lectura
+        # Asegurar que categoria y vendedor estén presentes
         if instance.categoria:
             data['categoria'] = {
                 'id': instance.categoria.id,
@@ -98,3 +101,11 @@ class RegistroSerializer(serializers.ModelSerializer):
         user.set_password(password)
         user.save()
         return user
+"""
+
+# Escribir el archivo serializers.py actualizado
+serializers_path = r"c:\Users\Christopher\OneDrive\Desktop\Agroplace\Django\api\serializers.py"
+with open(serializers_path, 'w', encoding='utf-8') as f:
+    f.write(serializer_content)
+
+print("✅ ProductoSerializer actualizado para retornar vendedor y categoría completos")

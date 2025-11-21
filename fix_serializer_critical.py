@@ -1,4 +1,10 @@
-from rest_framework import serializers
+"""
+Fix crítico: El ProductoSerializer tiene categoria y vendedor como read_only
+lo que impide crear productos. Necesitamos permitir escritura pero mantener
+la representación anidada para lectura.
+"""
+
+serializer_content = """from rest_framework import serializers
 from .models import Usuario, Categoria, Producto, Pedido, DetallePedido, DireccionEnvio
 
 class UsuarioSerializer(serializers.ModelSerializer):
@@ -23,9 +29,9 @@ class ProductoSerializer(serializers.ModelSerializer):
         fields = '__all__'
     
     def to_representation(self, instance):
-        """
+        \"\"\"
         Personalizar la representación para incluir objetos anidados en lectura
-        """
+        \"\"\"
         data = super().to_representation(instance)
         
         # Para desarrollo: convertir URL absoluta a relativa
@@ -98,3 +104,12 @@ class RegistroSerializer(serializers.ModelSerializer):
         user.set_password(password)
         user.save()
         return user
+"""
+
+# Escribir el archivo serializers.py actualizado
+serializers_path = r"c:\Users\Christopher\OneDrive\Desktop\Agroplace\Django\api\serializers.py"
+with open(serializers_path, 'w', encoding='utf-8') as f:
+    f.write(serializer_content)
+
+print("✅ ProductoSerializer arreglado - categoria y vendedor ahora permiten escritura")
+print("   Los objetos anidados solo se retornan en to_representation() para lectura")

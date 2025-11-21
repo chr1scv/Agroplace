@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { getAxiosConfig } from '../../utils/csrf';
 import './ProductoCard.css';
 
 // Función helper para construir URLs de imagen
@@ -48,27 +49,7 @@ const ProductoCard = ({ producto, onEditar, onEliminar, onRecargar, showToast })
         try {
             setLoading(true);
             
-            // Obtener CSRF token
-            const getCsrfToken = () => {
-                const name = 'csrftoken';
-                const cookies = document.cookie.split(';');
-                for (let cookie of cookies) {
-                    const trimmed = cookie.trim();
-                    if (trimmed.startsWith(name + '=')) {
-                        return trimmed.substring(name.length + 1);
-                    }
-                }
-                return null;
-            };
-            
-            const csrfToken = getCsrfToken();
-            
-            await axios.delete(`http://localhost:8000/api/productos/${producto.id}/`, {
-                withCredentials: true,
-                headers: csrfToken ? {
-                    'X-CSRFToken': csrfToken
-                } : {}
-            });
+            await axios.delete(`http://localhost:8000/api/productos/${producto.id}/`, getAxiosConfig());
             
             if (showToast) {
                 showToast('✅ Producto eliminado correctamente', 'success');
