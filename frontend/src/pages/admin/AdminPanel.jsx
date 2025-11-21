@@ -901,12 +901,25 @@ const ProductosTab = ({ productos, loading, onReload, onEliminarProducto, onEdit
     const [filtro, setFiltro] = useState('');
     const [categoriaFiltro, setCategoriaFiltro] = useState('todos');
     const [estadoFiltro, setEstadoFiltro] = useState('todos');
-    const [vendedorFiltro, setVendedorFiltro] = useState('todos');
-    const [precioMinFiltro, setPrecioMinFiltro] = useState('');
-    const [precioMaxFiltro, setPrecioMaxFiltro] = useState('');
-    const [stockMinFiltro, setStockMinFiltro] = useState('');
     const [ordenarPor, setOrdenarPor] = useState('recientes');
     const [productoVer, setProductoVer] = useState(null);
+    const [descripcionModal, setDescripcionModal] = useState(null);
+    const [categorias, setCategorias] = useState([]);
+
+    // Cargar categorías desde la base de datos
+    useEffect(() => {
+        const cargarCategorias = async () => {
+            try {
+                const response = await axios.get('http://localhost:8000/api/categorias/', {
+                    withCredentials: true
+                });
+                setCategorias(response.data);
+            } catch (error) {
+                console.error('Error cargando categorías:', error);
+            }
+        };
+        cargarCategorias();
+    }, []);
 
     if (loading) {
         return (
@@ -917,6 +930,13 @@ const ProductosTab = ({ productos, loading, onReload, onEliminarProducto, onEdit
         );
     }
 
+    // Función para obtener el estado del producto
+    const getEstadoProducto = (producto) => {
+        if (!producto.activo) return { texto: 'Inactivo', clase: 'estado-inactivo' };
+        if (producto.aprobado) return { texto: 'Activo', clase: 'estado-activo' };
+        return { texto: 'Pendiente', clase: 'estado-pendiente' };
+    };
+
     // Filtrar y ordenar productos
     const productosFiltrados = productos
         .filter(producto => {
@@ -926,28 +946,19 @@ const ProductosTab = ({ productos, loading, onReload, onEliminarProducto, onEdit
 
             // Filtro de categoría
             const coincideCategoria = categoriaFiltro === 'todos' ||
-                producto.categoria?.nombre === categoriaFiltro;
+                producto.categoria?.id === parseInt(categoriaFiltro);
 
             // Filtro de estado
-            const coincideEstado = estadoFiltro === 'todos' ||
-                (estadoFiltro === 'activo' && producto.activo) ||
-                (estadoFiltro === 'inactivo' && !producto.activo);
+            let coincideEstado = true;
+            if (estadoFiltro === 'activo') {
+                coincideEstado = producto.activo && producto.aprobado;
+            } else if (estadoFiltro === 'pendiente') {
+                coincideEstado = producto.activo && !producto.aprobado;
+            } else if (estadoFiltro === 'inactivo') {
+                coincideEstado = !producto.activo;
+            }
 
-            // Filtro de vendedor
-            const coincideVendedor = vendedorFiltro === 'todos' ||
-                producto.vendedor?.id === parseInt(vendedorFiltro);
-
-            // Filtro de precio mínimo
-            const coincidePrecioMin = !precioMinFiltro || producto.precio >= parseFloat(precioMinFiltro);
-
-            // Filtro de precio máximo
-            const coincidePrecioMax = !precioMaxFiltro || producto.precio <= parseFloat(precioMaxFiltro);
-
-            // Filtro de stock mínimo
-            const coincideStockMin = !stockMinFiltro || producto.stock >= parseInt(stockMinFiltro);
-
-            return coincideBusqueda && coincideCategoria && coincideEstado && 
-                   coincideVendedor && coincidePrecioMin && coincidePrecioMax && coincideStockMin;
+            return coincideBusqueda && coincideCategoria && coincideEstado;
         })
         .sort((a, b) => {
             switch(ordenarPor) {
@@ -965,9 +976,6 @@ const ProductosTab = ({ productos, loading, onReload, onEliminarProducto, onEdit
                     return 0;
             }
         });
-
-    const categorias = [...new Set(productos.map(p => p.categoria?.nombre).filter(Boolean))];
-    const vendedores = [...new Set(productos.map(p => p.vendedor).filter(Boolean))];
 
     return (
         <div>
@@ -988,10 +996,10 @@ const ProductosTab = ({ productos, loading, onReload, onEliminarProducto, onEdit
                 </div>
             </div>
 
-            {/* Filtros Comprehensivos */}
+            {/* Filtros Simplificados */}
             <div className="admin-filtros-section">
-                {/* Fila 1: Búsqueda y Ordenar */}
                 <div className="admin-filtros-row">
+                    {/* Búsqueda */}
                     <div className="admin-search-box" style={{ flex: 2 }}>
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="admin-search-icon">
                             <circle cx="11" cy="11" r="8" />
@@ -1006,232 +1014,242 @@ const ProductosTab = ({ productos, loading, onReload, onEliminarProducto, onEdit
                         />
                     </div>
 
-                    <div className="admin-filtro-group">
-                        <label className="admin-filtro-label">🔄 Ordenar por:</label>
-                        <select
-                            value={ordenarPor}
-                            onChange={(e) => setOrdenarPor(e.target.value)}
-                            className="admin-filtro-select"
-                        >
-                            <option value="recientes">Más recientes</option>
-                            <option value="nombre">Nombre (A-Z)</option>
-                            <option value="precio-asc">Precio (menor a mayor)</option>
-                            <option value="precio-desc">Precio (mayor a menor)</option>
-                            <option value="stock">Mayor stock</option>
-                        </select>
-                    </div>
-                </div>
+                    {/* Ordenar por */}
+                    <select
+                        value={ordenarPor}
+                        onChange={(e) => setOrdenarPor(e.target.value)}
+                        className="admin-filter-select"
+                        style={{ flex: 1 }}
+                    >
+                        <option value="recientes">Más recientes</option>
+                        <option value="nombre">Nombre A-Z</option>
+                        <option value="precio-asc">Precio: Menor a Mayor</option>
+                        <option value="precio-desc">Precio: Mayor a Menor</option>
+                        <option value="stock">Mayor Stock</option>
+                    </select>
 
-                {/* Fila 2: Filtros de Categoría, Vendedor, Estado */}
-                <div className="admin-filtros-row">
-                    <div className="admin-filtro-group">
-                        <label className="admin-filtro-label">📂 Categoría:</label>
-                        <select
-                            value={categoriaFiltro}
-                            onChange={(e) => setCategoriaFiltro(e.target.value)}
-                            className="admin-filtro-select"
-                        >
-                            <option value="todos">Todas</option>
-                            {categorias.map(categoria => (
-                                <option key={categoria} value={categoria}>{categoria}</option>
-                            ))}
-                        </select>
-                    </div>
+                    {/* Estado */}
+                    <select
+                        value={estadoFiltro}
+                        onChange={(e) => setEstadoFiltro(e.target.value)}
+                        className="admin-filter-select"
+                        style={{ flex: 1 }}
+                    >
+                        <option value="todos">Todos los Estados</option>
+                        <option value="activo">Activo</option>
+                        <option value="pendiente">Pendiente</option>
+                        <option value="inactivo">Inactivo</option>
+                    </select>
 
-                    <div className="admin-filtro-group">
-                        <label className="admin-filtro-label">👤 Vendedor:</label>
-                        <select
-                            value={vendedorFiltro}
-                            onChange={(e) => setVendedorFiltro(e.target.value)}
-                            className="admin-filtro-select"
-                        >
-                            <option value="todos">Todos</option>
-                            {vendedores.map(vendedor => (
-                                <option key={vendedor.id} value={vendedor.id}>
-                                    {vendedor.username}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div className="admin-filtro-group">
-                        <label className="admin-filtro-label">📊 Estado:</label>
-                        <select
-                            value={estadoFiltro}
-                            onChange={(e) => setEstadoFiltro(e.target.value)}
-                            className="admin-filtro-select"
-                        >
-                            <option value="todos">Todos</option>
-                            <option value="activo">Activo</option>
-                            <option value="inactivo">Inactivo</option>
-                        </select>
-                    </div>
-                </div>
-
-                {/* Fila 3: Filtros de Precio y Stock */}
-                <div className="admin-filtros-row">
-                    <div className="admin-filtro-group">
-                        <label className="admin-filtro-label">💰 Precio Mínimo:</label>
-                        <input
-                            type="number"
-                            placeholder="Ej: 1000"
-                            value={precioMinFiltro}
-                            onChange={(e) => setPrecioMinFiltro(e.target.value)}
-                            className="admin-filtro-input"
-                            min="0"
-                        />
-                    </div>
-
-                    <div className="admin-filtro-group">
-                        <label className="admin-filtro-label">💰 Precio Máximo:</label>
-                        <input
-                            type="number"
-                            placeholder="Ej: 10000"
-                            value={precioMaxFiltro}
-                            onChange={(e) => setPrecioMaxFiltro(e.target.value)}
-                            className="admin-filtro-input"
-                            min="0"
-                        />
-                    </div>
-
-                    <div className="admin-filtro-group">
-                        <label className="admin-filtro-label">📦 Stock Mínimo:</label>
-                        <input
-                            type="number"
-                            placeholder="Ej: 10"
-                            value={stockMinFiltro}
-                            onChange={(e) => setStockMinFiltro(e.target.value)}
-                            className="admin-filtro-input"
-                            min="0"
-                        />
-                    </div>
-
-                    <div className="admin-filtro-group">
-                        <button
-                            onClick={() => {
-                                setFiltro('');
-                                setCategoriaFiltro('todos');
-                                setEstadoFiltro('todos');
-                                setVendedorFiltro('todos');
-                                setPrecioMinFiltro('');
-                                setPrecioMaxFiltro('');
-                                setStockMinFiltro('');
-                                setOrdenarPor('recientes');
-                            }}
-                            className="admin-button-secondary"
-                            style={{ marginTop: '20px', width: '100%' }}
-                        >
-                            🔄 Limpiar Filtros
-                        </button>
-                    </div>
+                    {/* Categoría */}
+                    <select
+                        value={categoriaFiltro}
+                        onChange={(e) => setCategoriaFiltro(e.target.value)}
+                        className="admin-filter-select"
+                        style={{ flex: 1 }}
+                    >
+                        <option value="todos">Todas las Categorías</option>
+                        {categorias.map(cat => (
+                            <option key={cat.id} value={cat.id}>{cat.nombre}</option>
+                        ))}
+                    </select>
                 </div>
             </div>
 
-            {/* Estadísticas */}
-            <div className="admin-stats-row">
-                <div className="admin-mini-stat">
-                    <div className="admin-mini-stat-number">{productosFiltrados.length}</div>
-                    <div className="admin-mini-stat-label">Productos Encontrados</div>
-                </div>
-                <div className="admin-mini-stat">
-                    <div className="admin-mini-stat-number">{productos.filter(p => p.activo).length}</div>
-                    <div className="admin-mini-stat-label">Productos Activos</div>
-                </div>
-                <div className="admin-mini-stat">
-                    <div className="admin-mini-stat-number">{productos.filter(p => !p.activo).length}</div>
-                    <div className="admin-mini-stat-label">Productos Inactivos</div>
-                </div>
-                <div className="admin-mini-stat">
-                    <div className="admin-mini-stat-number">{categorias.length}</div>
-                    <div className="admin-mini-stat-label">Categorías</div>
-                </div>
-            </div>
-
+            {/* Tabla de Productos */}
             <div className="admin-table-container">
                 <table className="admin-table">
                     <thead>
                         <tr>
-                            <th className="admin-table-header">Producto</th>
-                            <th className="admin-table-header">Descripción</th>
-                            <th className="admin-table-header">Categoría</th>
-                            <th className="admin-table-header">Vendedor</th>
-                            <th className="admin-table-header">Precio</th>
-                            <th className="admin-table-header">Stock</th>
-                            <th className="admin-table-header">Estado</th>
-                            <th className="admin-table-header">Aprobación</th>
-                            <th className="admin-table-header">Acciones</th>
+                            <th>Producto</th>
+                            <th>Descripción</th>
+                            <th>Categoría</th>
+                            <th>Vendedor</th>
+                            <th>Precio</th>
+                            <th>Stock</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {productosFiltrados.map(producto => (
-                            <tr key={producto.id} className="admin-table-row">
-                                <td className="admin-table-cell">
-                                    <span className="admin-producto-nombre">{producto.nombre}</span>
-                                </td>
-                                <td className="admin-table-cell">
-                                    <button
-                                        onClick={() => setProductoVer(producto)}
-                                        className="admin-link-button"
-                                        style={{ background: 'none', border: 'none', color: '#2d7a3e', textDecoration: 'underline', cursor: 'pointer', padding: 0, fontSize: '0.9rem' }}
-                                    >
-                                        Ver descripción
-                                    </button>
-                                </td>
-                                <td className="admin-table-cell">{producto.categoria?.nombre || 'Sin categoría'}</td>
-                                <td className="admin-table-cell">{producto.vendedor?.username || 'N/A'}</td>
-                                <td className="admin-table-cell">{formatPrice(producto.precio)}</td>
-                                <td className="admin-table-cell">
-                                    <span className={producto.stock > 0 ? "admin-stock-disponible" : "admin-stock-agotado"}>
-                                        {producto.stock} unidades
-                                    </span>
-                                </td>
-                                <td className="admin-table-cell">
-                                    <span className={producto.activo ? "admin-estado-activo" : "admin-estado-inactivo"}>
-                                        {producto.activo ? '✅ Activo' : '❌ Inactivo'}
-                                    </span>
-                                </td>
-                                <td className="admin-table-cell">
-                                    <span className={producto.aprobado ? "admin-estado-aprobado" : "admin-estado-pendiente"}>
-                                        {producto.aprobado ? '✅ Aprobado' : '⏳ Pendiente'}
-                                    </span>
-                                </td>
-                                <td className="admin-table-cell">
-                                    <div className="admin-acciones">
-                                        <button
-                                            onClick={() => onEditarProducto(producto)}
-                                            className="admin-editar-button"
-                                            title="Editar producto"
-                                        >
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '4px' }}>
-                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                            </svg>
-                                            Editar
-                                        </button>
-                                        <button
-                                            className="admin-eliminar-button"
-                                            onClick={() => onEliminarProducto(producto.id, producto.nombre)}
-                                            title="Eliminar producto"
-                                        >
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '4px' }}>
-                                                <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                            </svg>
-                                            Eliminar
-                                        </button>
+                        {productosFiltrados.length === 0 ? (
+                            <tr>
+                                <td colSpan="8" style={{ textAlign: 'center', padding: '40px' }}>
+                                    <div style={{ color: '#6b7280' }}>
+                                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ margin: '0 auto 16px', opacity: 0.3 }}>
+                                            <circle cx="12" cy="12" r="10" />
+                                            <line x1="12" y1="8" x2="12" y2="12" />
+                                            <line x1="12" y1="16" x2="12.01" y2="16" />
+                                        </svg>
+                                        <p>No se encontraron productos</p>
                                     </div>
                                 </td>
                             </tr>
-                        ))}
+                        ) : (
+                            productosFiltrados.map(producto => {
+                                const estado = getEstadoProducto(producto);
+                                return (
+                                    <tr key={producto.id}>
+                                        {/* Producto */}
+                                        <td>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                {producto.imagen ? (
+                                                    <img 
+                                                        src={producto.imagen.startsWith('http') ? producto.imagen : `http://localhost:8000${producto.imagen}`}
+                                                        alt={producto.nombre}
+                                                        style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '8px' }}
+                                                        onError={(e) => {
+                                                            e.target.style.display = 'none';
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <div style={{ width: '50px', height: '50px', background: '#f3f4f6', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                        🌱
+                                                    </div>
+                                                )}
+                                                <div>
+                                                    <div style={{ fontWeight: '600', color: '#111827' }}>{producto.nombre}</div>
+                                                    <div style={{ fontSize: '12px', color: '#6b7280' }}>ID: {producto.id}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+
+                                        {/* Descripción */}
+                                        <td>
+                                            <button
+                                                onClick={() => setDescripcionModal(producto)}
+                                                className="admin-link-button"
+                                                style={{ color: '#3b82f6', cursor: 'pointer', textDecoration: 'underline', background: 'none', border: 'none', padding: 0 }}
+                                            >
+                                                Ver descripción
+                                            </button>
+                                        </td>
+
+                                        {/* Categoría */}
+                                        <td>
+                                            <span className="admin-badge-categoria">
+                                                {producto.categoria?.nombre || 'Sin categoría'}
+                                            </span>
+                                        </td>
+
+                                        {/* Vendedor */}
+                                        <td>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <div style={{ 
+                                                    width: '32px', 
+                                                    height: '32px', 
+                                                    borderRadius: '50%', 
+                                                    background: '#e0e7ff', 
+                                                    display: 'flex', 
+                                                    alignItems: 'center', 
+                                                    justifyContent: 'center',
+                                                    fontSize: '14px',
+                                                    fontWeight: '600',
+                                                    color: '#4f46e5'
+                                                }}>
+                                                    {producto.vendedor?.username?.charAt(0).toUpperCase() || '?'}
+                                                </div>
+                                                <div>
+                                                    <div style={{ fontWeight: '500', color: '#111827' }}>
+                                                        {producto.vendedor?.username || 'Sin vendedor'}
+                                                    </div>
+                                                    {producto.vendedor?.email && (
+                                                        <div style={{ fontSize: '11px', color: '#6b7280' }}>
+                                                            {producto.vendedor.email}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </td>
+
+                                        {/* Precio */}
+                                        <td>
+                                            <span style={{ fontWeight: '600', color: '#059669' }}>
+                                                {formatPrice(producto.precio)}
+                                            </span>
+                                        </td>
+
+                                        {/* Stock */}
+                                        <td>
+                                            <span style={{ 
+                                                fontWeight: '600',
+                                                color: producto.stock === 0 ? '#ef4444' : producto.stock < 10 ? '#f59e0b' : '#10b981'
+                                            }}>
+                                                {producto.stock}
+                                            </span>
+                                        </td>
+
+                                        {/* Estado */}
+                                        <td>
+                                            <span className={`admin-badge-estado ${estado.clase}`}>
+                                                {estado.texto}
+                                            </span>
+                                        </td>
+
+                                        {/* Acciones */}
+                                        <td>
+                                            <div className="admin-table-actions">
+                                                <button
+                                                    onClick={() => setProductoVer(producto)}
+                                                    className="admin-action-button admin-action-view"
+                                                    title="Ver detalles"
+                                                >
+                                                    👁️
+                                                </button>
+                                                <button
+                                                    onClick={() => onEditarProducto(producto)}
+                                                    className="admin-action-button admin-action-edit"
+                                                    title="Editar"
+                                                >
+                                                    ✏️
+                                                </button>
+                                                <button
+                                                    onClick={() => onEliminarProducto(producto.id, producto.nombre)}
+                                                    className="admin-action-button admin-action-delete"
+                                                    title="Eliminar"
+                                                >
+                                                    🗑️
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })
+                        )}
                     </tbody>
                 </table>
             </div>
 
-            {productosFiltrados.length === 0 && (
-                <div className="admin-empty-state">
-                    <div className="admin-empty-icon">📦</div>
-                    <h3 className="admin-empty-title">No se encontraron productos</h3>
-                    <p className="admin-empty-text">Intenta ajustar los filtros de búsqueda</p>
+            {/* Modal de Descripción */}
+            {descripcionModal && (
+                <div className="modal-overlay" onClick={() => setDescripcionModal(null)}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+                        <div className="modal-header">
+                            <h2>Descripción del Producto</h2>
+                            <button onClick={() => setDescripcionModal(null)} className="modal-close-button">✕</button>
+                        </div>
+                        <div className="modal-body">
+                            <h3 style={{ marginBottom: '12px', color: '#111827' }}>{descripcionModal.nombre}</h3>
+                            <p style={{ color: '#6b7280', lineHeight: '1.6' }}>
+                                {descripcionModal.descripcion || 'Sin descripción disponible'}
+                            </p>
+                        </div>
+                        <div className="modal-footer">
+                            <button onClick={() => setDescripcionModal(null)} className="admin-button-secondary">
+                                Cerrar
+                            </button>
+                        </div>
+                    </div>
                 </div>
+            )}
+
+            {/* Modal de Ver Producto */}
+            {productoVer && (
+                <VerProductoModal
+                    producto={productoVer}
+                    onClose={() => setProductoVer(null)}
+                    formatPrice={formatPrice}
+                />
             )}
         </div>
     );

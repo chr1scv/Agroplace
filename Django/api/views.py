@@ -3,7 +3,8 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from django.db.models import Q
 from django.contrib.auth import authenticate, login, logout
-from django.middleware.csrf import get_token  # ← AGREGAR ESTA IMPORTACIÓN
+from django.middleware.csrf import get_token
+from django.views.decorators.csrf import csrf_exempt
 from .models import Usuario, Categoria, Producto, Pedido, DetallePedido, DireccionEnvio
 from .serializers import (
     UsuarioSerializer, CategoriaSerializer, ProductoSerializer, 
@@ -120,6 +121,24 @@ class ProductoViewSet(viewsets.ModelViewSet):
         if vendedor:
             queryset = queryset.filter(vendedor_id=vendedor)
         
+        # Filtrar por estado de aprobación
+        aprobado = self.request.query_params.get('aprobado')
+        if aprobado is not None:
+            if aprobado.lower() == 'true':
+                queryset = queryset.filter(aprobado=True)
+            elif aprobado.lower() == 'false':
+                queryset = queryset.filter(aprobado=False)
+        
+        # Filtrar por estado general
+        estado = self.request.query_params.get('estado')
+        if estado:
+            if estado == 'activo':
+                queryset = queryset.filter(activo=True, aprobado=True)
+            elif estado == 'pendiente':
+                queryset = queryset.filter(activo=True, aprobado=False)
+            elif estado == 'inactivo':
+                queryset = Producto.objects.filter(activo=False)
+        
         return queryset.select_related('categoria', 'vendedor')
     
     def perform_create(self, serializer):
@@ -144,10 +163,22 @@ class ProductoViewSet(viewsets.ModelViewSet):
         producto = self.get_object()
         serializer.save()
     
-    def perform_destroy(self, instance):
-        # Soft delete para desarrollo
-        instance.activo = False
-        instance.save()
+    def destroy(self, request, *args, **kwargs):
+        """Override destroy para manejar soft delete y evitar problemas de CSRF"""
+        try:
+            instance = self.get_object()
+            # Soft delete
+            instance.activo = False
+            instance.save()
+            return Response(
+                {'message': 'Producto eliminado correctamente'},
+                status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
     
     @action(detail=False, methods=['get'])
     def mis_productos(self, request):
@@ -167,6 +198,29 @@ class ProductoViewSet(viewsets.ModelViewSet):
         productos = Producto.objects.filter(vendedor=request.user)
         serializer = self.get_serializer(productos, many=True)
         return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'])
+    def aprobar(self, request, pk=None):
+        """Aprobar un producto"""
+        producto = self.get_object()
+        producto.aprobado = True
+        producto.save()
+        return Response({
+            'message': 'Producto aprobado exitosamente',
+            'producto': ProductoSerializer(producto).data
+        })
+    
+    @action(detail=True, methods=['post'])
+    def rechazar(self, request, pk=None):
+        """Rechazar un producto"""
+        producto = self.get_object()
+        producto.aprobado = False
+        producto.activo = False
+        producto.save()
+        return Response({
+            'message': 'Producto rechazado',
+            'producto': ProductoSerializer(producto).data
+        })
 
 class PedidoViewSet(viewsets.ModelViewSet):
     queryset = Pedido.objects.all()
