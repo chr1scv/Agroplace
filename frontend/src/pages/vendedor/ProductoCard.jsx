@@ -44,11 +44,30 @@ const ProductoCard = ({ producto, onEditar, onEliminar, onRecargar, showToast })
         }).format(price);
     };
 
-    const handleEliminar = async () => {
+        const handleEliminar = async () => {
         try {
             setLoading(true);
+            
+            // Obtener CSRF token
+            const getCsrfToken = () => {
+                const name = 'csrftoken';
+                const cookies = document.cookie.split(';');
+                for (let cookie of cookies) {
+                    const trimmed = cookie.trim();
+                    if (trimmed.startsWith(name + '=')) {
+                        return trimmed.substring(name.length + 1);
+                    }
+                }
+                return null;
+            };
+            
+            const csrfToken = getCsrfToken();
+            
             await axios.delete(`http://localhost:8000/api/productos/${producto.id}/`, {
-                withCredentials: true
+                withCredentials: true,
+                headers: csrfToken ? {
+                    'X-CSRFToken': csrfToken
+                } : {}
             });
             
             if (showToast) {

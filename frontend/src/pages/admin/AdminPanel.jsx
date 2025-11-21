@@ -325,10 +325,20 @@ const rechazarProducto = async (id) => {
             // Optimistic update: Remove from pending list immediately
             setProductosPendientes(prev => prev.filter(p => p.id !== id));
 
-            await axios.patch(`http://localhost:8000/api/productos/${id}/`, {
-                aprobado: false,
-                rechazado: true
-            });
+            // Usar el endpoint de rechazo si existe, sino usar patch
+            try {
+                await axios.post(`http://localhost:8000/api/productos/${id}/rechazar/`, {}, {
+                    withCredentials: true
+                });
+            } catch (e) {
+                // Fallback a patch
+                await axios.patch(`http://localhost:8000/api/productos/${id}/`, {
+                    aprobado: false,
+                    activo: false
+                }, {
+                    withCredentials: true
+                });
+            }
 
             showToast('❌ Producto rechazado', 'success');
 

@@ -9,6 +9,7 @@ const EditarProductoModal = ({ producto, categorias, onClose, onSave, formatPric
         categoria: '',
         origen: 'convencional',
         activo: true,
+        aprobado: false,
     });
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState({});
@@ -23,6 +24,7 @@ const EditarProductoModal = ({ producto, categorias, onClose, onSave, formatPric
                 categoria: producto.categoria?.id || producto.categoria || '',
                 origen: producto.origen || 'convencional',
                 activo: producto.activo !== undefined ? producto.activo : true,
+                aprobado: producto.aprobado !== undefined ? producto.aprobado : false,
             });
         }
     }, [producto]);
@@ -243,6 +245,36 @@ const EditarProductoModal = ({ producto, categorias, onClose, onSave, formatPric
                                     <span>Stock disponible</span>
                                 </div>
                             )}
+                        </div>
+                    </div>
+
+
+                    {/* Estado del Producto */}
+                    <div style={styles.section}>
+                        <h3 style={styles.sectionTitle}>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="12" cy="12" r="10" />
+                                <polyline points="12 6 12 12 16 14" />
+                            </svg>
+                            Estado del Producto
+                        </h3>
+                        
+                        <div style={styles.formGroup}>
+                            <label style={styles.label}>Estado de Aprobación</label>
+                            <select
+                                name="aprobado"
+                                value={formData.aprobado ? 'aprobado' : 'pendiente'}
+                                onChange={(e) => setFormData(prev => ({ ...prev, aprobado: e.target.value === 'aprobado' }))}
+                                style={styles.select}
+                            >
+                                <option value="pendiente">⏳ Pendiente de Aprobación</option>
+                                <option value="aprobado">✅ Aprobado</option>
+                            </select>
+                            <span style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+                                {formData.aprobado 
+                                    ? 'El producto está aprobado y puede ser visible' 
+                                    : 'El producto requiere aprobación de un administrador'}
+                            </span>
                         </div>
                     </div>
 

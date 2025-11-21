@@ -273,8 +273,7 @@ const FormularioProducto = ({
                 errorMessage = error.message;
             }
             
-            setError(errorMessage);
-            showToast(`❌ Error: ${errorMessage}`, 'error');
+            showToast(`❌ ${errorMessage}`, 'error');
         } finally {
             setLoading(false);
         }
