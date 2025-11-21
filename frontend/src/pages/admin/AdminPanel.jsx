@@ -49,23 +49,23 @@ const AdminPanel = () => {
     }, [navigate]);
 
     // Cargar datos automáticamente al cambiar de pestaña
-useEffect(() => {
-    if (activeTab === 'vendedoresPendientes') {
-        cargarVendedoresPendientes();
-    }
-    if (activeTab === 'productosPendientes') {
-        cargarProductosPendientes();
-    }
-    if (activeTab === 'usuarios') {
-        cargarUsuarios();
-    }
-    if (activeTab === 'productos') {
-        cargarProductos();
-    }
-    if (activeTab === 'pedidos') {
-        cargarPedidos();
-    }
-}, [activeTab]);
+    useEffect(() => {
+        if (activeTab === 'vendedoresPendientes') {
+            cargarVendedoresPendientes();
+        }
+        if (activeTab === 'productosPendientes') {
+            cargarProductosPendientes();
+        }
+        if (activeTab === 'usuarios') {
+            cargarUsuarios();
+        }
+        if (activeTab === 'productos') {
+            cargarProductos();
+        }
+        if (activeTab === 'pedidos') {
+            cargarPedidos();
+        }
+    }, [activeTab]);
 
     const cargarDatosIniciales = async () => {
         try {
@@ -161,7 +161,7 @@ useEffect(() => {
             );
 
             showToast('✅ Usuario actualizado exitosamente', 'success');
-            
+
             // Refresh to ensure consistency
             cargarEstadisticas();
 
@@ -186,7 +186,7 @@ useEffect(() => {
             );
 
             showToast('✅ Producto actualizado exitosamente', 'success');
-            
+
             cargarEstadisticas();
 
         } catch (error) {
@@ -253,16 +253,16 @@ useEffect(() => {
         }
     };
 
-    
-    // ===== APROBAR / RECHAZAR VENDEDORES =====
-const aprobarVendedor = async (id) => {
+
+    // ===== APROBAR / RECHAZAR VENDEDORES =====
+    const aprobarVendedor = async (id) => {
         try {
             // Optimistic update
             setVendedoresPendientes(prev => prev.filter(v => v.id !== id));
 
             // Note: 'activo' is the standard state for approved users, not 'aprobado'
             await axios.patch(`http://localhost:8000/api/usuarios/${id}/`, {
-                estado: 'activo' 
+                estado: 'activo'
             });
 
             showToast('✅ Vendedor aprobado', 'success');
@@ -277,7 +277,7 @@ const aprobarVendedor = async (id) => {
         }
     };
 
-const rechazarVendedor = async (id) => {
+    const rechazarVendedor = async (id) => {
         try {
             // Optimistic update
             setVendedoresPendientes(prev => prev.filter(v => v.id !== id));
@@ -299,8 +299,8 @@ const rechazarVendedor = async (id) => {
     };
 
 
-   // ===== APROBAR / RECHAZAR PRODUCTOS =====
-const aprobarProducto = async (id) => {
+    // ===== APROBAR / RECHAZAR PRODUCTOS =====
+    const aprobarProducto = async (id) => {
         try {
             // Optimistic update: Remove from pending list immediately
             setProductosPendientes(prev => prev.filter(p => p.id !== id));
@@ -323,7 +323,7 @@ const aprobarProducto = async (id) => {
         }
     };
 
-const rechazarProducto = async (id) => {
+    const rechazarProducto = async (id) => {
         try {
             // Optimistic update: Remove from pending list immediately
             setProductosPendientes(prev => prev.filter(p => p.id !== id));
@@ -970,7 +970,7 @@ const ProductosTab = ({ productos, loading, onReload, onEliminarProducto, onEdit
             return coincideBusqueda && coincideCategoria && coincideEstado;
         })
         .sort((a, b) => {
-            switch(ordenarPor) {
+            switch (ordenarPor) {
                 case 'recientes':
                     return new Date(b.fecha_creacion || 0) - new Date(a.fecha_creacion || 0);
                 case 'precio-asc':
@@ -1102,68 +1102,100 @@ const ProductosTab = ({ productos, loading, onReload, onEliminarProducto, onEdit
                                         {/* Producto */}
                                         <td>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                {producto.imagen ? (
-                                                    <img 
-                                                        src={producto.imagen.startsWith('http') ? producto.imagen : `http://localhost:8000${producto.imagen}`}
-                                                        alt={producto.nombre}
-                                                        style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '8px' }}
-                                                        onError={(e) => {
-                                                            e.target.style.display = 'none';
-                                                        }}
-                                                    />
-                                                ) : (
-                                                    <div style={{ width: '50px', height: '50px', background: '#f3f4f6', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                        🌱
-                                                    </div>
-                                                )}
                                                 <div>
-                                                    <div style={{ fontWeight: '600', color: '#111827' }}>{producto.nombre}</div>
-                                                    <div style={{ fontSize: '12px', color: '#6b7280' }}>ID: {producto.id}</div>
+                                                    <div style={{
+                                                        fontWeight: '700',
+                                                        color: '#ffffff',
+                                                        fontSize: '16px',
+                                                        marginBottom: '4px'
+                                                    }}>
+                                                        {producto.nombre}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </td>
 
                                         {/* Descripción */}
                                         <td>
-                                            <button
-                                                onClick={() => setDescripcionModal(producto)}
-                                                className="admin-link-button"
-                                                style={{ color: '#3b82f6', cursor: 'pointer', textDecoration: 'underline', background: 'none', border: 'none', padding: 0 }}
-                                            >
-                                                Ver descripción
-                                            </button>
+                                            <div style={{ textAlign: 'center' }}>
+                                                <button
+                                                    onClick={() => setDescripcionModal(producto)}
+                                                    className="admin-link-button"
+                                                    style={{
+                                                        color: '#60a5fa',
+                                                        cursor: 'pointer',
+                                                        textDecoration: 'underline',
+                                                        background: 'none',
+                                                        border: 'none',
+                                                        padding: '8px 12px',
+                                                        fontSize: '14px',
+                                                        fontWeight: '500'
+                                                    }}
+                                                >
+                                                    Ver descripción
+                                                </button>
+                                            </div>
                                         </td>
 
                                         {/* Categoría */}
                                         <td>
-                                            <span className="admin-badge-categoria">
-                                                {producto.categoria?.nombre || 'Sin categoría'}
-                                            </span>
+                                            <div style={{ textAlign: 'center' }}>
+                                                <span className="admin-badge-categoria" style={{
+                                                    display: 'inline-block',
+                                                    padding: '6px 12px',
+                                                    borderRadius: '20px',
+                                                    background: 'rgba(45, 122, 62, 0.2)',
+                                                    color: '#4ade80',
+                                                    fontSize: '12px',
+                                                    fontWeight: '600'
+                                                }}>
+                                                    {producto.categoria?.nombre || 'Sin categoría'}
+                                                </span>
+                                            </div>
                                         </td>
 
                                         {/* Vendedor */}
                                         <td>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                <div style={{ 
-                                                    width: '32px', 
-                                                    height: '32px', 
-                                                    borderRadius: '50%', 
-                                                    background: '#e0e7ff', 
-                                                    display: 'flex', 
-                                                    alignItems: 'center', 
+                                            <div style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '10px',
+                                                padding: '8px'
+                                            }}>
+                                                <div style={{
+                                                    width: '40px',
+                                                    height: '40px',
+                                                    borderRadius: '50%',
+                                                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
                                                     justifyContent: 'center',
-                                                    fontSize: '14px',
-                                                    fontWeight: '600',
-                                                    color: '#4f46e5'
+                                                    fontSize: '16px',
+                                                    fontWeight: '700',
+                                                    color: '#ffffff',
+                                                    flexShrink: 0
                                                 }}>
                                                     {producto.vendedor?.username?.charAt(0).toUpperCase() || '?'}
                                                 </div>
-                                                <div>
-                                                    <div style={{ fontWeight: '500', color: '#111827' }}>
+                                                <div style={{ minWidth: 0 }}>
+                                                    <div style={{
+                                                        fontWeight: '600',
+                                                        color: '#ffffff',
+                                                        fontSize: '14px',
+                                                        whiteSpace: 'nowrap',
+                                                        overflow: 'hidden',
+                                                        textOverflow: 'ellipsis'
+                                                    }}>
                                                         {producto.vendedor?.username || 'Sin vendedor'}
                                                     </div>
                                                     {producto.vendedor?.email && (
-                                                        <div style={{ fontSize: '11px', color: '#6b7280' }}>
+                                                        <div style={{
+                                                            fontSize: '12px',
+                                                            color: '#9ca3af',
+                                                            whiteSpace: 'nowrap',
+                                                            overflow: 'hidden',
+                                                            textOverflow: 'ellipsis'
+                                                        }}>
                                                             {producto.vendedor.email}
                                                         </div>
                                                     )}
@@ -1173,15 +1205,20 @@ const ProductosTab = ({ productos, loading, onReload, onEliminarProducto, onEdit
 
                                         {/* Precio */}
                                         <td>
-                                            <span style={{ fontWeight: '600', color: '#059669' }}>
+                                            <span style={{
+                                                fontWeight: '700',
+                                                color: '#10b981',
+                                                fontSize: '15px'
+                                            }}>
                                                 {formatPrice(producto.precio)}
                                             </span>
                                         </td>
 
                                         {/* Stock */}
                                         <td>
-                                            <span style={{ 
-                                                fontWeight: '600',
+                                            <span style={{
+                                                fontWeight: '700',
+                                                fontSize: '15px',
                                                 color: producto.stock === 0 ? '#ef4444' : producto.stock < 10 ? '#f59e0b' : '#10b981'
                                             }}>
                                                 {producto.stock}
@@ -1190,18 +1227,36 @@ const ProductosTab = ({ productos, loading, onReload, onEliminarProducto, onEdit
 
                                         {/* Estado */}
                                         <td>
-                                            <span className={`admin-badge-estado ${estado.clase}`}>
+                                            <span className={`admin-badge-estado ${estado.clase}`} style={{
+                                                padding: '6px 12px',
+                                                borderRadius: '20px',
+                                                fontSize: '12px',
+                                                fontWeight: '600',
+                                                textTransform: 'uppercase'
+                                            }}>
                                                 {estado.texto}
                                             </span>
                                         </td>
 
                                         {/* Acciones */}
                                         <td>
-                                            <div className="admin-table-actions">
+                                            <div className="admin-table-actions" style={{
+                                                display: 'flex',
+                                                gap: '8px',
+                                                justifyContent: 'center'
+                                            }}>
                                                 <button
                                                     onClick={() => setProductoVer(producto)}
                                                     className="admin-action-button admin-action-view"
                                                     title="Ver detalles"
+                                                    style={{
+                                                        background: 'rgba(96, 165, 250, 0.2)',
+                                                        border: 'none',
+                                                        borderRadius: '8px',
+                                                        padding: '8px',
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.3s ease'
+                                                    }}
                                                 >
                                                     👁️
                                                 </button>
@@ -1209,6 +1264,14 @@ const ProductosTab = ({ productos, loading, onReload, onEliminarProducto, onEdit
                                                     onClick={() => onEditarProducto(producto)}
                                                     className="admin-action-button admin-action-edit"
                                                     title="Editar"
+                                                    style={{
+                                                        background: 'rgba(34, 197, 94, 0.2)',
+                                                        border: 'none',
+                                                        borderRadius: '8px',
+                                                        padding: '8px',
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.3s ease'
+                                                    }}
                                                 >
                                                     ✏️
                                                 </button>
@@ -1216,6 +1279,14 @@ const ProductosTab = ({ productos, loading, onReload, onEliminarProducto, onEdit
                                                     onClick={() => onEliminarProducto(producto.id, producto.nombre)}
                                                     className="admin-action-button admin-action-delete"
                                                     title="Eliminar"
+                                                    style={{
+                                                        background: 'rgba(239, 68, 68, 0.2)',
+                                                        border: 'none',
+                                                        borderRadius: '8px',
+                                                        padding: '8px',
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.3s ease'
+                                                    }}
                                                 >
                                                     🗑️
                                                 </button>
@@ -1227,24 +1298,168 @@ const ProductosTab = ({ productos, loading, onReload, onEliminarProducto, onEdit
                         )}
                     </tbody>
                 </table>
+
+                {/* Barra de navegación de páginas */}
+                {productosFiltrados.length >= 5 && (
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        padding: '20px',
+                        gap: '10px',
+                        borderTop: '1px solid rgba(45, 122, 62, 0.2)'
+                    }}>
+                        <button style={{
+                            padding: '8px 16px',
+                            background: 'rgba(45, 122, 62, 0.2)',
+                            color: '#ffffff',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '14px'
+                        }}>
+                            Anterior
+                        </button>
+                        <span style={{
+                            color: '#d1d5db',
+                            fontSize: '14px',
+                            padding: '0 16px'
+                        }}>
+                            Página 1 de 1
+                        </span>
+                        <button style={{
+                            padding: '8px 16px',
+                            background: 'rgba(45, 122, 62, 0.2)',
+                            color: '#ffffff',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '14px'
+                        }}>
+                            Siguiente
+                        </button>
+                    </div>
+                )}
             </div>
 
-            {/* Modal de Descripción */}
+            {/* Modal de Descripción Unificado */}
             {descripcionModal && (
                 <div className="modal-overlay" onClick={() => setDescripcionModal(null)}>
-                    <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
-                        <div className="modal-header">
-                            <h2>Descripción del Producto</h2>
-                            <button onClick={() => setDescripcionModal(null)} className="modal-close-button">✕</button>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{
+                        maxWidth: '700px',
+                        background: 'rgba(26, 31, 46, 0.95)',
+                        border: '1px solid rgba(45, 122, 62, 0.3)',
+                        borderRadius: '16px',
+                        overflow: 'hidden'
+                    }}>
+                        <div className="modal-header" style={{
+                            background: 'rgba(15, 20, 25, 0.95)',
+                            padding: '20px 30px',
+                            borderBottom: '1px solid rgba(45, 122, 62, 0.2)'
+                        }}>
+                            <h2 style={{
+                                color: '#ffffff',
+                                margin: 0,
+                                fontSize: '20px',
+                                fontWeight: '700'
+                            }}>
+                                Descripción del Producto
+                            </h2>
+                            <button
+                                onClick={() => setDescripcionModal(null)}
+                                className="modal-close-button"
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: '#9ca3af',
+                                    fontSize: '20px',
+                                    cursor: 'pointer',
+                                    padding: '0',
+                                    width: '30px',
+                                    height: '30px',
+                                    borderRadius: '50%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                }}
+                            >
+                                ✕
+                            </button>
                         </div>
-                        <div className="modal-body">
-                            <h3 style={{ marginBottom: '12px', color: '#111827' }}>{descripcionModal.nombre}</h3>
-                            <p style={{ color: '#6b7280', lineHeight: '1.6' }}>
-                                {descripcionModal.descripcion || 'Sin descripción disponible'}
-                            </p>
+
+                        <div className="modal-body" style={{ padding: '30px' }}>
+                            {/* Imagen grande arriba del texto */}
+                            {descripcionModal.imagen && (
+                                <div style={{
+                                    textAlign: 'center',
+                                    marginBottom: '25px'
+                                }}>
+                                    <img
+                                        src={descripcionModal.imagen.startsWith('http') ? descripcionModal.imagen : `http://localhost:8000${descripcionModal.imagen}`}
+                                        alt={descripcionModal.nombre}
+                                        style={{
+                                            width: '280px',
+                                            height: '280px',
+                                            objectFit: 'cover',
+                                            borderRadius: '12px',
+                                            margin: '0 auto',
+                                            display: 'block'
+                                        }}
+                                        onError={(e) => {
+                                            e.target.style.display = 'none';
+                                        }}
+                                    />
+                                </div>
+                            )}
+
+                            {/* Nombre del producto */}
+                            <h3 style={{
+                                marginBottom: '15px',
+                                color: '#ffffff',
+                                fontSize: '18px',
+                                fontWeight: '600',
+                                textAlign: 'center'
+                            }}>
+                                {descripcionModal.nombre}
+                            </h3>
+
+                            {/* Texto de descripción */}
+                            <div style={{
+                                color: '#e5e7eb',
+                                fontSize: '16px',
+                                lineHeight: '1.6',
+                                textAlign: 'left',
+                                background: 'rgba(15, 20, 25, 0.5)',
+                                padding: '20px',
+                                borderRadius: '8px',
+                                border: '1px solid rgba(45, 122, 62, 0.1)'
+                            }}>
+                                {descripcionModal.descripcion || 'No hay descripción disponible para este producto.'}
+                            </div>
                         </div>
-                        <div className="modal-footer">
-                            <button onClick={() => setDescripcionModal(null)} className="admin-button-secondary">
+
+                        <div className="modal-footer" style={{
+                            padding: '20px 30px',
+                            background: 'rgba(15, 20, 25, 0.8)',
+                            borderTop: '1px solid rgba(45, 122, 62, 0.2)',
+                            textAlign: 'center'
+                        }}>
+                            <button
+                                onClick={() => setDescripcionModal(null)}
+                                style={{
+                                    background: 'rgba(45, 122, 62, 0.3)',
+                                    color: '#ffffff',
+                                    border: 'none',
+                                    padding: '12px 30px',
+                                    borderRadius: '8px',
+                                    cursor: 'pointer',
+                                    fontSize: '14px',
+                                    fontWeight: '600',
+                                    transition: 'all 0.3s ease'
+                                }}
+                                onMouseOver={(e) => e.target.style.background = 'rgba(45, 122, 62, 0.5)'}
+                                onMouseOut={(e) => e.target.style.background = 'rgba(45, 122, 62, 0.3)'}
+                            >
                                 Cerrar
                             </button>
                         </div>

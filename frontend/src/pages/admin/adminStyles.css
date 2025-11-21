@@ -1,7 +1,12 @@
 /* adminStyles.css */
 @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* Estilos base */
@@ -915,12 +920,13 @@
     text-align: center;
 }
 
-/* Tabla tradicional */
+/* Tabla moderna actualizada */
 .admin-table-container {
-    background: rgba(26, 31, 46, 0.8);
-    border-radius: 12px;
-    border: 1px solid rgba(45, 122, 62, 0.1);
+    background: rgba(26, 31, 46, 0.9);
+    border-radius: 16px;
+    border: 1px solid rgba(45, 122, 62, 0.2);
     overflow: hidden;
+    backdrop-filter: blur(10px);
 }
 
 .admin-table {
@@ -928,31 +934,73 @@
     border-collapse: collapse;
 }
 
-.admin-table-header {
-    background-color: rgba(15, 20, 25, 0.9);
-    padding: 1rem;
+.admin-table th {
+    background: rgba(15, 20, 25, 0.95);
+    padding: 1.2rem 1rem;
     text-align: left;
-    color: #d1d5db;
-    font-weight: 600;
-    font-size: 0.9rem;
-    border-bottom: 1px solid rgba(45, 122, 62, 0.2);
-}
-
-.admin-table-row {
-    border-bottom: 1px solid rgba(45, 122, 62, 0.1);
-    transition: background 0.3s ease;
-}
-
-.admin-table-row:hover {
-    background: rgba(45, 122, 62, 0.05);
-}
-
-.admin-table-cell {
-    padding: 1rem;
     color: #e5e7eb;
-    font-size: 0.9rem;
+    font-weight: 700;
+    font-size: 0.95rem;
+    border-bottom: 2px solid rgba(45, 122, 62, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
+.admin-table td {
+    padding: 1.2rem 1rem;
+    color: #f9fafb;
+    font-size: 0.95rem;
+    border-bottom: 1px solid rgba(45, 122, 62, 0.1);
+}
+
+.admin-table tr:hover {
+    background: rgba(45, 122, 62, 0.08);
+    transition: all 0.3s ease;
+}
+
+/* Estilos para el modal */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: rgba(26, 31, 46, 0.95);
+    border-radius: 16px;
+    border: 1px solid rgba(45, 122, 62, 0.3);
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+}
+
+.modal-header {
+    background: rgba(15, 20, 25, 0.95);
+    padding: 20px 30px;
+    border-bottom: 1px solid rgba(45, 122, 62, 0.2);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-body {
+    padding: 30px;
+}
+
+.modal-footer {
+    padding: 20px 30px;
+    background: rgba(15, 20, 25, 0.8);
+    border-top: 1px solid rgba(45, 122, 62, 0.2);
+    text-align: center;
+}
+
+/* Mantener los otros estilos existentes que no son de la tabla */
 .admin-producto-info {
     display: flex;
     align-items: center;
@@ -965,8 +1013,9 @@
 }
 
 .admin-producto-nombre {
-    font-weight: 500;
-    color: #f9fafb;
+    font-weight: 600;
+    color: #ffffff;
+    font-size: 16px;
 }
 
 .admin-producto-descripcion {
@@ -1047,6 +1096,48 @@
 .admin-detalles-button:hover {
     background: rgba(45, 122, 62, 0.2);
     transform: translateY(-1px);
+}
+
+/* Estilos para botones de acción */
+.admin-action-button {
+    background: rgba(96, 165, 250, 0.2);
+    border: none;
+    border-radius: 8px;
+    padding: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.admin-action-button:hover {
+    transform: translateY(-2px);
+}
+
+.admin-action-view {
+    background: rgba(96, 165, 250, 0.2);
+}
+
+.admin-action-edit {
+    background: rgba(34, 197, 94, 0.2);
+}
+
+.admin-action-delete {
+    background: rgba(239, 68, 68, 0.2);
+}
+
+.admin-link-button {
+    color: #60a5fa;
+    cursor: pointer;
+    text-decoration: underline;
+    background: none;
+    border: none;
+    padding: 8px 12px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.admin-link-button:hover {
+    color: #93c5fd;
 }
 
 .admin-estado-select {
@@ -1260,46 +1351,48 @@
     .admin-main-container {
         flex-direction: column;
     }
+
     .admin-sidebar {
         width: 100%;
         order: 2;
     }
+
     .admin-content {
         order: 1;
     }
-    
+
     .admin-filtros-container {
         flex-direction: column;
         align-items: stretch;
     }
-    
+
     .admin-search-box {
         min-width: 100%;
     }
-    
+
     .admin-form-row {
         grid-template-columns: 1fr;
     }
-    
+
     .admin-vendedores-grid,
     .admin-productos-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .admin-stats-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .admin-dashboard-sections {
         grid-template-columns: 1fr;
     }
-    
+
     .admin-table-row-modern {
         flex-direction: column;
         align-items: flex-start;
         gap: 1rem;
     }
-    
+
     .admin-table-col {
         width: 100% !important;
     }
@@ -1395,13 +1488,13 @@
         align-items: stretch;
         gap: 1rem;
     }
-    
+
     .admin-filtro-group {
         flex-direction: column;
         align-items: stretch;
     }
-    
-    .admin-filtro-select, 
+
+    .admin-filtro-select,
     .admin-filtro-input {
         width: 100%;
     }
@@ -1421,7 +1514,8 @@
 }
 
 .admin-main-content {
-    margin-left: 280px; /* Ancho del sidebar */
+    margin-left: 280px;
+    /* Ancho del sidebar */
 }
 
 /* ===== ESTILOS PARA BADGES DE ESTADO ===== */
@@ -1501,26 +1595,89 @@
     animation: slideUp 0.3s ease-out;
 }
 
+/* Tabla moderna actualizada */
+.admin-table-container {
+    background: rgba(26, 31, 46, 0.9);
+    border-radius: 16px;
+    border: 1px solid rgba(45, 122, 62, 0.2);
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.admin-table th {
+    background: rgba(15, 20, 25, 0.95);
+    padding: 1.2rem 1rem;
+    text-align: left;
+    color: #e5e7eb;
+    font-weight: 700;
+    font-size: 0.95rem;
+    border-bottom: 2px solid rgba(45, 122, 62, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.admin-table td {
+    padding: 1.2rem 1rem;
+    color: #f9fafb;
+    font-size: 0.95rem;
+    border-bottom: 1px solid rgba(45, 122, 62, 0.1);
+}
+
+.admin-table tr:hover {
+    background: rgba(45, 122, 62, 0.08);
+    transition: all 0.3s ease;
+}
+
+/* Estilos para el modal - Actualizados */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: rgba(26, 31, 46, 0.95);
+    border-radius: 16px;
+    border: 1px solid rgba(45, 122, 62, 0.3);
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+    max-width: 600px;
+    width: 90%;
+}
+
 .modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 24px;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid rgba(45, 122, 62, 0.2);
+    background: rgba(15, 20, 25, 0.95);
 }
 
 .modal-header h2 {
     margin: 0;
     font-size: 20px;
     font-weight: 700;
-    color: #111827;
+    color: #f9fafb;
 }
 
 .modal-close-button {
-    background: none;
+    background: rgba(45, 122, 62, 0.2);
     border: none;
-    font-size: 24px;
-    color: #6b7280;
+    font-size: 18px;
+    color: #9ca3af;
     cursor: pointer;
     padding: 0;
     width: 32px;
@@ -1529,40 +1686,172 @@
     align-items: center;
     justify-content: center;
     border-radius: 8px;
-    transition: all 0.2s;
+    transition: all 0.3s ease;
 }
 
 .modal-close-button:hover {
-    background: #f3f4f6;
-    color: #111827;
+    background: rgba(45, 122, 62, 0.4);
+    color: #ffffff;
 }
 
 .modal-body {
     padding: 24px;
+    color: #e5e7eb;
+}
+
+.modal-body h3 {
+    color: #f9fafb;
+    margin-bottom: 12px;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.modal-body p {
+    color: #d1d5db;
+    line-height: 1.6;
+    margin: 0;
 }
 
 .modal-footer {
-    padding: 16px 24px;
-    border-top: 1px solid #e5e7eb;
+    padding: 20px 24px;
+    border-top: 1px solid rgba(45, 122, 62, 0.2);
     display: flex;
-    justify-content: flex-end;
-    gap: 12px;
+    justify-content: center;
+    background: rgba(15, 20, 25, 0.8);
 }
 
 .admin-button-secondary {
-    padding: 10px 20px;
+    padding: 10px 24px;
     border-radius: 8px;
-    border: 1px solid #d1d5db;
-    background: white;
-    color: #374151;
+    border: 1px solid rgba(45, 122, 62, 0.4);
+    background: rgba(45, 122, 62, 0.2);
+    color: #e5e7eb;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.3s ease;
+    font-size: 14px;
 }
 
 .admin-button-secondary:hover {
-    background: #f9fafb;
-    border-color: #9ca3af;
+    background: rgba(45, 122, 62, 0.3);
+    border-color: rgba(45, 122, 62, 0.6);
+    color: #ffffff;
+}
+
+/* Badges y estados */
+.admin-badge-categoria {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    background: rgba(45, 122, 62, 0.2);
+    color: #4ade80;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.admin-badge-estado {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+/* Botones de acción */
+.admin-table-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+
+.admin-action-button {
+    border: none;
+    border-radius: 8px;
+    padding: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.admin-action-button:hover {
+    transform: translateY(-2px);
+}
+
+.admin-action-view {
+    background: rgba(96, 165, 250, 0.2);
+}
+
+.admin-action-edit {
+    background: rgba(34, 197, 94, 0.2);
+}
+
+.admin-action-delete {
+    background: rgba(239, 68, 68, 0.2);
+}
+
+.admin-link-button {
+    color: #60a5fa;
+    cursor: pointer;
+    text-decoration: underline;
+    background: none;
+    border: none;
+    padding: 8px 12px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    border-radius: 6px;
+}
+
+.admin-link-button:hover {
+    color: #93c5fd;
+    background: rgba(96, 165, 250, 0.1);
+}
+
+/* Estados de stock */
+.admin-stock-disponible {
+    color: #10b981;
+    font-weight: 600;
+}
+
+.admin-stock-agotado {
+    color: #ef4444;
+    font-weight: 600;
+}
+
+.admin-estado-activo {
+    color: #10b981;
+    font-weight: 600;
+}
+
+.admin-estado-inactivo {
+    color: #ef4444;
+    font-weight: 600;
+}
+
+/* Mantener estilos existentes no conflictivos */
+.admin-producto-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.admin-producto-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.admin-producto-nombre {
+    font-weight: 600;
+    color: #ffffff;
+    font-size: 16px;
+}
+
+.admin-producto-descripcion {
+    font-size: 0.8rem;
+    color: #9ca3af;
+    margin-top: 0.25rem;
 }
 
 /* ===== ANIMACIONES ===== */
@@ -1570,6 +1859,7 @@
     from {
         opacity: 0;
     }
+
     to {
         opacity: 1;
     }
@@ -1580,6 +1870,7 @@
         transform: translateY(20px);
         opacity: 0;
     }
+
     to {
         transform: translateY(0);
         opacity: 1;
@@ -1652,7 +1943,7 @@
         position: relative !important;
         height: auto;
     }
-    
+
     .admin-main-content {
         margin-left: 0;
     }

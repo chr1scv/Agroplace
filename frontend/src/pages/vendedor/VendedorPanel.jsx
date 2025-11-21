@@ -579,7 +579,7 @@ const VendedorPanel = () => {
                 await cargarProductosVendedor(vendedor.id);
             } catch (error) {
                 console.error('Error guardando producto:', error);
-                showToast('❌ Error al guardar producto', 'error');
+                // FormularioProducto ya muestra el toast de error, no duplicar
             }
         };
 

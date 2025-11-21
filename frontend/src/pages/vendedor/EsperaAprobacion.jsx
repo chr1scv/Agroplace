@@ -6,56 +6,7 @@ const EsperaAprobacion = () => {
     const [tiempoTranscurrido, setTiempoTranscurrido] = useState(0);
     const [estaVerificando, setEstaVerificando] = useState(false);
     const [user, setUser] = useState(null);
-    const [debugInfo, setDebugInfo] = useState(null);
-    const [mostrarDebug, setMostrarDebug] = useState(false);
     const navigate = useNavigate();
-
-    // Función para debug completo
-    const debugEstadoCompleto = async () => {
-        try {
-            console.log('🔍 === INICIANDO DEBUG COMPLETO ===');
-
-            // 1. Verificar localStorage
-            const storedUser = localStorage.getItem('user');
-            console.log('📦 localStorage user:', storedUser);
-
-            // 2. Verificar authService
-            console.log('🔐 authService user:', authService.user);
-
-            // 3. Llamar al endpoint de debug
-            const response = await fetch('http://localhost:8000/api/auth/debug/', {
-                method: 'GET',
-                credentials: 'include',
-            });
-
-            if (response.ok) {
-                const debugData = await response.json();
-                console.log('🔧 Debug endpoint:', debugData);
-                setDebugInfo(debugData);
-
-                // Si el usuario está autenticado y aprobado, redirigir
-                if (debugData.user_data && debugData.user_data.estado === 'activo') {
-                    // SAFETY CHECK: If admin, go to admin panel
-                    if (debugData.user_data.tipo_usuario === 'admin') {
-                        console.log('🛡️ Usuario es ADMIN - Redirigiendo a panel admin');
-                        navigate('/admin');
-                        return;
-                    }
-
-                    console.log('🎉 USUARIO APROBADO EN DEBUG - Redirigiendo!');
-                    // Actualizar localStorage con datos correctos
-                    localStorage.setItem('user', JSON.stringify(debugData.user_data));
-                    setTimeout(() => navigate('/vendedor'), 1000);
-                    return;
-                }
-            } else {
-                console.log('❌ Error en debug endpoint:', response.status);
-            }
-
-        } catch (error) {
-            console.error('💥 Error en debug:', error);
-        }
-    };
 
     // Verificación simple del estado
     const verificarEstadoSimple = async () => {
@@ -121,27 +72,9 @@ const EsperaAprobacion = () => {
         initialize();
     }, [navigate, estaVerificando]);
 
-    const handleVerificarManual = async () => {
-        setEstaVerificando(true);
-        await verificarEstadoSimple();
-        setEstaVerificando(false);
-    };
-
-    const handleDebugCompleto = async () => {
-        setEstaVerificando(true);
-        await debugEstadoCompleto();
-        setMostrarDebug(true);
-        setEstaVerificando(false);
-    };
-
     const handleSalir = () => {
         authService.logout();
         navigate('/');
-    };
-
-    const handleForzarRedireccion = () => {
-        console.log('🚀 Forzando redirección al panel...');
-        navigate('/vendedor');
     };
 
     const formatTiempo = (segundos) => {
@@ -175,31 +108,6 @@ const EsperaAprobacion = () => {
                         </p>
                     </div>
 
-                    {/* Información de Debug */}
-                    {debugInfo && mostrarDebug && (
-                        <div style={styles.debugSection}>
-                            <div style={styles.debugHeader}>
-                                <h3 style={styles.debugTitle}>🔧 Información de Debug</h3>
-                                <button
-                                    onClick={() => setMostrarDebug(false)}
-                                    style={styles.debugCloseButton}
-                                >
-                                    ×
-                                </button>
-                            </div>
-                            <div style={styles.debugInfo}>
-                                <div><strong>Autenticado:</strong> {debugInfo.is_authenticated ? 'Sí' : 'No'}</div>
-                                {debugInfo.user_data && (
-                                    <>
-                                        <div><strong>Usuario:</strong> {debugInfo.user_data.username}</div>
-                                        <div><strong>Estado:</strong> {debugInfo.user_data.estado}</div>
-                                        <div><strong>Tipo:</strong> {debugInfo.user_data.tipo_usuario}</div>
-                                    </>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
                     {/* Estado */}
                     <div style={styles.statusSection}>
                         <div style={styles.statusIcon}>
@@ -221,21 +129,6 @@ const EsperaAprobacion = () => {
                     {/* Acciones principales */}
                     <div style={styles.actions}>
                         <button
-                            onClick={handleVerificarManual}
-                            disabled={estaVerificando}
-                            style={estaVerificando ? styles.buttonDisabled : styles.buttonPrimary}
-                        >
-                            {estaVerificando ? (
-                                <>
-                                    <span style={styles.buttonSpinner}></span>
-                                    Verificando...
-                                </>
-                            ) : (
-                                '🔍 Verificar Estado Ahora'
-                            )}
-                        </button>
-
-                        <button
                             onClick={handleSalir}
                             style={styles.buttonSecondary}
                         >
@@ -243,26 +136,6 @@ const EsperaAprobacion = () => {
                         </button>
                     </div>
                 </div>
-            </div>
-
-            {/* Botones de debug flotantes */}
-            <div style={styles.debugButtons}>
-                <button
-                    onClick={handleDebugCompleto}
-                    disabled={estaVerificando}
-                    style={styles.debugButton}
-                    title="Debug Completo"
-                >
-                    🐛
-                </button>
-
-                <button
-                    onClick={handleForzarRedireccion}
-                    style={styles.forceButton}
-                    title="Forzar Panel"
-                >
-                    🚀
-                </button>
             </div>
         </div>
     );
@@ -330,43 +203,6 @@ const styles = {
         color: '#9ca3af',
         fontSize: '1.1rem',
     },
-    debugSection: {
-        background: 'rgba(59, 130, 246, 0.1)',
-        border: '1px solid rgba(59, 130, 246, 0.3)',
-        borderRadius: '10px',
-        padding: '1rem',
-        marginBottom: '1.5rem',
-        position: 'relative',
-    },
-    debugHeader: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '0.5rem',
-    },
-    debugTitle: {
-        color: '#3b82f6',
-        fontSize: '1rem',
-        margin: 0,
-    },
-    debugCloseButton: {
-        background: 'none',
-        border: 'none',
-        color: '#9ca3af',
-        fontSize: '1.2rem',
-        cursor: 'pointer',
-        padding: '0',
-        width: '24px',
-        height: '24px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    debugInfo: {
-        color: '#d1d5db',
-        fontSize: '0.85rem',
-        lineHeight: '1.5',
-    },
     statusSection: {
         marginBottom: '2rem',
         padding: '2rem',
@@ -425,20 +261,6 @@ const styles = {
         gap: '1rem',
         marginBottom: '0',
     },
-    buttonPrimary: {
-        background: 'linear-gradient(135deg, #2d7a3e, #47a855)',
-        color: 'white',
-        border: 'none',
-        padding: '14px 24px',
-        borderRadius: '10px',
-        fontSize: '1rem',
-        fontWeight: '600',
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '0.5rem',
-    },
     buttonSecondary: {
         background: 'transparent',
         color: '#9ca3af',
@@ -448,67 +270,6 @@ const styles = {
         fontSize: '1rem',
         fontWeight: '600',
         cursor: 'pointer',
-    },
-    buttonDisabled: {
-        background: '#374151',
-        color: '#6b7280',
-        border: 'none',
-        padding: '14px 24px',
-        borderRadius: '10px',
-        fontSize: '1rem',
-        fontWeight: '600',
-        cursor: 'not-allowed',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '0.5rem',
-    },
-    buttonSpinner: {
-        width: '16px',
-        height: '16px',
-        border: '2px solid transparent',
-        borderTop: '2px solid currentColor',
-        borderRadius: '50%',
-        animation: 'spin 1s linear infinite',
-    },
-    // Botones de debug flotantes
-    debugButtons: {
-        position: 'fixed',
-        bottom: '20px',
-        right: '20px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '10px',
-        zIndex: 1000,
-    },
-    debugButton: {
-        background: 'rgba(59, 130, 246, 0.1)',
-        color: '#3b82f6',
-        border: '1px solid rgba(59, 130, 246, 0.3)',
-        borderRadius: '50%',
-        width: '50px',
-        height: '50px',
-        fontSize: '1.2rem',
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backdropFilter: 'blur(10px)',
-        transition: 'all 0.3s ease',
-    },
-    forceButton: {
-        background: 'rgba(245, 158, 11, 0.1)',
-        color: '#f59e0b',
-        border: '1px solid rgba(245, 158, 11, 0.3)',
-        borderRadius: '50%',
-        width: '50px',
-        height: '50px',
-        fontSize: '1.2rem',
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backdropFilter: 'blur(10px)',
         transition: 'all 0.3s ease',
     },
 };
