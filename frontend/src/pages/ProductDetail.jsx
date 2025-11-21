@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import ReviewSystem from '../components/ReviewSystem';
+import HeaderCliente from '../pages/cliente/HeaderCliente';  
 
 const ProductDetail = () => {
     const { id } = useParams();
@@ -92,86 +93,94 @@ const ProductDetail = () => {
             setQuantity(newQuantity);
         }
     };
-
-    if (loading) {
+       if (loading) {
         return (
-            <div style={styles.loading}>
-                <div style={styles.spinner}>🔄</div>
-                <p>Cargando producto...</p>
+            <div>
+                <HeaderCliente />  {/* ← HEADER AGREGADO */}
+                <div style={styles.loading}>
+                    <div style={styles.spinner}>🔄</div>
+                    <p>Cargando producto...</p>
+                </div>
             </div>
         );
     }
 
     if (error || !product) {
         return (
-            <div style={styles.error}>
-                <p>{error || 'Producto no encontrado'}</p>
-                <button onClick={() => navigate('/productos')} style={styles.backButton}>
-                    ← Volver a Productos
-                </button>
+            <div>
+                <HeaderCliente />
+                <div style={styles.error}>
+                    <p>{error || 'Producto no encontrado'}</p>
+                    <button onClick={() => navigate('/productos')} style={styles.backButton}>
+                        ← Volver a Productos
+                    </button>
+                </div>
             </div>
         );
     }
 
     return (
-        <div style={styles.container}>
-            {/* Breadcrumb */}
-            <div style={styles.breadcrumb}>
-                <button onClick={() => navigate('/productos')} style={styles.breadcrumbLink}>
-                    Productos
-                </button>
-                <span style={styles.breadcrumbSeparator}>/</span>
-                <span style={styles.breadcrumbCurrent}>{product.nombre}</span>
-            </div>
+        <div>
+            <HeaderCliente /> 
+            <div style={styles.container}>
+                {/* Breadcrumb */}
+                <div style={styles.breadcrumb}>
+                    <button onClick={() => navigate('/productos')} style={styles.breadcrumbLink}>
+                        Productos
+                    </button>
+                    <span style={styles.breadcrumbSeparator}>/</span>
+                    <span style={styles.breadcrumbCurrent}>{product.nombre}</span>
+                </div>
 
-            <div style={styles.productContent}>
-                {/* Imagen + Beneficios */}
-                <div style={styles.imageSection}>
-                    <div style={styles.mainImage}>
-                        {product.imagenes[0] ? (
-                            <img 
-                                src={product.imagenes[0]} 
-                                alt={product.nombre}
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                            />
-                        ) : (
-                            <div style={styles.placeholderImage}>
-                                {product.categoria_nombre === 'Frutas' ? '🍎' : 
-                                 product.categoria_nombre === 'Verduras' ? '🥕' : '🌱'}
+                <div style={styles.productContent}>
+                    {/* Imagen + Beneficios */}
+                    <div style={styles.imageSection}>
+                        <div style={styles.mainImage}>
+                            {product.imagenes[0] ? (
+                                <img 
+                                    src={product.imagenes[0]} 
+                                    alt={product.nombre}
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                />
+                            ) : (
+                                <div style={styles.placeholderImage}>
+                                    {product.categoria_nombre === 'Frutas' ? '🍎' : 
+                                     product.categoria_nombre === 'Verduras' ? '🥕' : '🌱'}
+                                </div>
+                            )}
+                            {product.origen === 'organico' && (
+                                <div style={styles.organicBadge}>🌿 Orgánico Certificado</div>
+                            )}
+                        </div>
+
+                        {product.imagenes.length > 1 && (
+                            <div style={styles.imageThumbnails}>
+                                {product.imagenes.map((imagen, index) => (
+                                    <div
+                                        key={index}
+                                        style={{
+                                            ...styles.thumbnail,
+                                            ...(selectedImage === index ? styles.thumbnailActive : {})
+                                        }}
+                                        onClick={() => setSelectedImage(index)}
+                                    >
+                                        {imagen ? (
+                                            <img 
+                                                src={imagen} 
+                                                alt={`${product.nombre} ${index + 1}`}
+                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                            />
+                                        ) : (
+                                            <div style={styles.thumbnailPlaceholder}>
+                                                {product.categoria_nombre === 'Frutas' ? '🍎' : 
+                                                 product.categoria_nombre === 'Verduras' ? '🥕' : '🌱'}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
                             </div>
                         )}
-                        {product.origen === 'organico' && (
-                            <div style={styles.organicBadge}>🌿 Orgánico Certificado</div>
-                        )}
                     </div>
-
-                    {product.imagenes.length > 1 && (
-                        <div style={styles.imageThumbnails}>
-                            {product.imagenes.map((imagen, index) => (
-                                <div
-                                    key={index}
-                                    style={{
-                                        ...styles.thumbnail,
-                                        ...(selectedImage === index ? styles.thumbnailActive : {})
-                                    }}
-                                    onClick={() => setSelectedImage(index)}
-                                >
-                                    {imagen ? (
-                                        <img 
-                                            src={imagen} 
-                                            alt={`${product.nombre} ${index + 1}`}
-                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                        />
-                                    ) : (
-                                        <div style={styles.thumbnailPlaceholder}>
-                                            {product.categoria_nombre === 'Frutas' ? '🍎' : 
-                                             product.categoria_nombre === 'Verduras' ? '🥕' : '🌱'}
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    )}
 
                     {/* Beneficios debajo de la imagen */}
                     <div style={styles.benefits}>
@@ -280,7 +289,7 @@ const ProductDetail = () => {
                                 🛒 Agregar al Carrito - {formatPrice(product.precio * quantity)}
                             </button>
                             <button 
-                                onClick={handleBuyNow} // AHORA REDIRIGE AL CHECKOUT
+                                onClick={handleBuyNow}
                                 disabled={product.stock === 0}
                                 style={product.stock > 0 ? styles.buyNowButton : styles.disabledButton}
                             >

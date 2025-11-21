@@ -16,45 +16,20 @@ const ReviewSystem = ({ productId, productName }) => {
         loadReviews();
     }, [productId]);
 
-    // Datos de ejemplo de reseñas
     const loadReviews = () => {
         const exampleReviews = [
             {
                 id: 1,
                 user: {
-                    name: 'María González',
-                    avatar: '👩'
+                    name: 'Paula Vazquez',
                 },
                 rating: 5,
                 title: '¡Excelente calidad!',
-                comment: 'Las manzanas llegaron frescas y muy dulces. Definitivamente volveré a comprar.',
+                comment: 'Excelente producto, lo recomiendo a todos. Definitivamente volveré a comprar.',
+                date: '2023-08-Definitivamente volveré a comprar.',
                 date: '2024-01-15',
                 verified: true
             },
-            {
-                id: 2,
-                user: {
-                    name: 'Carlos López',
-                    avatar: '👨'
-                },
-                rating: 4,
-                title: 'Muy buenas',
-                comment: 'Buen producto, aunque algunas manzanas venían un poco pequeñas. En general satisfecho.',
-                date: '2024-01-10',
-                verified: true
-            },
-            {
-                id: 3,
-                user: {
-                    name: 'Ana Martínez',
-                    avatar: '👩'
-                },
-                rating: 5,
-                title: 'Perfectas para mis recetas',
-                comment: 'Uso estas manzanas para hacer strudel y quedan deliciosas. Muy recomendadas.',
-                date: '2024-01-08',
-                verified: false
-            }
         ];
         setReviews(exampleReviews);
     };

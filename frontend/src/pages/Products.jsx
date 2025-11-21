@@ -4,6 +4,7 @@ import { useCart } from '../context/CartContext';
 import authService from '../services/auth';
 import Toast from '../components/Toast';
 import '../styles/Products.css';
+import HeaderCliente from '../pages/cliente/HeaderCliente';
 
 const Products = () => {
     const [products, setProducts] = useState([]);
@@ -198,32 +199,40 @@ const Products = () => {
 
     if (loading) {
         return (
-            <div className="products-loading-container">
-                <div className="loading-spinner-modern">
-                    <div className="spinner-ring"></div>
-                    <div className="spinner-ring"></div>
-                    <div className="spinner-ring"></div>
+            <div>
+                <HeaderCliente />  {/* ← HEADER AGREGADO */}
+                <div className="products-loading-container">
+                    <div className="loading-spinner-modern">
+                        <div className="spinner-ring"></div>
+                        <div className="spinner-ring"></div>
+                        <div className="spinner-ring"></div>
+                    </div>
+                    <p className="loading-text">Cargando productos frescos...</p>
                 </div>
-                <p className="loading-text">Cargando productos frescos...</p>
             </div>
         );
     }
 
     if (error) {
         return (
-            <div className="products-error-container">
-                <div className="error-icon-modern">⚠️</div>
-                <h3 className="error-title">Ups, algo salió mal</h3>
-                <p className="error-message">{error}</p>
-                <button onClick={loadProducts} className="retry-button-modern">
-                    Reintentar
-                </button>
+            <div>
+                <HeaderCliente />  {/* ← HEADER AGREGADO */}
+                <div className="products-error-container">
+                    <div className="error-icon-modern">⚠️</div>
+                    <h3 className="error-title">Ups, algo salió mal</h3>
+                    <p className="error-message">{error}</p>
+                    <button onClick={loadProducts} className="retry-button-modern">
+                        Reintentar
+                    </button>
+                </div>
             </div>
         );
     }
 
     return (
         <div className="products-page">
+            <HeaderCliente />  {/* ← HEADER AGREGADO */}
+            
             {/* Hero Section */}
             <section className="products-hero">
                 <div className="hero-content">
@@ -278,7 +287,7 @@ const Products = () => {
                             className="search-input-modern"
                         />
                         {searchTerm && (
-                            <button 
+                            <button
                                 onClick={() => setSearchTerm('')}
                                 className="search-clear"
                             >
@@ -410,8 +419,8 @@ const Products = () => {
                                             <div className="product-image-placeholder">
                                                 <span className="placeholder-emoji">
                                                     {product.categoria_nombre === 'Frutas' ? '🍎' :
-                                                     product.categoria_nombre === 'Verduras' ? '🥕' :
-                                                     product.categoria_nombre === 'Lácteos' ? '🥛' : '🌱'}
+                                                        product.categoria_nombre === 'Verduras' ? '🥕' :
+                                                            product.categoria_nombre === 'Lácteos' ? '🥛' : '🌱'}
                                                 </span>
                                             </div>
                                         )}
@@ -430,7 +439,7 @@ const Products = () => {
                                         </div>
 
                                         {/* Quick View Button */}
-                                        <button 
+                                        <button
                                             onClick={() => navigate(`/producto/${product.id}`)}
                                             className="quick-view-button"
                                         >
@@ -502,7 +511,7 @@ const Products = () => {
                                         {product.stock > 0 && (
                                             <div className="stock-indicator-modern">
                                                 <div className="stock-bar">
-                                                    <div 
+                                                    <div
                                                         className="stock-fill"
                                                         style={{
                                                             width: `${Math.min((product.stock / 50) * 100, 100)}%`,
@@ -555,7 +564,7 @@ const Products = () => {
                                     } else {
                                         pageNum = currentPage - 2 + i;
                                     }
-                                    
+
                                     return (
                                         <button
                                             key={pageNum}
@@ -590,13 +599,13 @@ const Products = () => {
                         >
                             ✕
                         </button>
-                        
+
                         <div className="modal-icon-modern">🔒</div>
                         <h3 className="modal-title-modern">Inicia sesión para continuar</h3>
                         <p className="modal-description-modern">
                             Crea una cuenta o inicia sesión para agregar productos al carrito
                         </p>
-                        
+
                         {selectedProduct && (
                             <div className="modal-product-preview">
                                 <div className="preview-image">
@@ -612,7 +621,7 @@ const Products = () => {
                                 </div>
                             </div>
                         )}
-                        
+
                         <div className="modal-actions-modern">
                             <button
                                 onClick={() => navigate('/login')}

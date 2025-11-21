@@ -1,22 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import './VendedorPanel.css';
-
-// Importar componentes
 import FormularioProducto from './FormularioProducto';
 import ProductoCard from './ProductoCard';
 import PedidoCard from './PedidoCard';
+import VendedorProfileMenu from '../../components/VendedorProfileMenu';
 
-// ✅ Función helper para construir URLs de imagen correctamente
 const getImageUrl = (imagenPath) => {
     if (!imagenPath) return null;
-    
+
     if (imagenPath.startsWith('/media/')) {
         return `http://localhost:8000${imagenPath}`;
-    } 
+    }
     else if (imagenPath.startsWith('http')) {
         return imagenPath;
-    } 
+    }
     else {
         return `http://localhost:8000/media/products/${imagenPath}`;
     }
@@ -49,12 +47,118 @@ const Toast = ({ message, type, onClose }) => {
     );
 };
 
+const CarruselProductos = ({ productos }) => {
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const [isPaused, setIsPaused] = useState(false);
+
+    const ultimosProductos = productos
+        .filter(p => p.aprobado)
+        .sort((a, b) => new Date(b.fecha_creacion || 0) - new Date(a.fecha_creacion || 0))
+        .slice(0, 3);
+
+    useEffect(() => {
+        if (ultimosProductos.length <= 1 || isPaused) return;
+
+        const interval = setInterval(() => {
+            setCurrentIndex((prev) => (prev + 1) % ultimosProductos.length);
+        }, 4000);
+
+        return () => clearInterval(interval);
+    }, [ultimosProductos.length, isPaused]);
+
+    const goToSlide = (index) => {
+        setCurrentIndex(index);
+    };
+
+    const formatPrice = (price) => {
+        return new Intl.NumberFormat('es-CL', {
+            style: 'currency',
+            currency: 'CLP',
+            minimumFractionDigits: 0
+        }).format(price);
+    };
+
+    if (ultimosProductos.length === 0) {
+        return (
+            <div className="empty-state-modern">
+                <div className="empty-icon-modern">📦</div>
+                <p>No hay productos recientes</p>
+            </div>
+        );
+    }
+
+    const producto = ultimosProductos[currentIndex];
+
+    return (
+        <div
+            className="carousel-modern"
+            onMouseEnter={() => setIsPaused(true)}
+            onMouseLeave={() => setIsPaused(false)}
+        >
+            <div className="carousel-content-modern">
+                <div className="carousel-image-container-modern">
+                    {producto.imagen ? (
+                        <img
+                            src={getImageUrl(producto.imagen)}
+                            alt={producto.nombre}
+                            className="carousel-image-modern"
+                        />
+                    ) : (
+                        <div className="carousel-placeholder-modern">📦</div>
+                    )}
+                    {producto.stock < 10 && producto.stock > 0 && (
+                        <div className="carousel-badge-modern carousel-badge-warning">
+                            Stock Bajo
+                        </div>
+                    )}
+                    {producto.stock === 0 && (
+                        <div className="carousel-badge-modern carousel-badge-error">
+                            Sin Stock
+                        </div>
+                    )}
+                </div>
+
+                <div className="carousel-info-modern">
+                    <h3 className="carousel-title-modern">{producto.nombre}</h3>
+                    <p className="carousel-description-modern line-clamp-2">
+                        {producto.descripcion || 'Sin descripción'}
+                    </p>
+
+                    <div className="carousel-stats-modern">
+                        <div className="carousel-stat-modern">
+                            <span className="carousel-stat-label">Precio</span>
+                            <span className="carousel-stat-value">{formatPrice(producto.precio)}</span>
+                        </div>
+                        <div className="carousel-stat-modern">
+                            <span className="carousel-stat-label">Stock</span>
+                            <span className="carousel-stat-value">{producto.stock}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {ultimosProductos.length > 1 && (
+                <div className="carousel-indicators-modern">
+                    {ultimosProductos.map((_, index) => (
+                        <button
+                            key={index}
+                            onClick={() => goToSlide(index)}
+                            className={`carousel-indicator-modern ${index === currentIndex ? 'carousel-indicator-active' : ''
+                                }`}
+                            aria-label={`Ir al producto ${index + 1}`}
+                        />
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
 // ============================================
 // COMPONENTE: StatCard (KPI Cards estilo iOS)
 // ============================================
 const StatCard = ({ icon, label, value, colorClass, onClick }) => {
     return (
-        <div 
+        <div
             onClick={onClick}
             className={`stat-card-modern ${colorClass} ${onClick ? 'stat-card-clickable' : ''}`}
         >
@@ -81,13 +185,14 @@ const VendedorPanel = () => {
     const [notificaciones, setNotificaciones] = useState([]);
     const [loading, setLoading] = useState(true);
     const [toasts, setToasts] = useState([]);
+    const toastIdCounterRef = useRef(0);
 
     // Función para mostrar notificaciones bonitas
     const showToast = (message, type = 'success', duration = 5000) => {
-        const id = Date.now();
+        const id = ++toastIdCounterRef.current;
         const toast = { id, message, type, duration };
         setToasts(prev => [...prev, toast]);
-        
+
         setTimeout(() => {
             removeToast(id);
         }, duration);
@@ -104,10 +209,10 @@ const VendedorPanel = () => {
     const cargarDatosReales = async () => {
         try {
             setLoading(true);
-            
+
             const usuario = JSON.parse(localStorage.getItem('user'));
             setVendedor(usuario);
-            
+
             if (!usuario?.id) {
                 console.error('No se pudo obtener ID del vendedor');
                 return;
@@ -188,7 +293,7 @@ const VendedorPanel = () => {
 
     const generarNotificacionesReales = (metricas) => {
         const notifs = [];
-        
+
         if (metricas.productos_sin_stock > 0) {
             notifs.push({
                 id: 1,
@@ -199,7 +304,7 @@ const VendedorPanel = () => {
                 leida: false
             });
         }
-        
+
         if (metricas.pedidos_pendientes > 0) {
             notifs.push({
                 id: 2,
@@ -222,7 +327,7 @@ const VendedorPanel = () => {
                 leida: false
             });
         }
-        
+
         setNotificaciones(notifs);
     };
 
@@ -234,7 +339,7 @@ const VendedorPanel = () => {
                     'Content-Type': 'multipart/form-data'
                 }
             });
-            
+
             await cargarProductosVendedor(vendedor.id);
             showToast('🎉 Producto creado! Esperando aprobación del administrador.', 'success');
             return response.data;
@@ -252,7 +357,7 @@ const VendedorPanel = () => {
             }, {
                 withCredentials: true
             });
-            
+
             await cargarPedidosVendedor(vendedor.id);
             showToast('✅ Estado del pedido actualizado', 'success');
         } catch (error) {
@@ -267,7 +372,7 @@ const VendedorPanel = () => {
             await axios.delete(`http://localhost:8000/api/productos/${productoId}/`, {
                 withCredentials: true
             });
-            
+
             await cargarProductosVendedor(vendedor.id);
             showToast('✅ Producto eliminado', 'success');
         } catch (error) {
@@ -295,7 +400,7 @@ const VendedorPanel = () => {
             const productosActivos = productosReales.filter(p => p.activo).length;
             const productosPendientes = productosReales.filter(p => !p.aprobado).length;
             const productosAprobados = productosReales.filter(p => p.aprobado).length;
-            
+
             return {
                 totalVendido,
                 stockTotal,
@@ -325,26 +430,26 @@ const VendedorPanel = () => {
 
                 {/* KPIs Grid */}
                 <div className="kpi-grid-modern">
-                    <StatCard 
+                    <StatCard
                         icon="💰"
                         label="Ventas Totales"
                         value={formatPrice(metricasAdicionales.totalVendido)}
                         colorClass="stat-card-blue"
                     />
-                    <StatCard 
+                    <StatCard
                         icon="🛒"
                         label="Pedidos Pendientes"
                         value={metricasReales?.pedidos_pendientes || 0}
                         colorClass="stat-card-amber"
                         onClick={() => setActiveTab('pedidos')}
                     />
-                    <StatCard 
+                    <StatCard
                         icon="📦"
                         label="Productos Activos"
                         value={metricasAdicionales.productosAprobados}
                         colorClass="stat-card-green"
                     />
-                    <StatCard 
+                    <StatCard
                         icon="⚠️"
                         label="Stock Bajo"
                         value={metricasAdicionales.productosConStockBajo}
@@ -353,55 +458,72 @@ const VendedorPanel = () => {
                     />
                 </div>
 
-                {/* Pedidos Recientes */}
-                <div className="dashboard-section-modern">
-                    <div className="section-header-modern">
-                        <h2 className="section-title-modern">📦 Pedidos Recientes</h2>
-                        <button 
-                            onClick={() => setActiveTab('pedidos')}
-                            className="btn-link-modern"
-                        >
-                            Ver todos →
-                        </button>
-                    </div>
-                    <div className="pedidos-grid-modern">
-                        {pedidosReales.slice(0, 3).map(pedido => (
-                            <PedidoCard 
-                                key={pedido.id}
-                                pedido={pedido}
-                                onActualizarEstado={handleActualizarEstadoPedido}
-                                onRecargar={() => cargarPedidosVendedor(vendedor.id)}
-                            />
-                        ))}
-                        {pedidosReales.length === 0 && (
-                            <div className="empty-state-modern">
-                                <div className="empty-icon-modern">🛒</div>
-                                <p>No hay pedidos recientes</p>
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Productos Destacados */}
-                <div className="dashboard-section-modern">
-                    <h2 className="section-title-modern">🏆 Productos Más Vendidos</h2>
-                    <div className="productos-destacados-modern">
-                        {productosReales
-                            .filter(p => (p.vendidos || 0) > 0)
-                            .sort((a, b) => (b.vendidos || 0) - (a.vendidos || 0))
-                            .slice(0, 5)
-                            .map(producto => (
-                                <div key={producto.id} className="producto-destacado-modern">
-                                    <span className="producto-nombre-modern">{producto.nombre}</span>
-                                    <span className="producto-ventas-modern">{producto.vendidos || 0} vendidos</span>
+                {/* Grid con Pedidos, Productos Destacados y Carrusel */}
+                <div className="dashboard-grid-modern">
+                    {/* Pedidos Recientes */}
+                    <div className="dashboard-section-modern">
+                        <div className="section-header-modern">
+                            <h2 className="section-title-modern">📦 Pedidos Recientes</h2>
+                            <button
+                                onClick={() => setActiveTab('pedidos')}
+                                className="btn-link-modern"
+                            >
+                                Ver todos →
+                            </button>
+                        </div>
+                        <div className="pedidos-grid-modern">
+                            {pedidosReales.slice(0, 3).map(pedido => (
+                                <PedidoCard
+                                    key={pedido.id}
+                                    pedido={pedido}
+                                    onActualizarEstado={handleActualizarEstadoPedido}
+                                    onRecargar={() => cargarPedidosVendedor(vendedor.id)}
+                                />
+                            ))}
+                            {pedidosReales.length === 0 && (
+                                <div className="empty-state-modern">
+                                    <div className="empty-icon-modern">🛒</div>
+                                    <p>No hay pedidos recientes</p>
                                 </div>
-                            ))
-                        }
-                        {productosReales.filter(p => (p.vendidos || 0) > 0).length === 0 && (
-                            <div className="empty-state-modern">
-                                <p>📈 Tus productos más vendidos aparecerán aquí</p>
-                            </div>
-                        )}
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Productos Destacados */}
+                    <div className="dashboard-section-modern">
+                        <h2 className="section-title-modern">🏆 Productos Más Vendidos</h2>
+                        <div className="productos-destacados-modern">
+                            {productosReales
+                                .filter(p => (p.vendidos || 0) > 0)
+                                .sort((a, b) => (b.vendidos || 0) - (a.vendidos || 0))
+                                .slice(0, 5)
+                                .map(producto => (
+                                    <div key={producto.id} className="producto-destacado-modern">
+                                        <span className="producto-nombre-modern">{producto.nombre}</span>
+                                        <span className="producto-ventas-modern">{producto.vendidos || 0} vendidos</span>
+                                    </div>
+                                ))
+                            }
+                            {productosReales.filter(p => (p.vendidos || 0) > 0).length === 0 && (
+                                <div className="empty-state-modern">
+                                    <p>📈 Tus productos más vendidos aparecerán aquí</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Carrusel de Nuevos Productos */}
+                    <div className="dashboard-section-modern carousel-section-modern">
+                        <div className="section-header-modern">
+                            <h2 className="section-title-modern">✨ Últimos Productos</h2>
+                            <button
+                                onClick={() => setActiveTab('productos')}
+                                className="btn-link-modern"
+                            >
+                                Ver todos →
+                            </button>
+                        </div>
+                        <CarruselProductos productos={productosReales} />
                     </div>
                 </div>
             </div>
@@ -451,7 +573,7 @@ const VendedorPanel = () => {
                 } else {
                     await handleAgregarProducto(productoData);
                 }
-                
+
                 setMostrarFormulario(false);
                 setProductoEditando(null);
                 await cargarProductosVendedor(vendedor.id);
@@ -470,7 +592,7 @@ const VendedorPanel = () => {
                         <h1 className="tab-title-modern">Mis Productos</h1>
                         <p className="tab-subtitle-modern">{productosFiltrados.length} productos en total</p>
                     </div>
-                    <button 
+                    <button
                         className="btn-primary-modern"
                         onClick={() => {
                             setProductoEditando(null);
@@ -494,7 +616,7 @@ const VendedorPanel = () => {
                             className="search-input-modern"
                         />
                     </div>
-                    <select 
+                    <select
                         value={filtroAprobacion}
                         onChange={(e) => {
                             setFiltroAprobacion(e.target.value);
@@ -511,7 +633,7 @@ const VendedorPanel = () => {
                 {mostrarFormulario && (
                     <div className="modal-overlay-modern">
                         <div className="modal-content-modern">
-                            <FormularioProducto 
+                            <FormularioProducto
                                 productoEditar={productoEditando}
                                 onGuardar={handleGuardarProducto}
                                 onCancelar={() => {
@@ -530,7 +652,7 @@ const VendedorPanel = () => {
                     <>
                         <div className="productos-grid-modern">
                             {productosActuales.map(producto => (
-                                <ProductoCard 
+                                <ProductoCard
                                     key={producto.id}
                                     producto={producto}
                                     onEditar={handleEditarProducto}
@@ -543,19 +665,19 @@ const VendedorPanel = () => {
 
                         {totalPages > 1 && (
                             <div className="pagination-modern">
-                                <button 
+                                <button
                                     onClick={() => paginate(paginaActual - 1)}
                                     disabled={paginaActual === 1}
                                     className="pagination-btn-modern"
                                 >
                                     ← Anterior
                                 </button>
-                                
+
                                 <span className="pagination-info-modern">
                                     Página {paginaActual} de {totalPages}
                                 </span>
-                                
-                                <button 
+
+                                <button
                                     onClick={() => paginate(paginaActual + 1)}
                                     disabled={paginaActual === totalPages}
                                     className="pagination-btn-modern"
@@ -581,7 +703,7 @@ const VendedorPanel = () => {
     // 🛒 COMPONENTE PEDIDOS CON DATOS REALES
     const PedidosTab = () => {
         const [filtroEstado, setFiltroEstado] = useState('todos');
-        
+
         const pedidosFiltrados = pedidosReales.filter(pedido => {
             if (filtroEstado === 'todos') return true;
             return pedido.estado === filtroEstado;
@@ -609,8 +731,8 @@ const VendedorPanel = () => {
 
                 <div className="pedidos-list-modern">
                     {pedidosFiltrados.map(pedido => (
-                        <PedidoCard 
-                            key={pedido.id} 
+                        <PedidoCard
+                            key={pedido.id}
                             pedido={pedido}
                             onActualizarEstado={handleActualizarEstadoPedido}
                             onRecargar={() => cargarPedidosVendedor(vendedor.id)}
@@ -634,8 +756,8 @@ const VendedorPanel = () => {
         const [notificacionesLocales, setNotificacionesLocales] = useState(notificaciones);
 
         const marcarComoLeida = (id) => {
-            setNotificacionesLocales(prev => 
-                prev.map(notif => 
+            setNotificacionesLocales(prev =>
+                prev.map(notif =>
                     notif.id === id ? { ...notif, leida: true } : notif
                 )
             );
@@ -646,11 +768,11 @@ const VendedorPanel = () => {
         return (
             <div className="notificaciones-tab-modern">
                 <h1 className="tab-title-modern">Notificaciones ({notificacionesNoLeidas.length})</h1>
-                
+
                 <div className="notificaciones-list-modern">
                     {notificacionesLocales.map(notif => (
-                        <div 
-                            key={notif.id} 
+                        <div
+                            key={notif.id}
                             className={`notificacion-modern ${notif.tipo} ${notif.leida ? 'leida' : ''}`}
                             onClick={() => !notif.leida && marcarComoLeida(notif.id)}
                         >
@@ -689,9 +811,9 @@ const VendedorPanel = () => {
                         <div className="navbar-left-modern">
                             <div className="logo-modern">
                                 <div className="logo-icon-modern">🌾</div>
-                                <span className="logo-text-modern">VendedorPro</span>
+                                <span className="logo-text-modern">Panel Vendedor</span>
                             </div>
-                            
+
                             <div className="tabs-modern">
                                 {[
                                     { id: 'dashboard', icon: '📊', label: 'Dashboard' },
@@ -718,9 +840,7 @@ const VendedorPanel = () => {
                                     <span className="notification-badge-modern"></span>
                                 )}
                             </button>
-                            <div className="avatar-modern">
-                                {vendedor?.username?.[0]?.toUpperCase() || 'V'}
-                            </div>
+                            <VendedorProfileMenu user={vendedor} />
                         </div>
                     </div>
                 </div>

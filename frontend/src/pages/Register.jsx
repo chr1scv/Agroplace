@@ -47,7 +47,7 @@ const Register = () => {
         setLoading(true);
         setError('');
 
-        // Validaciones
+        // Validaciones...
         if (formData.password !== formData.confirmPassword) {
             setError('Las contraseñas no coinciden');
             setLoading(false);
@@ -61,7 +61,6 @@ const Register = () => {
         }
 
         try {
-            // Usar authService para el registro
             const result = await authService.register({
                 ...formData,
                 userType: userType
@@ -69,10 +68,12 @@ const Register = () => {
 
             console.log('Registro exitoso:', result);
 
-            // Redirigir según el tipo de usuario
+            // ✅ REDIRECCIÓN MEJORADA
             if (userType === 'vendedor') {
-                navigate('/registro-exitoso');
+                // Vendedores van a página de espera
+                navigate('/vendedor/espera');
             } else {
+                // Clientes van directamente a productos
                 navigate('/productos');
             }
 

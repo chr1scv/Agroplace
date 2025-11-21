@@ -8,6 +8,7 @@ import ToastContainer from '../../components/ToastContainer';
 import PedidoDetalleModal from './PedidoDetalleModal';
 import EditarUsuarioModal from './EditarUsuarioModal';
 import EditarProductoModal from './EditarProductoModal';
+import VerProductoModal from './VerProductoModal';
 import CategoriasTab from './CategoriasTab';
 
 const AdminPanel = () => {
@@ -148,40 +149,47 @@ useEffect(() => {
     // ✅ EDITAR USUARIO
     const editarUsuario = async (usuarioId, datosActualizados) => {
         try {
+            // Optimistic update
+            setUsuarios(prev => prev.map(u => u.id === usuarioId ? { ...u, ...datosActualizados } : u));
+            setUsuarioEditar(null); // Close modal immediately
+
             await axios.patch(
                 `http://localhost:8000/api/usuarios/${usuarioId}/`,
                 datosActualizados
             );
 
-            await cargarUsuarios();
-            await cargarEstadisticas();
-
             showToast('✅ Usuario actualizado exitosamente', 'success');
-            setUsuarioEditar(null);
+            
+            // Refresh to ensure consistency
+            cargarEstadisticas();
 
         } catch (error) {
             console.error('Error al actualizar usuario:', error);
             showToast('❌ Error al actualizar el usuario', 'error');
+            cargarUsuarios(); // Revert on error
         }
     };
 
     // ✅ EDITAR PRODUCTO
     const editarProducto = async (productoId, datosActualizados) => {
         try {
+            // Optimistic update
+            setProductos(prev => prev.map(p => p.id === productoId ? { ...p, ...datosActualizados } : p));
+            setProductoEditar(null); // Close modal immediately
+
             await axios.patch(
                 `http://localhost:8000/api/productos/${productoId}/`,
                 datosActualizados
             );
 
-            await cargarProductos();
-            await cargarEstadisticas();
-
             showToast('✅ Producto actualizado exitosamente', 'success');
-            setProductoEditar(null);
+            
+            cargarEstadisticas();
 
         } catch (error) {
             console.error('Error al actualizar producto:', error);
             showToast('❌ Error al actualizar el producto', 'error');
+            cargarProductos(); // Revert on error
         }
     };
 
@@ -245,79 +253,94 @@ useEffect(() => {
     
     // ===== APROBAR / RECHAZAR VENDEDORES =====
 const aprobarVendedor = async (id) => {
-    try {
-        await axios.patch(`http://localhost:8000/api/usuarios/${id}/`, {
-            estado: 'aprobado'
-        });
+        try {
+            // Optimistic update
+            setVendedoresPendientes(prev => prev.filter(v => v.id !== id));
 
-        showToast('✅ Vendedor aprobado', 'success');
+            // Note: 'activo' is the standard state for approved users, not 'aprobado'
+            await axios.patch(`http://localhost:8000/api/usuarios/${id}/`, {
+                estado: 'activo' 
+            });
 
-        await cargarVendedoresPendientes();
-        await cargarUsuarios();
-        await cargarEstadisticas();
+            showToast('✅ Vendedor aprobado', 'success');
 
-    } catch (error) {
-        console.error('Error aprobando vendedor:', error);
-        showToast('❌ Error al aprobar vendedor', 'error');
-    }
-};
+            cargarUsuarios();
+            cargarEstadisticas();
+
+        } catch (error) {
+            console.error('Error aprobando vendedor:', error);
+            showToast('❌ Error al aprobar vendedor', 'error');
+            cargarVendedoresPendientes();
+        }
+    };
 
 const rechazarVendedor = async (id) => {
-    try {
-        await axios.patch(`http://localhost:8000/api/usuarios/${id}/`, {
-            estado: 'rechazado'
-        });
+        try {
+            // Optimistic update
+            setVendedoresPendientes(prev => prev.filter(v => v.id !== id));
 
-        showToast('❌ Vendedor rechazado', 'success');
+            await axios.patch(`http://localhost:8000/api/usuarios/${id}/`, {
+                estado: 'rechazado'
+            });
 
-        await cargarVendedoresPendientes();
-        await cargarUsuarios();
-        await cargarEstadisticas();
+            showToast('❌ Vendedor rechazado', 'success');
 
-    } catch (error) {
-        console.error('Error rechazando vendedor:', error);
-        showToast('❌ Error al rechazar vendedor', 'error');
-    }
-};
+            cargarUsuarios();
+            cargarEstadisticas();
+
+        } catch (error) {
+            console.error('Error rechazando vendedor:', error);
+            showToast('❌ Error al rechazar vendedor', 'error');
+            cargarVendedoresPendientes();
+        }
+    };
 
 
    // ===== APROBAR / RECHAZAR PRODUCTOS =====
 const aprobarProducto = async (id) => {
-    try {
-        await axios.patch(`http://localhost:8000/api/productos/${id}/`, {
-            aprobado: true
-        });
+        try {
+            // Optimistic update: Remove from pending list immediately
+            setProductosPendientes(prev => prev.filter(p => p.id !== id));
 
-        showToast('✅ Producto aprobado', 'success');
+            await axios.patch(`http://localhost:8000/api/productos/${id}/`, {
+                aprobado: true
+            });
 
-        await cargarProductosPendientes();
-        await cargarProductos();
-        await cargarEstadisticas();
+            showToast('✅ Producto aprobado', 'success');
 
-    } catch (error) {
-        console.error('Error aprobando producto:', error);
-        showToast('❌ Error al aprobar producto', 'error');
-    }
-};
+            // Update other lists in background
+            cargarProductos();
+            cargarEstadisticas();
+
+        } catch (error) {
+            console.error('Error aprobando producto:', error);
+            showToast('❌ Error al aprobar producto', 'error');
+            // Revert on error
+            cargarProductosPendientes();
+        }
+    };
 
 const rechazarProducto = async (id) => {
-    try {
-        await axios.patch(`http://localhost:8000/api/productos/${id}/`, {
-            aprobado: false,
-            rechazado: true
-        });
+        try {
+            // Optimistic update: Remove from pending list immediately
+            setProductosPendientes(prev => prev.filter(p => p.id !== id));
 
-        showToast('❌ Producto rechazado', 'success');
+            await axios.patch(`http://localhost:8000/api/productos/${id}/`, {
+                aprobado: false,
+                rechazado: true
+            });
 
-        await cargarProductosPendientes();
-        await cargarProductos();
-        await cargarEstadisticas();
+            showToast('❌ Producto rechazado', 'success');
 
-    } catch (error) {
-        console.error('Error rechazando producto:', error);
-        showToast('❌ Error al rechazar producto', 'error');
-    }
-};
+            cargarProductos();
+            cargarEstadisticas();
+
+        } catch (error) {
+            console.error('Error rechazando producto:', error);
+            showToast('❌ Error al rechazar producto', 'error');
+            cargarProductosPendientes();
+        }
+    };
 
 
 
@@ -877,6 +900,13 @@ const UsuariosTab = ({ usuarios, loading, onReload, onEliminarUsuario, onEditarU
 const ProductosTab = ({ productos, loading, onReload, onEliminarProducto, onEditarProducto, formatPrice }) => {
     const [filtro, setFiltro] = useState('');
     const [categoriaFiltro, setCategoriaFiltro] = useState('todos');
+    const [estadoFiltro, setEstadoFiltro] = useState('todos');
+    const [vendedorFiltro, setVendedorFiltro] = useState('todos');
+    const [precioMinFiltro, setPrecioMinFiltro] = useState('');
+    const [precioMaxFiltro, setPrecioMaxFiltro] = useState('');
+    const [stockMinFiltro, setStockMinFiltro] = useState('');
+    const [ordenarPor, setOrdenarPor] = useState('recientes');
+    const [productoVer, setProductoVer] = useState(null);
 
     if (loading) {
         return (
@@ -887,18 +917,57 @@ const ProductosTab = ({ productos, loading, onReload, onEliminarProducto, onEdit
         );
     }
 
-    // Filtrar productos
-    const productosFiltrados = productos.filter(producto => {
-        const coincideBusqueda = producto.nombre.toLowerCase().includes(filtro.toLowerCase()) ||
-            producto.descripcion?.toLowerCase().includes(filtro.toLowerCase());
+    // Filtrar y ordenar productos
+    const productosFiltrados = productos
+        .filter(producto => {
+            // Búsqueda por texto
+            const coincideBusqueda = producto.nombre.toLowerCase().includes(filtro.toLowerCase()) ||
+                producto.descripcion?.toLowerCase().includes(filtro.toLowerCase());
 
-        const coincideCategoria = categoriaFiltro === 'todos' ||
-            producto.categoria?.nombre === categoriaFiltro;
+            // Filtro de categoría
+            const coincideCategoria = categoriaFiltro === 'todos' ||
+                producto.categoria?.nombre === categoriaFiltro;
 
-        return coincideBusqueda && coincideCategoria;
-    });
+            // Filtro de estado
+            const coincideEstado = estadoFiltro === 'todos' ||
+                (estadoFiltro === 'activo' && producto.activo) ||
+                (estadoFiltro === 'inactivo' && !producto.activo);
+
+            // Filtro de vendedor
+            const coincideVendedor = vendedorFiltro === 'todos' ||
+                producto.vendedor?.id === parseInt(vendedorFiltro);
+
+            // Filtro de precio mínimo
+            const coincidePrecioMin = !precioMinFiltro || producto.precio >= parseFloat(precioMinFiltro);
+
+            // Filtro de precio máximo
+            const coincidePrecioMax = !precioMaxFiltro || producto.precio <= parseFloat(precioMaxFiltro);
+
+            // Filtro de stock mínimo
+            const coincideStockMin = !stockMinFiltro || producto.stock >= parseInt(stockMinFiltro);
+
+            return coincideBusqueda && coincideCategoria && coincideEstado && 
+                   coincideVendedor && coincidePrecioMin && coincidePrecioMax && coincideStockMin;
+        })
+        .sort((a, b) => {
+            switch(ordenarPor) {
+                case 'recientes':
+                    return new Date(b.fecha_creacion || 0) - new Date(a.fecha_creacion || 0);
+                case 'precio-asc':
+                    return a.precio - b.precio;
+                case 'precio-desc':
+                    return b.precio - a.precio;
+                case 'nombre':
+                    return a.nombre.localeCompare(b.nombre);
+                case 'stock':
+                    return b.stock - a.stock;
+                default:
+                    return 0;
+            }
+        });
 
     const categorias = [...new Set(productos.map(p => p.categoria?.nombre).filter(Boolean))];
+    const vendedores = [...new Set(productos.map(p => p.vendedor).filter(Boolean))];
 
     return (
         <div>
@@ -919,34 +988,142 @@ const ProductosTab = ({ productos, loading, onReload, onEliminarProducto, onEdit
                 </div>
             </div>
 
-            {/* Filtros */}
-            <div className="admin-filtros-container">
-                <div className="admin-search-box">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="admin-search-icon">
-                        <circle cx="11" cy="11" r="8" />
-                        <path d="m21 21-4.3-4.3" />
-                    </svg>
-                    <input
-                        type="text"
-                        placeholder="Buscar productos por nombre o descripción..."
-                        value={filtro}
-                        onChange={(e) => setFiltro(e.target.value)}
-                        className="admin-search-input"
-                    />
+            {/* Filtros Comprehensivos */}
+            <div className="admin-filtros-section">
+                {/* Fila 1: Búsqueda y Ordenar */}
+                <div className="admin-filtros-row">
+                    <div className="admin-search-box" style={{ flex: 2 }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="admin-search-icon">
+                            <circle cx="11" cy="11" r="8" />
+                            <path d="m21 21-4.3-4.3" />
+                        </svg>
+                        <input
+                            type="text"
+                            placeholder="Buscar productos por nombre o descripción..."
+                            value={filtro}
+                            onChange={(e) => setFiltro(e.target.value)}
+                            className="admin-search-input"
+                        />
+                    </div>
+
+                    <div className="admin-filtro-group">
+                        <label className="admin-filtro-label">🔄 Ordenar por:</label>
+                        <select
+                            value={ordenarPor}
+                            onChange={(e) => setOrdenarPor(e.target.value)}
+                            className="admin-filtro-select"
+                        >
+                            <option value="recientes">Más recientes</option>
+                            <option value="nombre">Nombre (A-Z)</option>
+                            <option value="precio-asc">Precio (menor a mayor)</option>
+                            <option value="precio-desc">Precio (mayor a menor)</option>
+                            <option value="stock">Mayor stock</option>
+                        </select>
+                    </div>
                 </div>
 
-                <div className="admin-filtro-group">
-                    <label className="admin-filtro-label">Filtrar por categoría:</label>
-                    <select
-                        value={categoriaFiltro}
-                        onChange={(e) => setCategoriaFiltro(e.target.value)}
-                        className="admin-filtro-select"
-                    >
-                        <option value="todos">Todas las categorías</option>
-                        {categorias.map(categoria => (
-                            <option key={categoria} value={categoria}>{categoria}</option>
-                        ))}
-                    </select>
+                {/* Fila 2: Filtros de Categoría, Vendedor, Estado */}
+                <div className="admin-filtros-row">
+                    <div className="admin-filtro-group">
+                        <label className="admin-filtro-label">📂 Categoría:</label>
+                        <select
+                            value={categoriaFiltro}
+                            onChange={(e) => setCategoriaFiltro(e.target.value)}
+                            className="admin-filtro-select"
+                        >
+                            <option value="todos">Todas</option>
+                            {categorias.map(categoria => (
+                                <option key={categoria} value={categoria}>{categoria}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="admin-filtro-group">
+                        <label className="admin-filtro-label">👤 Vendedor:</label>
+                        <select
+                            value={vendedorFiltro}
+                            onChange={(e) => setVendedorFiltro(e.target.value)}
+                            className="admin-filtro-select"
+                        >
+                            <option value="todos">Todos</option>
+                            {vendedores.map(vendedor => (
+                                <option key={vendedor.id} value={vendedor.id}>
+                                    {vendedor.username}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="admin-filtro-group">
+                        <label className="admin-filtro-label">📊 Estado:</label>
+                        <select
+                            value={estadoFiltro}
+                            onChange={(e) => setEstadoFiltro(e.target.value)}
+                            className="admin-filtro-select"
+                        >
+                            <option value="todos">Todos</option>
+                            <option value="activo">Activo</option>
+                            <option value="inactivo">Inactivo</option>
+                        </select>
+                    </div>
+                </div>
+
+                {/* Fila 3: Filtros de Precio y Stock */}
+                <div className="admin-filtros-row">
+                    <div className="admin-filtro-group">
+                        <label className="admin-filtro-label">💰 Precio Mínimo:</label>
+                        <input
+                            type="number"
+                            placeholder="Ej: 1000"
+                            value={precioMinFiltro}
+                            onChange={(e) => setPrecioMinFiltro(e.target.value)}
+                            className="admin-filtro-input"
+                            min="0"
+                        />
+                    </div>
+
+                    <div className="admin-filtro-group">
+                        <label className="admin-filtro-label">💰 Precio Máximo:</label>
+                        <input
+                            type="number"
+                            placeholder="Ej: 10000"
+                            value={precioMaxFiltro}
+                            onChange={(e) => setPrecioMaxFiltro(e.target.value)}
+                            className="admin-filtro-input"
+                            min="0"
+                        />
+                    </div>
+
+                    <div className="admin-filtro-group">
+                        <label className="admin-filtro-label">📦 Stock Mínimo:</label>
+                        <input
+                            type="number"
+                            placeholder="Ej: 10"
+                            value={stockMinFiltro}
+                            onChange={(e) => setStockMinFiltro(e.target.value)}
+                            className="admin-filtro-input"
+                            min="0"
+                        />
+                    </div>
+
+                    <div className="admin-filtro-group">
+                        <button
+                            onClick={() => {
+                                setFiltro('');
+                                setCategoriaFiltro('todos');
+                                setEstadoFiltro('todos');
+                                setVendedorFiltro('todos');
+                                setPrecioMinFiltro('');
+                                setPrecioMaxFiltro('');
+                                setStockMinFiltro('');
+                                setOrdenarPor('recientes');
+                            }}
+                            className="admin-button-secondary"
+                            style={{ marginTop: '20px', width: '100%' }}
+                        >
+                            🔄 Limpiar Filtros
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -975,11 +1152,13 @@ const ProductosTab = ({ productos, loading, onReload, onEliminarProducto, onEdit
                     <thead>
                         <tr>
                             <th className="admin-table-header">Producto</th>
+                            <th className="admin-table-header">Descripción</th>
                             <th className="admin-table-header">Categoría</th>
+                            <th className="admin-table-header">Vendedor</th>
                             <th className="admin-table-header">Precio</th>
                             <th className="admin-table-header">Stock</th>
-                            <th className="admin-table-header">Vendedor</th>
                             <th className="admin-table-header">Estado</th>
+                            <th className="admin-table-header">Aprobación</th>
                             <th className="admin-table-header">Acciones</th>
                         </tr>
                     </thead>
@@ -987,33 +1166,33 @@ const ProductosTab = ({ productos, loading, onReload, onEliminarProducto, onEdit
                         {productosFiltrados.map(producto => (
                             <tr key={producto.id} className="admin-table-row">
                                 <td className="admin-table-cell">
-                                    <div className="admin-producto-info">
-                                        <div className="admin-producto-icon">
-                                            {producto.categoria?.nombre === 'Frutas' ? '🍎' :
-                                                producto.categoria?.nombre === 'Verduras' ? '🥕' : '🌱'}
-                                        </div>
-                                        <div>
-                                            <span className="admin-producto-nombre">{producto.nombre}</span>
-                                            {producto.descripcion && (
-                                                <div className="admin-producto-descripcion">
-                                                    {producto.descripcion.substring(0, 50)}
-                                                    {producto.descripcion.length > 50 ? '...' : ''}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
+                                    <span className="admin-producto-nombre">{producto.nombre}</span>
+                                </td>
+                                <td className="admin-table-cell">
+                                    <button
+                                        onClick={() => setProductoVer(producto)}
+                                        className="admin-link-button"
+                                        style={{ background: 'none', border: 'none', color: '#2d7a3e', textDecoration: 'underline', cursor: 'pointer', padding: 0, fontSize: '0.9rem' }}
+                                    >
+                                        Ver descripción
+                                    </button>
                                 </td>
                                 <td className="admin-table-cell">{producto.categoria?.nombre || 'Sin categoría'}</td>
+                                <td className="admin-table-cell">{producto.vendedor?.username || 'N/A'}</td>
                                 <td className="admin-table-cell">{formatPrice(producto.precio)}</td>
                                 <td className="admin-table-cell">
                                     <span className={producto.stock > 0 ? "admin-stock-disponible" : "admin-stock-agotado"}>
                                         {producto.stock} unidades
                                     </span>
                                 </td>
-                                <td className="admin-table-cell">{producto.vendedor?.username || 'N/A'}</td>
                                 <td className="admin-table-cell">
                                     <span className={producto.activo ? "admin-estado-activo" : "admin-estado-inactivo"}>
                                         {producto.activo ? '✅ Activo' : '❌ Inactivo'}
+                                    </span>
+                                </td>
+                                <td className="admin-table-cell">
+                                    <span className={producto.aprobado ? "admin-estado-aprobado" : "admin-estado-pendiente"}>
+                                        {producto.aprobado ? '✅ Aprobado' : '⏳ Pendiente'}
                                     </span>
                                 </td>
                                 <td className="admin-table-cell">
@@ -1541,10 +1720,6 @@ const ProductosPendientesTab = ({ productosPendientes, loading, onAprobarProduct
                     {productosPendientes.map(producto => (
                         <div key={producto.id} className="admin-producto-card">
                             <div className="admin-producto-header">
-                                <div className="admin-producto-icon">
-                                    {producto.categoria?.nombre === 'Frutas' ? '🍎' :
-                                        producto.categoria?.nombre === 'Verduras' ? '🥕' : '🌱'}
-                                </div>
                                 <div className="admin-producto-info">
                                     <h3 className="admin-producto-nombre">{producto.nombre}</h3>
                                     <p className="admin-producto-categoria">{producto.categoria?.nombre}</p>

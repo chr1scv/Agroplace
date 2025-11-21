@@ -1,12 +1,17 @@
+/* --- Contenedor Principal --- */
 .formulario-producto {
-    background: rgba(26, 31, 46, 0.9);
+    background: rgba(26, 31, 46, 0.9); 
     border: 1px solid rgba(45, 122, 62, 0.3);
     border-radius: 12px;
     padding: 2rem;
-    margin-bottom: 2rem;
+    margin: 20px auto; 
+    max-width: 800px; /* Limitar el ancho para que no se extienda demasiado */
     backdrop-filter: blur(10px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+    box-sizing: border-box; /* Fundamental para evitar desbordamiento */
 }
 
+/* --- Header y Cierre --- */
 .formulario-header {
     display: flex;
     justify-content: space-between;
@@ -19,7 +24,17 @@
 .formulario-header h3 {
     color: #f9fafb;
     margin: 0;
-    font-size: 1.3rem;
+    font-size: 1.5rem;
+}
+
+.aprobacion-info {
+    background: rgba(255, 152, 0, 0.1);
+    color: #ff9800;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border: 1px solid rgba(255, 152, 0, 0.3);
 }
 
 .btn-cerrar {
@@ -30,36 +45,66 @@
     height: 32px;
     border-radius: 50%;
     cursor: pointer;
-    font-size: 1.2rem;
+    font-size: 3.2rem;
     display: flex;
     align-items: center;
+    margin: 10px;
     justify-content: center;
+    transition: background 0.2s;
 }
 
-.btn-cerrar:hover:not(:disabled) {
-    background: rgba(220, 38, 38, 0.2);
-}
-
-.error-message {
-    background: rgba(220, 38, 38, 0.1);
-    border: 1px solid rgba(220, 38, 38, 0.3);
-    color: #fca5a5;
+/* --- Mensajes --- */
+.error-message, .warning-message {
     padding: 1rem;
     border-radius: 8px;
     margin-bottom: 1.5rem;
     font-size: 0.9rem;
+    border: 1px solid;
+}
+.error-message {
+    background: rgba(220, 38, 38, 0.1);
+    border-color: rgba(220, 38, 38, 0.3);
+    color: #fca5a5;
+}
+.warning-message {
+    background: rgba(255, 152, 0, 0.1);
+    border-color: rgba(255, 152, 0, 0.3);
+    color: #ff9800;
 }
 
+/* --- Información del Vendedor --- */
+.vendedor-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: rgba(45, 122, 62, 0.1);
+    border: 1px solid rgba(45, 122, 62, 0.3);
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+}
+.vendedor-label {
+    font-weight: 600;
+    color: #70d880; 
+}
+.vendedor-value {
+    color: #e5e7eb;
+    font-size: 1rem;
+}
+
+/* --- Formulario General --- */
 .formulario-form {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
 }
 
+/* --- Distribución en Fila (CORRECCIÓN DE LAYOUT) --- */
 .form-row {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
+    /* Divide en dos columnas iguales */
+    grid-template-columns: 1fr 1fr; 
+    gap: 1.5rem;
 }
 
 .form-group {
@@ -74,9 +119,12 @@
     font-size: 0.9rem;
 }
 
+/* --- Estilos de Inputs (CORRECCIÓN DE DESBORDAMIENTO) --- */
 .form-input,
 .form-select,
 .form-textarea {
+    width: 100%; /* Asegura que llenen su contenedor */
+    box-sizing: border-box; /* MANTIENE EL TAMAÑO DENTRO DEL CONTENEDOR */
     padding: 12px;
     background: rgba(15, 20, 25, 0.5);
     border: 1px solid rgba(45, 122, 62, 0.2);
@@ -91,14 +139,7 @@
 .form-textarea:focus {
     outline: none;
     border-color: #2d7a3e;
-    box-shadow: 0 0 0 2px rgba(45, 122, 62, 0.2);
-}
-
-.form-input:disabled,
-.form-select:disabled,
-.form-textarea:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
+    box-shadow: 0 0 0 2px rgba(45, 122, 62, 0.3);
 }
 
 .form-textarea {
@@ -107,13 +148,14 @@
     font-family: inherit;
 }
 
+/* --- Radios y Checkbox --- */
 .radio-group {
     display: flex;
     gap: 1.5rem;
     flex-wrap: wrap;
 }
 
-.radio-label {
+.radio-label, .checkbox-label {
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -122,11 +164,13 @@
     font-size: 0.9rem;
 }
 
-.radio-label input[type="radio"] {
+.radio-label input[type="radio"], .form-checkbox {
     accent-color: #2d7a3e;
 }
 
+/* --- Archivos e Imágenes --- */
 .form-file-input {
+    box-sizing: border-box;
     padding: 8px;
     background: rgba(15, 20, 25, 0.5);
     border: 1px solid rgba(45, 122, 62, 0.2);
@@ -135,18 +179,17 @@
     cursor: pointer;
 }
 
-.form-file-input:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
 .image-preview {
-    margin-top: 0.5rem;
+    margin-top: 1rem;
+    padding: 10px;
+    background: rgba(15, 20, 25, 0.7);
+    border-radius: 8px;
     text-align: center;
 }
 
 .preview-image {
-    max-width: 200px;
+    max-width: 100%; 
+    height: auto;
     max-height: 150px;
     border-radius: 8px;
     border: 1px solid rgba(45, 122, 62, 0.3);
@@ -155,26 +198,56 @@
 .file-info {
     font-size: 0.8rem;
     color: #9ca3af;
+    margin-top: 0.5rem;
+}
+
+.current-cert-info {
+    color: #70d880; 
+    font-weight: 600;
+}
+
+.help-text {
+    font-size: 0.8rem;
+    color: #ff9800;
     margin-top: 0.25rem;
 }
 
-.checkbox-label {
+/* --- Info Box (Aprobación) --- */
+.info-box {
+    background: rgba(33, 150, 243, 0.1);
+    border: 1px solid rgba(33, 150, 243, 0.3);
+    border-radius: 8px;
+    padding: 1rem;
     display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    cursor: pointer;
+    gap: 1rem;
+    align-items: flex-start;
+}
+.info-icon {
+    font-size: 1.5rem;
+    color: #2196f3;
+}
+.info-content strong {
+    color: #2196f3;
+}
+.info-content p {
     color: #e5e7eb;
     font-size: 0.9rem;
+    margin: 0;
 }
 
-.form-checkbox {
-    accent-color: #2d7a3e;
-}
-
+/* --- Acciones --- */
 .form-actions {
     display: flex;
     gap: 1rem;
-    margin-top: 1rem;
+    margin-top: 1.5rem;
+}
+.btn-guardar, .btn-cancelar {
+    padding: 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.3s ease;
 }
 
 .btn-guardar {
@@ -182,22 +255,6 @@
     background: linear-gradient(135deg, #2d7a3e, #47a855);
     color: white;
     border: none;
-    padding: 14px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 1rem;
-    transition: all 0.3s ease;
-}
-
-.btn-guardar:hover:not(:disabled) {
-    background: linear-gradient(135deg, #47a855, #5cb85c);
-    transform: translateY(-1px);
-}
-
-.btn-guardar:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
 }
 
 .btn-cancelar {
@@ -205,32 +262,22 @@
     background: rgba(107, 114, 128, 0.1);
     color: #9ca3af;
     border: 1px solid rgba(107, 114, 128, 0.3);
-    padding: 14px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 1rem;
-    transition: all 0.3s ease;
 }
 
-.btn-cancelar:hover:not(:disabled) {
-    background: rgba(107, 114, 128, 0.2);
-    transform: translateY(-1px);
-}
-
-.btn-cancelar:disabled {
+.btn-guardar:disabled, .btn-cancelar:disabled {
     opacity: 0.6;
     cursor: not-allowed;
 }
 
-/* Responsive */
+
+/* --- Responsive (Móvil) --- */
 @media (max-width: 768px) {
     .formulario-producto {
         padding: 1.5rem;
     }
     
     .form-row {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr; /* Una columna en móvil */
     }
     
     .form-actions {
@@ -240,5 +287,17 @@
     .radio-group {
         flex-direction: column;
         gap: 0.75rem;
+    }
+    
+    .formulario-header {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: flex-start;
+    }
+    
+    .vendedor-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
     }
 }

@@ -1,12 +1,17 @@
+// Contenido completo para: chr1scv/agroplace/Agroplace-dev_mati/frontend/src/pages/vendedor/FormularioProducto.jsx
+
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import './FormularioProducto.css'; // <--- IMPORTAR EL CSS EXTERNO AQUÍ
 
 const FormularioProducto = ({ 
     productoEditar = null, 
     onGuardar, 
     onCancelar, 
     onRecargar,
-    categorias = [] 
+    categorias = [],
+    // Se añade showToast para mejor manejo de mensajes
+    showToast = (msg, type) => { console.log(`Toast: [${type}] ${msg}`) } 
 }) => {
     const [formData, setFormData] = useState({
         nombre: '',
@@ -15,8 +20,8 @@ const FormularioProducto = ({
         stock: '',
         categoria: '',
         origen: 'convencional',
-        ciudad: '',      // ✅ NUEVO
-        comuna: '',      // ✅ NUEVO
+        ciudad: '',      
+        comuna: '',      
         activo: true
     });
     const [imagen, setImagen] = useState(null);
@@ -25,25 +30,33 @@ const FormularioProducto = ({
     const [certificadoPreview, setCertificadoPreview] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const [vendedorId, setVendedorId] = useState(null);
+    
+    // --- CAMBIO CLAVE 1: Almacenar la información completa del vendedor (ID y Nombre) ---
+    const [vendedorInfo, setVendedorInfo] = useState({ id: null, nombre: 'Cargando...' });
 
-    // Obtener el ID del vendedor logueado al cargar el componente
+    // Obtener el ID y Nombre del vendedor logueado al cargar el componente
     useEffect(() => {
-        const obtenerVendedorId = () => {
+        const obtenerVendedorInfo = () => {
             try {
                 const usuario = JSON.parse(localStorage.getItem('user'));
                 if (usuario && usuario.id) {
-                    setVendedorId(usuario.id);
-                    console.log('👨‍🌾 Vendedor ID:', usuario.id);
+                    // Crea el nombre completo usando first_name y last_name, o recurre al username
+                    const fullName = `${usuario.first_name || usuario.username || 'Vendedor'} ${usuario.last_name || ''}`.trim();
+                    
+                    setVendedorInfo({ 
+                        id: usuario.id, 
+                        nombre: fullName 
+                    });
+                    console.log('👨‍🌾 Vendedor ID:', usuario.id, 'Nombre:', fullName);
                 } else {
                     console.error('No se pudo obtener el ID del vendedor');
                 }
             } catch (error) {
-                console.error('Error obteniendo vendedor ID:', error);
+                console.error('Error obteniendo vendedor info:', error);
             }
         };
 
-        obtenerVendedorId();
+        obtenerVendedorInfo();
 
         // Cargar datos si estamos editando
         if (productoEditar) {
@@ -54,8 +67,8 @@ const FormularioProducto = ({
                 stock: productoEditar.stock?.toString() || '',
                 categoria: productoEditar.categoria?.toString() || '',
                 origen: productoEditar.origen || 'convencional',
-                ciudad: productoEditar.ciudad || '',      // ✅ NUEVO
-                comuna: productoEditar.comuna || '',      // ✅ NUEVO
+                ciudad: productoEditar.ciudad || '',      
+                comuna: productoEditar.comuna || '',      
                 activo: productoEditar.activo !== false
             });
             
@@ -65,10 +78,13 @@ const FormularioProducto = ({
                     : productoEditar.imagen;
                 setImagenPreview(imageUrl);
             }
+            // Muestra una indicación de que el certificado está cargado en edición
+            if (productoEditar.certificado_organico) {
+                setCertificadoPreview('Certificado cargado'); 
+            }
         }
     }, [productoEditar]);
 
-    // Función para obtener el token CSRF de las cookies
     const getCsrfToken = () => {
         const name = 'csrftoken';
         let cookieValue = null;
@@ -142,7 +158,7 @@ const FormularioProducto = ({
                 throw new Error('El stock no puede ser negativo');
             }
 
-            if (!vendedorId && !productoEditar) {
+            if (!vendedorInfo.id && !productoEditar) {
                 throw new Error('No se pudo identificar al vendedor. Por favor, inicia sesión nuevamente.');
             }
 
@@ -157,7 +173,6 @@ const FormularioProducto = ({
             formDataToSend.append('origen', formData.origen);
             formDataToSend.append('activo', formData.activo.toString());
             
-            // ✅ AGREGAR CIUDAD Y COMUNA
             if (formData.ciudad) {
                 formDataToSend.append('ciudad', formData.ciudad);
             }
@@ -165,52 +180,33 @@ const FormularioProducto = ({
                 formDataToSend.append('comuna', formData.comuna);
             }
 
-            // ✅ AGREGAR VENDEDOR AUTOMÁTICAMENTE (solo para productos nuevos)
-            if (!productoEditar && vendedorId) {
-                formDataToSend.append('vendedor', vendedorId.toString());
-                console.log('👨‍🌾 Agregando vendedor ID:', vendedorId);
-            }
-
-            // ✅ Para edición, usar el vendedor del producto existente
-            if (productoEditar && productoEditar.vendedor) {
+            // AGREGAR VENDEDOR
+            if (!productoEditar) {
+                formDataToSend.append('vendedor', vendedorInfo.id.toString());
+            } else if (productoEditar && productoEditar.vendedor) {
                 formDataToSend.append('vendedor', productoEditar.vendedor.toString());
-                 console.log('👨‍🌾 Usando vendedor del producto:', productoEditar.vendedor);
             }
 
-            // IMPORTANTE: Para productos nuevos, no están aprobados inicialmente
+            // Aprobación
             if (!productoEditar) {
                 formDataToSend.append('aprobado', 'false');
             } else {
-                // Productos editados: mantener su estado de aprobación actual
                 formDataToSend.append('aprobado', productoEditar.aprobado ? 'true' : 'false');
-                console.log('✅ Manteniendo aprobación:', productoEditar.aprobado);
             }
 
             // Archivos
             if (imagen) {
                 formDataToSend.append('imagen', imagen);
-                console.log('📸 Imagen agregada:', imagen.name);
             }
             if (certificadoOrganico) {
                 formDataToSend.append('certificado_organico', certificadoOrganico);
-                console.log('📄 Certificado agregado:', certificadoOrganico.name);
             }
 
-            // Debug: mostrar todos los campos del FormData
-            console.log('📤 Campos del FormData:');
-            for (let [key, value] of formDataToSend.entries()) {
-                console.log(`${key}:`, value);
-            }
-
-            // Obtener token CSRF
             const csrfToken = getCsrfToken();
-            console.log('🔐 CSRF Token:', csrfToken);
-
             if (!csrfToken) {
                 throw new Error('No se pudo obtener el token de seguridad. Por favor, recarga la página.');
             }
 
-            // Configurar headers con CSRF
             const config = {
                 withCredentials: true,
                 headers: {
@@ -220,26 +216,22 @@ const FormularioProducto = ({
             };
 
             let response;
+            const baseUrl = 'http://localhost:8000/api/productos/';
+
             if (productoEditar) {
-                // Editar producto existente
-                console.log('✏️ Editando producto existente...');
+                // Editar producto existente (PUT)
                 response = await axios.put(
-                    `http://localhost:8000/api/productos/${productoEditar.id}/`,
+                    `${baseUrl}${productoEditar.id}/`,
                     formDataToSend,
                     config
                 );
-                console.log('✅ Respuesta completa:', response.data);
-                console.log('✅ Status:', response.data.id);
-                console.log('✅ Producto actualizado:', response.data);
             } else {
-                // Crear nuevo producto (requiere aprobación)
-                console.log('➕ Creando nuevo producto...');
+                // Crear nuevo producto (POST)
                 response = await axios.post(
-                    'http://localhost:8000/api/productos/',
+                    baseUrl,
                     formDataToSend,
                     config
                 );
-                console.log('✅ Producto creado (pendiente de aprobación):', response.data);
             }
 
             // Éxito
@@ -250,12 +242,11 @@ const FormularioProducto = ({
                 await onRecargar();
             }
 
-            // Mostrar mensaje según si es nuevo o editado
-            if (!productoEditar) {
-                alert('🎉 Producto creado exitosamente! \n\n📋 Ahora debe ser aprobado por un administrador antes de aparecer en la tienda.');
-            } else {
-                alert('✅ Producto actualizado exitosamente!');
-            }
+            const successMessage = productoEditar 
+                ? '✅ Producto actualizado exitosamente!' 
+                : '🎉 Producto creado exitosamente! Ahora debe ser aprobado por un administrador.';
+            
+            showToast(successMessage, 'success');
 
             // Limpiar formulario si es creación nueva
             if (!productoEditar) {
@@ -264,31 +255,26 @@ const FormularioProducto = ({
 
         } catch (error) {
             console.error('❌ Error guardando producto:', error);
-            let errorMessage = 'Error al guardar el producto';
+            let errorMessage = 'Error al guardar el producto. ';
             
             if (error.response) {
-                console.error('📡 Error del servidor:', error.response.data);
+                const data = error.response.data;
                 
-                // Manejar errores específicos de Django
-                if (error.response.data.vendedor) {
-                    errorMessage = 'Error de vendedor: ' + error.response.data.vendedor.join(', ');
-                } else if (error.response.data.detail) {
-                    errorMessage = error.response.data.detail;
-                } else if (error.response.data.error) {
-                    errorMessage = error.response.data.error;
+                if (data.detail) {
+                    errorMessage = data.detail;
+                } else if (data.vendedor) {
+                    errorMessage += 'Error de vendedor: ' + data.vendedor.join(', ');
                 } else {
-                    errorMessage = JSON.stringify(error.response.data);
+                    errorMessage += 'Revisa los campos. Detalles: ' + JSON.stringify(data);
                 }
             } else if (error.request) {
-                console.error('🌐 No hay conexión con el servidor');
-                errorMessage = 'Error: No se puede conectar al servidor. Verifica que esté corriendo en http://localhost:8000';
+                errorMessage = 'Error: No se puede conectar al servidor. Verifica que esté corriendo.';
             } else {
-                console.error('⚙️ Error:', error.message);
                 errorMessage = error.message;
             }
             
             setError(errorMessage);
-            alert(`❌ Error: ${errorMessage}`);
+            showToast(`❌ Error: ${errorMessage}`, 'error');
         } finally {
             setLoading(false);
         }
@@ -302,8 +288,8 @@ const FormularioProducto = ({
             stock: '',
             categoria: '',
             origen: 'convencional',
-            ciudad: '',      // ✅ NUEVO
-            comuna: '',      // ✅ NUEVO
+            ciudad: '',      
+            comuna: '',      
             activo: true
         });
         setImagen(null);
@@ -343,28 +329,27 @@ const FormularioProducto = ({
                 </div>
             )}
 
-            {!vendedorId && !productoEditar && (
+            {!vendedorInfo.id && !productoEditar && (
                 <div className="warning-message">
                     ⚠️ No se pudo identificar tu cuenta de vendedor. Por favor, recarga la página.
                 </div>
             )}
 
             <form onSubmit={handleSubmit} className="formulario-form">
-                {/* Información del Vendedor (solo lectura) */}
-                {vendedorId && !productoEditar && (
-                    <div className="vendedor-info">
-                        <div className="vendedor-label">Vendedor:</div>
-                        <div className="vendedor-value">Tu cuenta (ID: {vendedorId})</div>
-                    </div>
-                )}
+                {/* Información del Vendedor (solo lectura) - Muestra el nombre/usuario en lugar del ID */}
+                <div className="vendedor-info">
+                    <div className="vendedor-label">Vendedor:</div>
+                    <div className="vendedor-value">{vendedorInfo.nombre}</div>
+                </div>
 
                 {/* Nombre y Categoría */}
                 <div className="form-row">
                     <div className="form-group">
-                        <label className="form-label">Nombre del Producto *</label>
+                        <label className="form-label" htmlFor="nombre">Nombre del Producto *</label>
                         <input
                             type="text"
                             name="nombre"
+                            id="nombre"
                             value={formData.nombre}
                             onChange={handleInputChange}
                             required
@@ -375,9 +360,10 @@ const FormularioProducto = ({
                     </div>
                     
                     <div className="form-group">
-                        <label className="form-label">Categoría *</label>
+                        <label className="form-label" htmlFor="categoria">Categoría *</label>
                         <select
                             name="categoria"
+                            id="categoria"
                             value={formData.categoria}
                             onChange={handleInputChange}
                             required
@@ -397,10 +383,11 @@ const FormularioProducto = ({
                 {/* Precio y Stock */}
                 <div className="form-row">
                     <div className="form-group">
-                        <label className="form-label">Precio (CLP) *</label>
+                        <label className="form-label" htmlFor="precio">Precio (CLP) *</label>
                         <input
                             type="number"
                             name="precio"
+                            id="precio"
                             value={formData.precio}
                             onChange={handleInputChange}
                             required
@@ -413,10 +400,11 @@ const FormularioProducto = ({
                     </div>
                     
                     <div className="form-group">
-                        <label className="form-label">Stock *</label>
+                        <label className="form-label" htmlFor="stock">Stock *</label>
                         <input
                             type="number"
                             name="stock"
+                            id="stock"
                             value={formData.stock}
                             onChange={handleInputChange}
                             required
@@ -428,13 +416,14 @@ const FormularioProducto = ({
                     </div>
                 </div>
 
-                {/* ✅ CIUDAD Y COMUNA - NUEVO */}
+                {/* CIUDAD Y COMUNA */}
                 <div className="form-row">
                     <div className="form-group">
-                        <label className="form-label">📍 Ciudad</label>
+                        <label className="form-label" htmlFor="ciudad">📍 Ciudad</label>
                         <input
                             type="text"
                             name="ciudad"
+                            id="ciudad"
                             value={formData.ciudad}
                             onChange={handleInputChange}
                             className="form-input"
@@ -444,10 +433,11 @@ const FormularioProducto = ({
                     </div>
                     
                     <div className="form-group">
-                        <label className="form-label">🏘️ Comuna</label>
+                        <label className="form-label" htmlFor="comuna">🏘️ Comuna</label>
                         <input
                             type="text"
                             name="comuna"
+                            id="comuna"
                             value={formData.comuna}
                             onChange={handleInputChange}
                             className="form-input"
@@ -459,9 +449,10 @@ const FormularioProducto = ({
 
                 {/* Descripción */}
                 <div className="form-group">
-                    <label className="form-label">Descripción</label>
+                    <label className="form-label" htmlFor="descripcion">Descripción</label>
                     <textarea
                         name="descripcion"
+                        id="descripcion"
                         value={formData.descripcion}
                         onChange={handleInputChange}
                         className="form-textarea"
@@ -501,12 +492,13 @@ const FormularioProducto = ({
                 </div>
 
                 {/* Imagen del Producto */}
-                <div className="form-group">
-                    <label className="form-label">
+                <div className="form-group file-group">
+                    <label className="form-label" htmlFor="imagen-file">
                         Imagen del Producto {!productoEditar && '(Opcional)'}
                     </label>
                     <input
                         type="file"
+                        id="imagen-file"
                         accept="image/*"
                         onChange={handleImagenChange}
                         className="form-file-input"
@@ -528,30 +520,24 @@ const FormularioProducto = ({
 
                 {/* Certificado Orgánico (solo si es orgánico) */}
                 {formData.origen === 'organico' && (
-                    <div className="form-group">
-                        <label className="form-label">Certificado Orgánico (Opcional)</label>
+                    <div className="form-group file-group">
+                        <label className="form-label" htmlFor="certificado-file">Certificado Orgánico (Opcional)</label>
                         <input
                             type="file"
+                            id="certificado-file"
                             accept=".pdf,.jpg,.jpeg,.png"
                             onChange={handleCertificadoChange}
                             className="form-file-input"
                             disabled={loading}
                         />
-                        {certificadoPreview && (
-                            <div className="image-preview">
-                                <img 
-                                    src={certificadoPreview} 
-                                    alt="Vista previa certificado" 
-                                    className="preview-image"
-                                />
-                                <p className="file-info">
-                                    {certificadoOrganico ? certificadoOrganico.name : 'Certificado actual'}
-                                </p>
-                            </div>
+                        {certificadoPreview === 'Certificado cargado' && (
+                            <p className="file-info current-cert-info">
+                                📄 Certificado cargado actualmente. (No visible en preview)
+                            </p>
                         )}
                         {productoEditar?.certificado_organico && !certificadoPreview && (
-                            <p className="file-info">
-                                📄 Certificado actual: {productoEditar.certificado_organico}
+                            <p className="file-info current-cert-info">
+                                📄 Certificado actual: {productoEditar.certificado_organico.split('/').pop()}
                             </p>
                         )}
                     </div>
@@ -594,7 +580,7 @@ const FormularioProducto = ({
                     <button 
                         type="submit" 
                         className="btn-guardar"
-                        disabled={loading || (!vendedorId && !productoEditar)}
+                        disabled={loading || (!vendedorInfo.id && !productoEditar)}
                     >
                         {loading ? '🔄 Guardando...' : (productoEditar ? '💾 Actualizar Producto' : '➕ Crear Producto')}
                     </button>
@@ -608,340 +594,6 @@ const FormularioProducto = ({
                     </button>
                 </div>
             </form>
-
-            <style jsx>{`
-                .formulario-producto {
-                    background: rgba(26, 31, 46, 0.9);
-                    border: 1px solid rgba(45, 122, 62, 0.3);
-                    border-radius: 12px;
-                    padding: 2rem;
-                    margin-bottom: 2rem;
-                    backdrop-filter: blur(10px);
-                }
-
-                .formulario-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 1.5rem;
-                    padding-bottom: 1rem;
-                    border-bottom: 1px solid rgba(45, 122, 62, 0.2);
-                }
-
-                .formulario-header h3 {
-                    color: #f9fafb;
-                    margin: 0;
-                    font-size: 1.3rem;
-                }
-
-                .aprobacion-info {
-                    background: rgba(255, 152, 0, 0.1);
-                    color: #ff9800;
-                    padding: 8px 12px;
-                    border-radius: 8px;
-                    font-size: 0.8rem;
-                    font-weight: 600;
-                    border: 1px solid rgba(255, 152, 0, 0.3);
-                }
-
-                .btn-cerrar {
-                    background: rgba(220, 38, 38, 0.1);
-                    color: #fca5a5;
-                    border: 1px solid rgba(220, 38, 38, 0.3);
-                    width: 32px;
-                    height: 32px;
-                    border-radius: 50%;
-                    cursor: pointer;
-                    font-size: 1.2rem;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                }
-
-                .error-message {
-                    background: rgba(220, 38, 38, 0.1);
-                    border: 1px solid rgba(220, 38, 38, 0.3);
-                    color: #fca5a5;
-                    padding: 1rem;
-                    border-radius: 8px;
-                    margin-bottom: 1.5rem;
-                    font-size: 0.9rem;
-                }
-
-                .warning-message {
-                    background: rgba(255, 152, 0, 0.1);
-                    border: 1px solid rgba(255, 152, 0, 0.3);
-                    color: #ff9800;
-                    padding: 1rem;
-                    border-radius: 8px;
-                    margin-bottom: 1.5rem;
-                    font-size: 0.9rem;
-                }
-
-                .vendedor-info {
-                    display: flex;
-                    align-items: center;
-                    gap: 1rem;
-                    padding: 1rem;
-                    background: rgba(45, 122, 62, 0.1);
-                    border: 1px solid rgba(45, 122, 62, 0.3);
-                    border-radius: 8px;
-                    margin-bottom: 1rem;
-                }
-
-                .vendedor-label {
-                    font-weight: 600;
-                    color: #2d7a3e;
-                }
-
-                .vendedor-value {
-                    color: #e5e7eb;
-                    font-size: 0.9rem;
-                }
-
-                .formulario-form {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 1.5rem;
-                }
-
-                .form-row {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 1rem;
-                }
-
-                .form-group {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 0.5rem;
-                }
-
-                .form-label {
-                    font-weight: 600;
-                    color: #d1d5db;
-                    font-size: 0.9rem;
-                }
-
-                .form-input,
-                .form-select,
-                .form-textarea {
-                    padding: 12px;
-                    background: rgba(15, 20, 25, 0.5);
-                    border: 1px solid rgba(45, 122, 62, 0.2);
-                    border-radius: 8px;
-                    color: #e5e7eb;
-                    font-size: 0.9rem;
-                    transition: all 0.3s ease;
-                }
-
-                .form-input:focus,
-                .form-select:focus,
-                .form-textarea:focus {
-                    outline: none;
-                    border-color: #2d7a3e;
-                    box-shadow: 0 0 0 2px rgba(45, 122, 62, 0.2);
-                }
-
-                .form-input:disabled,
-                .form-select:disabled,
-                .form-textarea:disabled {
-                    opacity: 0.6;
-                    cursor: not-allowed;
-                }
-
-                .form-textarea {
-                    resize: vertical;
-                    min-height: 80px;
-                    font-family: inherit;
-                }
-
-                .radio-group {
-                    display: flex;
-                    gap: 1.5rem;
-                    flex-wrap: wrap;
-                }
-
-                .radio-label {
-                    display: flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                    cursor: pointer;
-                    color: #e5e7eb;
-                    font-size: 0.9rem;
-                }
-
-                .radio-label input[type="radio"] {
-                    accent-color: #2d7a3e;
-                }
-
-                .form-file-input {
-                    padding: 8px;
-                    background: rgba(15, 20, 25, 0.5);
-                    border: 1px solid rgba(45, 122, 62, 0.2);
-                    border-radius: 8px;
-                    color: #e5e7eb;
-                    cursor: pointer;
-                }
-
-                .form-file-input:disabled {
-                    opacity: 0.6;
-                    cursor: not-allowed;
-                }
-
-                .image-preview {
-                    margin-top: 0.5rem;
-                    text-align: center;
-                }
-
-                .preview-image {
-                    max-width: 200px;
-                    max-height: 150px;
-                    border-radius: 8px;
-                    border: 1px solid rgba(45, 122, 62, 0.3);
-                }
-
-                .file-info {
-                    font-size: 0.8rem;
-                    color: #9ca3af;
-                    margin-top: 0.25rem;
-                }
-
-                .checkbox-label {
-                    display: flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                    cursor: pointer;
-                    color: #e5e7eb;
-                    font-size: 0.9rem;
-                }
-
-                .form-checkbox {
-                    accent-color: #2d7a3e;
-                }
-
-                .help-text {
-                    font-size: 0.8rem;
-                    color: #ff9800;
-                    margin-top: 0.25rem;
-                }
-
-                .info-box {
-                    background: rgba(33, 150, 243, 0.1);
-                    border: 1px solid rgba(33, 150, 243, 0.3);
-                    border-radius: 8px;
-                    padding: 1rem;
-                    display: flex;
-                    gap: 1rem;
-                    align-items: flex-start;
-                }
-
-                .info-icon {
-                    font-size: 1.5rem;
-                    color: #2196f3;
-                }
-
-                .info-content {
-                    flex: 1;
-                }
-
-                .info-content strong {
-                    color: #2196f3;
-                    display: block;
-                    margin-bottom: 0.5rem;
-                }
-
-                .info-content p {
-                    color: #e5e7eb;
-                    font-size: 0.9rem;
-                    margin: 0;
-                    line-height: 1.4;
-                }
-
-                .form-actions {
-                    display: flex;
-                    gap: 1rem;
-                    margin-top: 1rem;
-                }
-
-                .btn-guardar {
-                    flex: 2;
-                    background: linear-gradient(135deg, #2d7a3e, #47a855);
-                    color: white;
-                    border: none;
-                    padding: 14px;
-                    border-radius: 8px;
-                    cursor: pointer;
-                    font-weight: 600;
-                    font-size: 1rem;
-                    transition: all 0.3s ease;
-                }
-
-                .btn-guardar:hover:not(:disabled) {
-                    background: linear-gradient(135deg, #47a855, #5cb85c);
-                    transform: translateY(-1px);
-                }
-
-                .btn-guardar:disabled {
-                    opacity: 0.6;
-                    cursor: not-allowed;
-                }
-
-                .btn-cancelar {
-                    flex: 1;
-                    background: rgba(107, 114, 128, 0.1);
-                    color: #9ca3af;
-                    border: 1px solid rgba(107, 114, 128, 0.3);
-                    padding: 14px;
-                    border-radius: 8px;
-                    cursor: pointer;
-                    font-weight: 600;
-                    font-size: 1rem;
-                    transition: all 0.3s ease;
-                }
-
-                .btn-cancelar:hover:not(:disabled) {
-                    background: rgba(107, 114, 128, 0.2);
-                    transform: translateY(-1px);
-                }
-
-                .btn-cancelar:disabled {
-                    opacity: 0.6;
-                    cursor: not-allowed;
-                }
-
-                /* Responsive */
-                @media (max-width: 768px) {
-                    .formulario-producto {
-                        padding: 1.5rem;
-                    }
-                    
-                    .form-row {
-                        grid-template-columns: 1fr;
-                    }
-                    
-                    .form-actions {
-                        flex-direction: column;
-                    }
-                    
-                    .radio-group {
-                        flex-direction: column;
-                        gap: 0.75rem;
-                    }
-                    
-                    .formulario-header {
-                        flex-direction: column;
-                        gap: 1rem;
-                        align-items: flex-start;
-                    }
-                    
-                    .vendedor-info {
-                        flex-direction: column;
-                        align-items: flex-start;
-                        gap: 0.5rem;
-                    }
-                }
-            `}</style>
         </div>
     );
 };

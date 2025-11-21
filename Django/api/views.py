@@ -16,53 +16,59 @@ class UsuarioViewSet(viewsets.ModelViewSet):
     serializer_class = UsuarioSerializer
     permission_classes = [permissions.AllowAny]
     
+    def get_queryset(self):
+        """Filtrar usuarios por query parameters"""
+        queryset = Usuario.objects.all()
+        
+        # Filtrar por estado
+        estado = self.request.query_params.get('estado')
+        if estado:
+            queryset = queryset.filter(estado=estado)
+        
+        # Filtrar por tipo de usuario
+        tipo_usuario = self.request.query_params.get('tipo_usuario')
+        if tipo_usuario:
+            queryset = queryset.filter(tipo_usuario=tipo_usuario)
+        
+        return queryset
+    
     @action(detail=True, methods=['post'])
     def aprobar_vendedor(self, request, pk=None):
-        """Aprobar un vendedor pendiente"""
+        """Aprobar un usuario pendiente"""
         usuario = self.get_object()
-        
-        if usuario.tipo_usuario != 'vendedor':
-            return Response(
-                {'error': 'Solo se pueden aprobar usuarios vendedores'}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
         
         if usuario.estado != 'pendiente':
             return Response(
-                {'error': 'El vendedor ya fue procesado'}, 
+                {'error': 'El usuario ya fue procesado'}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
         
         usuario.estado = 'activo'
+        usuario.is_active = True
         usuario.save()
         
         return Response({
-            'message': f'Vendedor {usuario.username} aprobado exitosamente',
+            'message': f'Usuario {usuario.username} aprobado exitosamente',
             'usuario': UsuarioSerializer(usuario).data
         })
     
     @action(detail=True, methods=['post'])
     def rechazar_vendedor(self, request, pk=None):
-        """Rechazar un vendedor pendiente"""
+        """Rechazar un usuario pendiente"""
         usuario = self.get_object()
-        
-        if usuario.tipo_usuario != 'vendedor':
-            return Response(
-                {'error': 'Solo se pueden rechazar usuarios vendedores'}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
         
         if usuario.estado != 'pendiente':
             return Response(
-                {'error': 'El vendedor ya fue procesado'}, 
+                {'error': 'El usuario ya fue procesado'}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
         
         usuario.estado = 'rechazado'
+        usuario.is_active = False
         usuario.save()
         
         return Response({
-            'message': f'Vendedor {usuario.username} rechazado',
+            'message': f'Usuario {usuario.username} rechazado',
             'usuario': UsuarioSerializer(usuario).data
         })
     
