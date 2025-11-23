@@ -137,6 +137,10 @@ const ProductDetail = () => {
             addToCart(product);
         }
         showToast(`${quantity} ${product.nombre} agregado(s) al carrito`, 'success');
+
+        setTimeout(() => {
+            window.location.reload();
+        }, 1500);
     };
 
     const handleBuyNow = () => {
@@ -171,8 +175,12 @@ const ProductDetail = () => {
             navigate('/carrito');
         } else {
             showToast(`${quantity} ${product.nombre} agregado(s) al carrito`, 'success');
-        }
 
+            // Recargar después de agregar al carrito para actualizar el header
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        }
         setPendingAction(null);
     };
 

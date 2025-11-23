@@ -8,7 +8,7 @@ const cartReducer = (state, action) => {
     switch (action.type) {
         case 'ADD_TO_CART':
             const existingItem = state.items.find(item => item.id === action.payload.id);
-            
+
             if (existingItem) {
                 // Si ya existe, aumentar la cantidad
                 return {
@@ -60,17 +60,34 @@ const cartReducer = (state, action) => {
     }
 };
 
+// Función para cargar el carrito desde localStorage
+const loadCartFromStorage = () => {
+    try {
+        const savedCart = localStorage.getItem('agroplace_cart');
+        return savedCart ? JSON.parse(savedCart) : [];
+    } catch (error) {
+        console.error('Error loading cart from localStorage:', error);
+        return [];
+    }
+};
+
 // Estado inicial
 const initialState = {
-    items: [],
+    items: loadCartFromStorage(),
     isOpen: false
 };
 
 // Provider del Carrito
 export const CartProvider = ({ children }) => {
     const [state, dispatch] = useReducer(cartReducer, initialState);
+    React.useEffect(() => {
+        try {
+            localStorage.setItem('agroplace_cart', JSON.stringify(state.items));
+        } catch (error) {
+            console.error('Error saving cart to localStorage:', error);
+        }
+    }, [state.items]);
 
-    // Acciones
     const addToCart = (product) => {
         dispatch({ type: 'ADD_TO_CART', payload: product });
     };
