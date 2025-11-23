@@ -97,10 +97,16 @@ const VerProductoModal = ({ producto, onClose, formatPrice }) => {
                                         </td>
                                     </tr>
                                 )}
-                                {producto.ciudad && (
+                                {producto.region && (
                                     <tr>
-                                        <td className="admin-detail-label">Ciudad:</td>
-                                        <td className="admin-detail-value">{producto.ciudad}</td>
+                                        <td className="admin-detail-label">Región:</td>
+                                        <td className="admin-detail-value">{producto.region}</td>
+                                    </tr>
+                                )}
+                                {producto.provincia && (
+                                    <tr>
+                                        <td className="admin-detail-label">Provincia:</td>
+                                        <td className="admin-detail-value">{producto.provincia}</td>
                                     </tr>
                                 )}
                                 {producto.comuna && (

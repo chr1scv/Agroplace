@@ -1736,7 +1736,7 @@ const DashboardTab = ({ estadisticas, usuarios, productos, pedidos, formatPrice,
         },
         {
             title: 'Pendientes de Revisión',
-            value: (estadisticas.vendedores_pendientes || 0) + (estadisticas.productos_pendientes || 0),
+            value: usuarios.filter(u => u.estado === 'pendiente').length + productos.filter(p => !p.aprobado).length,
             icon: '⏳',
             color: '#ff9800',
             descripcion: 'Solicitudes pendientes'

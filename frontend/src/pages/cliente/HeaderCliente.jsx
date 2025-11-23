@@ -71,7 +71,7 @@ const HeaderCliente = () => {
     return (
         <header style={{
             ...styles.header,
-            background: isScrolled 
+            background: isScrolled
                 ? 'rgba(26, 31, 46, 0.98)'
                 : '#1a1f2e',
             boxShadow: isScrolled ? '0 2px 20px rgba(0,0,0,0.1)' : 'none',
@@ -80,9 +80,9 @@ const HeaderCliente = () => {
                 {/* Logo */}
                 <div style={styles.leftSection}>
                     <Link to="/productos" style={styles.logo}>
-                        <img 
-                            src="/img/logo-banner-agroplace.png" 
-                            alt="Agroplace" 
+                        <img
+                            src="/img/logo-banner-agroplace.png"
+                            alt="Agroplace"
                             style={styles.logoImage}
                         />
                     </Link>
@@ -113,27 +113,29 @@ const HeaderCliente = () => {
 
                 {/* Panel derecho */}
                 <div style={styles.rightSection}>
-                    {/* Carrito minimalista */}
-                    <div 
-                        style={styles.cartIcon}
-                        onClick={() => navigate('/carrito')}
-                        title="Carrito"
-                    >
-                        <svg style={styles.iconSvg} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="9" cy="21" r="1"></circle>
-                            <circle cx="20" cy="21" r="1"></circle>
-                            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-                        </svg>
-                        {getCartItemsCount() > 0 && (
-                            <span style={styles.badge}>
-                                {getCartItemsCount()}
-                            </span>
-                        )}
-                    </div>
+                    {/* Carrito minimalista - Solo visible si hay usuario */}
+                    {user && (
+                        <div
+                            style={styles.cartIcon}
+                            onClick={() => navigate('/carrito')}
+                            title="Carrito"
+                        >
+                            <svg style={styles.iconSvg} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="9" cy="21" r="1"></circle>
+                                <circle cx="20" cy="21" r="1"></circle>
+                                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                            </svg>
+                            {getCartItemsCount() > 0 && (
+                                <span style={styles.badge}>
+                                    {getCartItemsCount()}
+                                </span>
+                            )}
+                        </div>
+                    )}
 
                     {user ? (
                         <div style={styles.userMenu}>
-                            <div 
+                            <div
                                 style={styles.profile}
                                 onClick={() => setShowDropdown(!showDropdown)}
                             >
@@ -147,7 +149,7 @@ const HeaderCliente = () => {
 
                             {/* Dropdown moderno */}
                             {showDropdown && (
-                                <div 
+                                <div
                                     style={{
                                         ...styles.dropdown,
                                         animation: 'slideDown 0.3s ease-out',
@@ -188,8 +190,8 @@ const HeaderCliente = () => {
 
                                     {/* Menú de opciones */}
                                     <div style={styles.dropdownMenu}>
-                                        <Link 
-                                            to="/cliente" 
+                                        <Link
+                                            to="/cliente"
                                             style={styles.menuItem}
                                             onClick={() => setShowDropdown(false)}
                                         >
@@ -200,8 +202,8 @@ const HeaderCliente = () => {
                                             </svg>
                                             <span>Mis Compras</span>
                                         </Link>
-                                        <Link 
-                                            to="/productos" 
+                                        <Link
+                                            to="/productos"
                                             style={styles.menuItem}
                                             onClick={() => setShowDropdown(false)}
                                         >
@@ -211,8 +213,8 @@ const HeaderCliente = () => {
                                             </svg>
                                             <span>Productos</span>
                                         </Link>
-                                        <Link 
-                                            to="/carrito" 
+                                        <Link
+                                            to="/carrito"
                                             style={styles.menuItem}
                                             onClick={() => setShowDropdown(false)}
                                         >
@@ -228,7 +230,7 @@ const HeaderCliente = () => {
                                     <div style={styles.divider}></div>
 
                                     {/* Botón de logout */}
-                                    <button 
+                                    <button
                                         onClick={handleLogout}
                                         style={styles.logoutButton}
                                     >
@@ -252,7 +254,7 @@ const HeaderCliente = () => {
 
             {/* Overlay */}
             {showDropdown && (
-                <div 
+                <div
                     style={styles.overlay}
                     onClick={() => setShowDropdown(false)}
                 />

@@ -1,11 +1,13 @@
 from rest_framework import serializers
-from .models import Usuario, Categoria, Producto, Pedido, DetallePedido, DireccionEnvio
+from django.db import models
+from .models import Usuario, Categoria, Producto, Pedido, DetallePedido, DireccionEnvio, Review
 
 class UsuarioSerializer(serializers.ModelSerializer):
     class Meta:
         model = Usuario
         fields = ['id', 'username', 'email', 'first_name', 'last_name', 
-                 'tipo_usuario', 'estado', 'telefono', 'direccion', 'fecha_registro']
+                 'tipo_usuario', 'estado', 'telefono', 'direccion', 
+                 'descripcion', 'titulo', 'fecha_registro']
         read_only_fields = ['fecha_registro']
 
 class CategoriaSerializer(serializers.ModelSerializer):
@@ -40,10 +42,27 @@ class ProductoSerializer(serializers.ModelSerializer):
             }
         
         if instance.vendedor:
+            # Calcular estadísticas del vendedor
+            vendedor_reviews = Review.objects.filter(producto__vendedor=instance.vendedor)
+            rating_promedio = vendedor_reviews.aggregate(models.Avg('calificacion'))['calificacion__avg'] or 0
+            reviews_count = vendedor_reviews.count()
+            
+            # Calcular ventas (total de items vendidos en pedidos no cancelados)
+            ventas_count = DetallePedido.objects.filter(
+                producto__vendedor=instance.vendedor,
+                pedido__estado__in=['entregado', 'transito', 'preparacion']
+            ).aggregate(models.Sum('cantidad'))['cantidad__sum'] or 0
+
             data['vendedor'] = {
                 'id': instance.vendedor.id,
                 'username': instance.vendedor.username,
                 'email': instance.vendedor.email,
+                'descripcion': instance.vendedor.descripcion,
+                'titulo': instance.vendedor.titulo,
+                'rating': round(rating_promedio, 1),
+                'reviews_count': reviews_count,
+                'ventas': ventas_count,
+                'fecha_registro': instance.vendedor.fecha_registro.year,
             }
         
         return data
@@ -98,3 +117,13 @@ class RegistroSerializer(serializers.ModelSerializer):
         user.set_password(password)
         user.save()
         return user
+
+# Agregar al final de serializers.py
+
+class ReviewSerializer(serializers.ModelSerializer):
+    usuario_nombre = serializers.CharField(source='usuario.username', read_only=True)
+    
+    class Meta:
+        model = Review
+        fields = ['id', 'producto', 'usuario', 'usuario_nombre', 'calificacion', 'comentario', 'fecha_creacion']
+        read_only_fields = ['usuario', 'fecha_creacion']

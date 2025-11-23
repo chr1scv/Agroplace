@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { CartProvider } from './context/CartContext';
 import { NotificationProvider } from './context/NotificationContext';
+import { ToastProvider } from './context/ToastContext';
 import Home from './pages/Home';
 import Products from './pages/Products';
 import Login from './pages/Login';
@@ -22,60 +23,62 @@ function App() {
   return (
     <NotificationProvider>
       <CartProvider>
-        <Router>
-          <div className="App">
-            <main>
-              <Routes>
-                {/* Rutas públicas */}
-                <Route path="/" element={<Home />} />
-                <Route path="/productos" element={<Products />} />
-                <Route path="/producto/:id" element={<ProductDetail />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/registro" element={<Register />} />
-                <Route path="/vendedor/espera" element={<EsperaAprobacion />} />
-                <Route path="/carrito" element={<Cart />} />
-                <Route path="/checkout" element={<Checkout />} />
-                <Route path="/notificaciones" element={<Notifications />} />
+        <ToastProvider>
+          <Router>
+            <div className="App">
+              <main>
+                <Routes>
+                  {/* Rutas públicas */}
+                  <Route path="/" element={<Home />} />
+                  <Route path="/productos" element={<Products />} />
+                  <Route path="/producto/:id" element={<ProductDetail />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/registro" element={<Register />} />
+                  <Route path="/vendedor/espera" element={<EsperaAprobacion />} />
+                  <Route path="/carrito" element={<Cart />} />
+                  <Route path="/checkout" element={<Checkout />} />
+                  <Route path="/notificaciones" element={<Notifications />} />
 
-                {/* ⬇️ VERSIÓN DE PRUEBA - Ruta cliente pública temporalmente ⬇️ */}
-                <Route path="/cliente/*" element={<ClientePanel />} />
+                  {/* ⬇️ VERSIÓN DE PRUEBA - Ruta cliente pública temporalmente ⬇️ */}
+                  <Route path="/cliente/*" element={<ClientePanel />} />
 
-                {/* Rutas protegidas */}
-                <Route
-                  path="/admin/*"
-                  element={
-                    <SimpleProtectedRoute allowedRoles={['admin']}>
-                      <AdminPanel />
-                    </SimpleProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/vendedor/*"
-                  element={
-                    <SimpleProtectedRoute allowedRoles={['admin', 'vendedor']}>
-                      <VendedorPanel />
-                    </SimpleProtectedRoute>
-                  }
-                />
-                
-                {/* ⬇️ COMENTA ESTA VERSIÓN PROTEGIDA TEMPORALMENTE ⬇️ */}
-                {/*
-                <Route
-                  path="/cliente/*"
-                  element={
-                    <SimpleProtectedRoute allowedRoles={['admin', 'vendedor', 'cliente']}>
-                      <ClientePanel />
-                    </SimpleProtectedRoute>
-                  }
-                />
-                */}
+                  {/* Rutas protegidas */}
+                  <Route
+                    path="/admin/*"
+                    element={
+                      <SimpleProtectedRoute allowedRoles={['admin']}>
+                        <AdminPanel />
+                      </SimpleProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/vendedor/*"
+                    element={
+                      <SimpleProtectedRoute allowedRoles={['admin', 'vendedor']}>
+                        <VendedorPanel />
+                      </SimpleProtectedRoute>
+                    }
+                  />
 
-                <Route path="/acceso-denegado" element={<AccessDenied />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </main>
-          </div>
-        </Router>
+                  {/* ⬇️ COMENTA ESTA VERSIÓN PROTEGIDA TEMPORALMENTE ⬇️ */}
+                  {/*
+                  <Route
+                    path="/cliente/*"
+                    element={
+                      <SimpleProtectedRoute allowedRoles={['admin', 'vendedor', 'cliente']}>
+                        <ClientePanel />
+                      </SimpleProtectedRoute>
+                    }
+                  />
+                  */}
+
+                  <Route path="/acceso-denegado" element={<AccessDenied />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </main>
+            </div>
+          </Router>
+        </ToastProvider>
       </CartProvider>
     </NotificationProvider>
   );

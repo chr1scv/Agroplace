@@ -450,3 +450,46 @@ def dashboard_stats(request):
         }
     
     return Response(stats)
+
+# Agregar al final de views.py
+
+from .models import Review
+from .serializers import ReviewSerializer
+
+class ReviewViewSet(viewsets.ModelViewSet):
+    queryset = Review.objects.all()
+    serializer_class = ReviewSerializer
+    permission_classes = [permissions.AllowAny]
+    
+    def get_queryset(self):
+        queryset = Review.objects.all()
+        
+        # Filtrar por producto
+        producto_id = self.request.query_params.get('producto')
+        if producto_id:
+            queryset = queryset.filter(producto_id=producto_id)
+            
+        return queryset.order_by('-fecha_creacion')
+
+    def perform_create(self, serializer):
+        print(f"📝 Intentando crear reseña. Usuario autenticado: {self.request.user.is_authenticated}")
+        
+        if self.request.user.is_authenticated:
+            print(f"👤 Asignando usuario autenticado: {self.request.user.username}")
+            serializer.save(usuario=self.request.user)
+        else:
+            # Fallback para desarrollo: asignar primer usuario disponible
+            print("⚠️ Usuario no autenticado. Buscando usuario por defecto...")
+            try:
+                default_user = Usuario.objects.filter(tipo_usuario='cliente').first() or Usuario.objects.first()
+                
+                if default_user:
+                    print(f"👤 Asignando usuario por defecto: {default_user.username}")
+                    serializer.save(usuario=default_user)
+                else:
+                    print("❌ No se encontró ningún usuario para asignar.")
+                    # Esto probablemente fallará si el modelo requiere usuario
+                    serializer.save()
+            except Exception as e:
+                print(f"❌ Error al asignar usuario por defecto: {str(e)}")
+                raise e

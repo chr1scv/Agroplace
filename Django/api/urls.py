@@ -1,4 +1,4 @@
-# api/urls.py (SOLO ESTE CONTENIDO)
+# api/urls.py
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
@@ -10,6 +10,7 @@ router.register(r'categorias', views.CategoriaViewSet, basename='categoria')
 router.register(r'productos', views.ProductoViewSet, basename='producto')
 router.register(r'pedidos', views.PedidoViewSet, basename='pedido')
 router.register(r'direcciones', views.DireccionEnvioViewSet, basename='direccion')
+router.register(r'reviews', views.ReviewViewSet, basename='review')
 
 urlpatterns = [
     # Incluir las rutas del router

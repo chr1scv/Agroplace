@@ -16,9 +16,11 @@ class Usuario(AbstractUser):
     ]
     
     tipo_usuario = models.CharField(max_length=20, choices=TIPO_USUARIO, default='cliente')
-    estado = models.CharField(max_length=20, choices=ESTADO_USUARIO, default='activo')  # ← NUEVO CAMPO
+    estado = models.CharField(max_length=20, choices=ESTADO_USUARIO, default='activo')
     telefono = models.CharField(max_length=15, blank=True)
     direccion = models.TextField(blank=True)
+    descripcion = models.TextField(blank=True)  # ← NUEVO: Biografía del vendedor
+    titulo = models.CharField(max_length=100, blank=True)  # ← NUEVO: Título (ej. Productor Verificado)
     fecha_registro = models.DateTimeField(auto_now_add=True)
     
     groups = models.ManyToManyField(
@@ -65,9 +67,11 @@ class Producto(models.Model):
     origen = models.CharField(max_length=20, choices=TIPO_ORIGEN, default='convencional')
     certificado_organico = models.FileField(upload_to='certificados/', blank=True, null=True)
     activo = models.BooleanField(default=True)
-    aprobado = models.BooleanField(default=False)  # ← AGREGAR ESTA LÍNEA
-    ciudad = models.CharField(max_length=100, blank=True)  # ← AGREGAR ESTA LÍNEA
-    comuna = models.CharField(max_length=100, blank=True)  # ← AGREGAR ESTA LÍNEA
+    aprobado = models.BooleanField(default=False)
+    ciudad = models.CharField(max_length=100, blank=True)
+    comuna = models.CharField(max_length=100, blank=True)
+    provincia = models.CharField(max_length=100, blank=True)  # ← NUEVO
+    region = models.CharField(max_length=100, blank=True)     # ← NUEVO
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_actualizacion = models.DateTimeField(auto_now=True)
     
@@ -151,3 +155,16 @@ class Notificacion(models.Model):
     def __str__(self):
         return f"{self.usuario.username} - {self.titulo}"
     
+class Review(models.Model):
+    producto = models.ForeignKey(Producto, on_delete=models.CASCADE, related_name='reviews')
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
+    calificacion = models.IntegerField(choices=[(i, i) for i in range(1, 6)])
+    comentario = models.TextField()
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-fecha_creacion']
+        unique_together = ['producto', 'usuario']
+    
+    def __str__(self):
+        return f"{self.usuario.username} - {self.producto.nombre} ({self.calificacion}★)"

@@ -5,14 +5,14 @@ import axios from 'axios';
 import { getAxiosConfigMultipart } from '../../utils/csrf';
 import './FormularioProducto.css'; // <--- IMPORTAR EL CSS EXTERNO AQUÍ
 
-const FormularioProducto = ({ 
-    productoEditar = null, 
-    onGuardar, 
-    onCancelar, 
+const FormularioProducto = ({
+    productoEditar = null,
+    onGuardar,
+    onCancelar,
     onRecargar,
     categorias = [],
     // Se añade showToast para mejor manejo de mensajes
-    showToast = (msg, type) => { console.log(`Toast: [${type}] ${msg}`) } 
+    showToast = (msg, type) => { console.log(`Toast: [${type}] ${msg}`) }
 }) => {
     const [formData, setFormData] = useState({
         nombre: '',
@@ -21,8 +21,9 @@ const FormularioProducto = ({
         stock: '',
         categoria: '',
         origen: 'convencional',
-        ciudad: '',      
-        comuna: '',      
+        region: '',
+        provincia: '',
+        comuna: '',
         activo: true
     });
     const [imagen, setImagen] = useState(null);
@@ -31,7 +32,7 @@ const FormularioProducto = ({
     const [certificadoPreview, setCertificadoPreview] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    
+
     // --- CAMBIO CLAVE 1: Almacenar la información completa del vendedor (ID y Nombre) ---
     const [vendedorInfo, setVendedorInfo] = useState({ id: null, nombre: 'Cargando...' });
 
@@ -43,10 +44,10 @@ const FormularioProducto = ({
                 if (usuario && usuario.id) {
                     // Crea el nombre completo usando first_name y last_name, o recurre al username
                     const fullName = `${usuario.first_name || usuario.username || 'Vendedor'} ${usuario.last_name || ''}`.trim();
-                    
-                    setVendedorInfo({ 
-                        id: usuario.id, 
-                        nombre: fullName 
+
+                    setVendedorInfo({
+                        id: usuario.id,
+                        nombre: fullName
                     });
                     console.log('👨‍🌾 Vendedor ID:', usuario.id, 'Nombre:', fullName);
                 } else {
@@ -68,20 +69,21 @@ const FormularioProducto = ({
                 stock: productoEditar.stock?.toString() || '',
                 categoria: productoEditar.categoria?.toString() || '',
                 origen: productoEditar.origen || 'convencional',
-                ciudad: productoEditar.ciudad || '',      
-                comuna: productoEditar.comuna || '',      
+                region: productoEditar.region || '',
+                provincia: productoEditar.provincia || '',
+                comuna: productoEditar.comuna || '',
                 activo: productoEditar.activo !== false
             });
-            
+
             if (productoEditar.imagen) {
-                const imageUrl = productoEditar.imagen.startsWith('/media/') 
+                const imageUrl = productoEditar.imagen.startsWith('/media/')
                     ? `http://localhost:8000${productoEditar.imagen}`
                     : productoEditar.imagen;
                 setImagenPreview(imageUrl);
             }
             // Muestra una indicación de que el certificado está cargado en edición
             if (productoEditar.certificado_organico) {
-                setCertificadoPreview('Certificado cargado'); 
+                setCertificadoPreview('Certificado cargado');
             }
         }
     }, [productoEditar]);
@@ -113,7 +115,7 @@ const FormularioProducto = ({
     const handleImagenChange = (e) => {
         const file = e.target.files[0];
         setImagen(file);
-        
+
         if (file) {
             const reader = new FileReader();
             reader.onload = (e) => {
@@ -128,7 +130,7 @@ const FormularioProducto = ({
     const handleCertificadoChange = (e) => {
         const file = e.target.files[0];
         setCertificadoOrganico(file);
-        
+
         if (file) {
             const reader = new FileReader();
             reader.onload = (e) => {
@@ -147,7 +149,7 @@ const FormularioProducto = ({
 
         try {
             // Validaciones
-            if (!formData.nombre || !formData.precio || !formData.stock || !formData.categoria) {
+            if (!formData.nombre || !formData.precio || !formData.stock || !formData.categoria || !formData.descripcion || !formData.region || !formData.provincia || !formData.comuna) {
                 throw new Error('Por favor completa todos los campos requeridos');
             }
 
@@ -164,7 +166,7 @@ const FormularioProducto = ({
             }
 
             const formDataToSend = new FormData();
-            
+
             // Campos básicos
             formDataToSend.append('nombre', formData.nombre);
             formDataToSend.append('descripcion', formData.descripcion);
@@ -173,13 +175,10 @@ const FormularioProducto = ({
             formDataToSend.append('categoria', formData.categoria);
             formDataToSend.append('origen', formData.origen);
             formDataToSend.append('activo', formData.activo.toString());
-            
-            if (formData.ciudad) {
-                formDataToSend.append('ciudad', formData.ciudad);
-            }
-            if (formData.comuna) {
-                formDataToSend.append('comuna', formData.comuna);
-            }
+
+            formDataToSend.append('region', formData.region);
+            formDataToSend.append('provincia', formData.provincia);
+            formDataToSend.append('comuna', formData.comuna);
 
             // AGREGAR VENDEDOR
             if (!productoEditar) {
@@ -232,10 +231,10 @@ const FormularioProducto = ({
                 await onRecargar();
             }
 
-            const successMessage = productoEditar 
-                ? '✅ Producto actualizado exitosamente!' 
+            const successMessage = productoEditar
+                ? '✅ Producto actualizado exitosamente!'
                 : '🎉 Producto creado exitosamente! Ahora debe ser aprobado por un administrador.';
-            
+
             showToast(successMessage, 'success');
 
             // Limpiar formulario si es creación nueva
@@ -246,10 +245,10 @@ const FormularioProducto = ({
         } catch (error) {
             console.error('❌ Error guardando producto:', error);
             let errorMessage = 'Error al guardar el producto. ';
-            
+
             if (error.response) {
                 const data = error.response.data;
-                
+
                 if (data.detail) {
                     errorMessage = data.detail;
                 } else if (data.vendedor) {
@@ -262,7 +261,7 @@ const FormularioProducto = ({
             } else {
                 errorMessage = error.message;
             }
-            
+
             showToast(`❌ ${errorMessage}`, 'error');
         } finally {
             setLoading(false);
@@ -277,8 +276,9 @@ const FormularioProducto = ({
             stock: '',
             categoria: '',
             origen: 'convencional',
-            ciudad: '',      
-            comuna: '',      
+            region: '',
+            provincia: '',
+            comuna: '',
             activo: true
         });
         setImagen(null);
@@ -303,7 +303,7 @@ const FormularioProducto = ({
                         ⚠️ Requiere aprobación del administrador
                     </div>
                 )}
-                <button 
+                <button
                     onClick={handleCancel}
                     className="btn-cerrar"
                     disabled={loading}
@@ -347,7 +347,7 @@ const FormularioProducto = ({
                             disabled={loading}
                         />
                     </div>
-                    
+
                     <div className="form-group">
                         <label className="form-label" htmlFor="categoria">Categoría *</label>
                         <select
@@ -387,7 +387,7 @@ const FormularioProducto = ({
                             disabled={loading}
                         />
                     </div>
-                    
+
                     <div className="form-group">
                         <label className="form-label" htmlFor="stock">Stock *</label>
                         <input
@@ -405,48 +405,66 @@ const FormularioProducto = ({
                     </div>
                 </div>
 
-                {/* CIUDAD Y COMUNA */}
-                <div className="form-row">
-                    <div className="form-group">
-                        <label className="form-label" htmlFor="ciudad">📍 Ciudad</label>
-                        <input
-                            type="text"
-                            name="ciudad"
-                            id="ciudad"
-                            value={formData.ciudad}
-                            onChange={handleInputChange}
-                            className="form-input"
-                            placeholder="Ej: Talca, Curicó, Linares..."
-                            disabled={loading}
-                        />
-                    </div>
-                    
-                    <div className="form-group">
-                        <label className="form-label" htmlFor="comuna">🏘️ Comuna</label>
-                        <input
-                            type="text"
-                            name="comuna"
-                            id="comuna"
-                            value={formData.comuna}
-                            onChange={handleInputChange}
-                            className="form-input"
-                            placeholder="Ej: San Clemente, Molina..."
-                            disabled={loading}
-                        />
-                    </div>
-                </div>
-
                 {/* Descripción */}
                 <div className="form-group">
-                    <label className="form-label" htmlFor="descripcion">Descripción</label>
+                    <label className="form-label" htmlFor="descripcion">Descripción *</label>
                     <textarea
                         name="descripcion"
                         id="descripcion"
                         value={formData.descripcion}
                         onChange={handleInputChange}
+                        required
                         className="form-textarea"
                         placeholder="Describe tu producto... (calidad, origen, beneficios)"
                         rows="4"
+                        disabled={loading}
+                    />
+                </div>
+
+                {/* REGIÓN, PROVINCIA Y COMUNA */}
+                <div className="form-row">
+                    <div className="form-group">
+                        <label className="form-label" htmlFor="region">🌎 Región *</label>
+                        <input
+                            type="text"
+                            name="region"
+                            id="region"
+                            value={formData.region}
+                            onChange={handleInputChange}
+                            required
+                            className="form-input"
+                            placeholder="Ej: Maule, O'Higgins..."
+                            disabled={loading}
+                        />
+                    </div>
+
+                    <div className="form-group">
+                        <label className="form-label" htmlFor="provincia">📍 Provincia *</label>
+                        <input
+                            type="text"
+                            name="provincia"
+                            id="provincia"
+                            value={formData.provincia}
+                            onChange={handleInputChange}
+                            required
+                            className="form-input"
+                            placeholder="Ej: Talca, Curicó, Linares..."
+                            disabled={loading}
+                        />
+                    </div>
+                </div>
+
+                <div className="form-group">
+                    <label className="form-label" htmlFor="comuna">🏘️ Comuna *</label>
+                    <input
+                        type="text"
+                        name="comuna"
+                        id="comuna"
+                        value={formData.comuna}
+                        onChange={handleInputChange}
+                        required
+                        className="form-input"
+                        placeholder="Ej: San Clemente, Molina..."
                         disabled={loading}
                     />
                 </div>
@@ -495,9 +513,9 @@ const FormularioProducto = ({
                     />
                     {imagenPreview && (
                         <div className="image-preview">
-                            <img 
-                                src={imagenPreview} 
-                                alt="Vista previa" 
+                            <img
+                                src={imagenPreview}
+                                alt="Vista previa"
                                 className="preview-image"
                             />
                             <p className="file-info">
@@ -558,22 +576,22 @@ const FormularioProducto = ({
                         <div className="info-icon">📋</div>
                         <div className="info-content">
                             <strong>Proceso de Aprobación:</strong>
-                            <p>Tu producto será revisado por un administrador antes de aparecer en la tienda. 
-                            Recibirás una notificación cuando sea aprobado.</p>
+                            <p>Tu producto será revisado por un administrador antes de aparecer en la tienda.
+                                Recibirás una notificación cuando sea aprobado.</p>
                         </div>
                     </div>
                 )}
 
                 {/* Acciones */}
                 <div className="form-actions">
-                    <button 
-                        type="submit" 
+                    <button
+                        type="submit"
                         className="btn-guardar"
                         disabled={loading || (!vendedorInfo.id && !productoEditar)}
                     >
                         {loading ? '🔄 Guardando...' : (productoEditar ? '💾 Actualizar Producto' : '➕ Crear Producto')}
                     </button>
-                    <button 
+                    <button
                         type="button"
                         onClick={handleCancel}
                         className="btn-cancelar"

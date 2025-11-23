@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useToast } from '../context/ToastContext';
 
 const ReviewSystem = ({ productId, productName }) => {
     const [reviews, setReviews] = useState([]);
@@ -10,28 +11,39 @@ const ReviewSystem = ({ productId, productName }) => {
     const [showReviewForm, setShowReviewForm] = useState(false);
     const [loading, setLoading] = useState(false);
     const [editingReview, setEditingReview] = useState(null);
+    const { showToast } = useToast();
 
     // Cargar reseñas al iniciar
     useEffect(() => {
-        loadReviews();
+        if (productId) {
+            loadReviews();
+        }
     }, [productId]);
 
-    const loadReviews = () => {
-        const exampleReviews = [
-            {
-                id: 1,
-                user: {
-                    name: 'Paula Vazquez',
-                },
-                rating: 5,
-                title: '¡Excelente calidad!',
-                comment: 'Excelente producto, lo recomiendo a todos. Definitivamente volveré a comprar.',
-                date: '2023-08-Definitivamente volveré a comprar.',
-                date: '2024-01-15',
-                verified: true
-            },
-        ];
-        setReviews(exampleReviews);
+    const loadReviews = async () => {
+        try {
+            const response = await fetch(`http://localhost:8000/api/reviews/?producto=${productId}`);
+            if (response.ok) {
+                const data = await response.json();
+                // Transformar datos de la API al formato del componente
+                const formattedReviews = data.map(review => ({
+                    id: review.id,
+                    user: {
+                        name: review.usuario_nombre || 'Usuario',
+                        avatar: '👤'
+                    },
+                    rating: review.calificacion,
+                    title: '', // El modelo actual no tiene título
+                    comment: review.comentario,
+                    date: review.fecha_creacion,
+                    verified: true,
+                    isCurrentUser: false // Se podría validar con usuario actual si estuviera disponible
+                }));
+                setReviews(formattedReviews);
+            }
+        } catch (error) {
+            console.error('Error al cargar reseñas:', error);
+        }
     };
 
     const handleRatingChange = (rating) => {
@@ -46,215 +58,150 @@ const ReviewSystem = ({ productId, productName }) => {
     const handleSubmitReview = async (e) => {
         e.preventDefault();
         if (userReview.rating === 0) {
-            alert('Por favor selecciona una calificación');
+            showToast('Por favor selecciona una calificación', 'warning');
             return;
         }
 
         setLoading(true);
-        
+
         try {
-            // Simular envío a la API
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            const newReview = {
-                id: editingReview ? editingReview.id : Date.now(),
-                user: {
-                    name: 'Tú',
-                    avatar: '👤'
-                },
-                rating: userReview.rating,
-                title: userReview.title,
-                comment: userReview.comment,
-                date: new Date().toISOString().split('T')[0],
-                verified: false,
-                isCurrentUser: true
+            const token = localStorage.getItem('token');
+            const headers = {
+                'Content-Type': 'application/json',
             };
 
-            if (editingReview) {
-                // Editar reseña existente
-                setReviews(prev => prev.map(review => 
-                    review.id === editingReview.id ? newReview : review
-                ));
-            } else {
-                // Agregar nueva reseña
-                setReviews(prev => [newReview, ...prev]);
+            if (token) {
+                headers['Authorization'] = `Token ${token}`;
             }
 
-            // Resetear formulario
-            setUserReview({ rating: 0, comment: '', title: '' });
-            setShowReviewForm(false);
-            setEditingReview(null);
-            
+            const response = await fetch('http://localhost:8000/api/reviews/', {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify({
+                    producto: productId,
+                    calificacion: userReview.rating,
+                    comentario: userReview.comment
+                })
+            });
+
+            if (response.ok) {
+                showToast('Reseña enviada con éxito', 'success');
+                setShowReviewForm(false);
+                setUserReview({ rating: 0, comment: '', title: '' });
+                loadReviews(); // Recargar reseñas
+            } else {
+                const errorData = await response.json();
+                showToast('Error al enviar la reseña: ' + JSON.stringify(errorData), 'error');
+            }
         } catch (error) {
-            alert('Error al enviar la reseña. Intenta nuevamente.');
+            console.error('Error:', error);
+            showToast('Error de conexión al enviar la reseña', 'error');
         } finally {
             setLoading(false);
         }
     };
 
     const handleEditReview = (review) => {
-        setUserReview({
-            rating: review.rating,
-            comment: review.comment,
-            title: review.title
-        });
-        setEditingReview(review);
-        setShowReviewForm(true);
+        // Implementar lógica de edición si es necesario
+        console.log("Editar reseña", review);
     };
 
     const handleDeleteReview = (reviewId) => {
-        if (window.confirm('¿Estás seguro de que quieres eliminar esta reseña?')) {
-            setReviews(prev => prev.filter(review => review.id !== reviewId));
-        }
+        // Implementar lógica de eliminación si es necesario
+        console.log("Eliminar reseña", reviewId);
     };
 
-    const cancelReview = () => {
-        setUserReview({ rating: 0, comment: '', title: '' });
-        setShowReviewForm(false);
-        setEditingReview(null);
-    };
-
-    // Calcular estadísticas
-    const stats = {
-        totalReviews: reviews.length,
-        averageRating: reviews.length > 0 
-            ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1)
-            : 0,
-        ratingDistribution: [5, 4, 3, 2, 1].map(rating => ({
-            rating,
-            count: reviews.filter(review => review.rating === rating).length,
-            percentage: reviews.length > 0 
-                ? (reviews.filter(review => review.rating === rating).length / reviews.length) * 100
-                : 0
-        }))
-    };
+    // Calcular promedio
+    const averageRating = reviews.length > 0
+        ? (reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length).toFixed(1)
+        : 0;
 
     return (
         <div style={styles.container}>
             <div style={styles.header}>
-                <h2 style={styles.title}>Reseñas y Calificaciones</h2>
-                <div style={styles.overallRating}>
-                    <div style={styles.ratingSummary}>
-                        <div style={styles.averageRating}>{stats.averageRating}</div>
-                        <div style={styles.stars}>
-                            {renderStars(stats.averageRating, 24)}
-                        </div>
-                        <div style={styles.totalReviews}>
-                            {stats.totalReviews} {stats.totalReviews === 1 ? 'reseña' : 'reseñas'}
+                <div>
+                    <h2 style={styles.title}>Opiniones de clientes</h2>
+                    <div style={styles.overallRating}>
+                        <div style={styles.ratingSummary}>
+                            <div style={styles.averageRating}>{averageRating}</div>
+                            <div style={styles.stars}>{renderStars(Math.round(averageRating), 24)}</div>
+                            <div style={styles.totalReviews}>{reviews.length} calificaciones</div>
                         </div>
                     </div>
-                    
-                    <button 
-                        onClick={() => setShowReviewForm(true)}
-                        style={styles.writeReviewButton}
-                    >
-                        ✍️ Escribir Reseña
-                    </button>
                 </div>
+                <button style={styles.writeReviewButton} onClick={() => setShowReviewForm(true)}>
+                    Escribir Reseña
+                </button>
             </div>
 
-            {/* Distribución de calificaciones */}
-            <div style={styles.ratingDistribution}>
-                <h4 style={styles.distributionTitle}>Distribución de Calificaciones</h4>
-                {stats.ratingDistribution.map(({ rating, count, percentage }) => (
-                    <div key={rating} style={styles.ratingBar}>
-                        <span style={styles.ratingLabel}>{rating} ★</span>
-                        <div style={styles.barContainer}>
-                            <div 
-                                style={{
-                                    ...styles.barFill,
-                                    width: `${percentage}%`
-                                }}
-                            />
-                        </div>
-                        <span style={styles.ratingCount}>({count})</span>
-                    </div>
-                ))}
-            </div>
-
-            {/* Formulario de Reseña */}
+            {/* Modal Formulario */}
             {showReviewForm && (
-                <div style={styles.reviewFormContainer}>
-                    <h3 style={styles.formTitle}>
-                        {editingReview ? 'Editar tu Reseña' : 'Escribir Reseña'}
-                    </h3>
-                    <form onSubmit={handleSubmitReview} style={styles.reviewForm}>
-                        <div style={styles.ratingInput}>
-                            <label style={styles.label}>Tu Calificación *</label>
-                            <div style={styles.starRating}>
-                                {[1, 2, 3, 4, 5].map(star => (
-                                    <button
-                                        key={star}
-                                        type="button"
-                                        onClick={() => handleRatingChange(star)}
-                                        style={styles.starButton}
-                                    >
-                                        {star <= userReview.rating ? '★' : '☆'}
-                                    </button>
-                                ))}
+                <div style={styles.modalOverlay} onClick={() => setShowReviewForm(false)}>
+                    <div style={styles.modalContent} onClick={e => e.stopPropagation()}>
+                        <button style={styles.closeModalButton} onClick={() => setShowReviewForm(false)}>×</button>
+                        <h3 style={styles.formTitle}>Escribe tu reseña</h3>
+                        <form onSubmit={handleSubmitReview} style={styles.reviewForm}>
+                            <div style={styles.ratingInput}>
+                                <label style={styles.label}>Calificación</label>
+                                <div style={styles.starRating}>
+                                    {[1, 2, 3, 4, 5].map(star => (
+                                        <button
+                                            key={star}
+                                            type="button"
+                                            onClick={() => handleRatingChange(star)}
+                                            style={{
+                                                ...styles.starButton,
+                                                color: star <= userReview.rating ? '#ffc107' : '#e0e0e0'
+                                            }}
+                                        >
+                                            ★
+                                        </button>
+                                    ))}
+                                </div>
+                                <span style={styles.ratingText}>
+                                    {userReview.rating === 1 && 'Malo'}
+                                    {userReview.rating === 2 && 'Regular'}
+                                    {userReview.rating === 3 && 'Bueno'}
+                                    {userReview.rating === 4 && 'Muy bueno'}
+                                    {userReview.rating === 5 && 'Excelente'}
+                                </span>
                             </div>
-                            <div style={styles.ratingText}>
-                                {userReview.rating === 0 && 'Selecciona una calificación'}
-                                {userReview.rating === 1 && 'Muy Malo'}
-                                {userReview.rating === 2 && 'Malo'}
-                                {userReview.rating === 3 && 'Regular'}
-                                {userReview.rating === 4 && 'Bueno'}
-                                {userReview.rating === 5 && 'Excelente'}
+
+                            <div style={styles.formGroup}>
+                                <label style={styles.label}>Tu opinión</label>
+                                <textarea
+                                    name="comment"
+                                    value={userReview.comment}
+                                    onChange={handleInputChange}
+                                    placeholder="¿Qué te pareció este producto?"
+                                    style={styles.textarea}
+                                    required
+                                />
                             </div>
-                        </div>
 
-                        <div style={styles.formGroup}>
-                            <label style={styles.label}>Título de la Reseña</label>
-                            <input
-                                type="text"
-                                name="title"
-                                value={userReview.title}
-                                onChange={handleInputChange}
-                                style={styles.input}
-                                placeholder="Ej: ¡Excelente producto!"
-                                maxLength="100"
-                            />
-                        </div>
-
-                        <div style={styles.formGroup}>
-                            <label style={styles.label}>Tu Reseña *</label>
-                            <textarea
-                                name="comment"
-                                value={userReview.comment}
-                                onChange={handleInputChange}
-                                style={styles.textarea}
-                                placeholder="Comparte tu experiencia con este producto..."
-                                rows="4"
-                                required
-                            />
-                        </div>
-
-                        <div style={styles.formActions}>
-                            <button 
-                                type="button"
-                                onClick={cancelReview}
-                                style={styles.cancelButton}
-                            >
-                                Cancelar
-                            </button>
-                            <button 
-                                type="submit"
-                                disabled={loading || userReview.rating === 0 || !userReview.comment.trim()}
-                                style={loading ? styles.submitButtonDisabled : styles.submitButton}
-                            >
-                                {loading ? 'Enviando...' : editingReview ? 'Actualizar Reseña' : 'Publicar Reseña'}
-                            </button>
-                        </div>
-                    </form>
+                            <div style={styles.formActions}>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowReviewForm(false)}
+                                    style={styles.cancelButton}
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    style={loading ? styles.submitButtonDisabled : styles.submitButton}
+                                >
+                                    {loading ? 'Enviando...' : 'Publicar Reseña'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             )}
 
             {/* Lista de Reseñas */}
             <div style={styles.reviewsList}>
-                <h3 style={styles.reviewsTitle}>
-                    Reseñas de Clientes ({stats.totalReviews})
-                </h3>
-                
                 {reviews.length === 0 ? (
                     <div style={styles.noReviews}>
                         <div style={styles.noReviewsIcon}>💬</div>
@@ -293,18 +240,18 @@ const ReviewSystem = ({ productId, productName }) => {
                                 {review.title && (
                                     <h4 style={styles.reviewTitle}>{review.title}</h4>
                                 )}
-                                
+
                                 <p style={styles.reviewComment}>{review.comment}</p>
 
                                 {review.isCurrentUser && (
                                     <div style={styles.reviewActions}>
-                                        <button 
+                                        <button
                                             onClick={() => handleEditReview(review)}
                                             style={styles.editButton}
                                         >
                                             ✏️ Editar
                                         </button>
-                                        <button 
+                                        <button
                                             onClick={() => handleDeleteReview(review.id)}
                                             style={styles.deleteButton}
                                         >
@@ -400,54 +347,18 @@ const styles = {
         fontSize: '1rem',
         whiteSpace: 'nowrap',
     },
-    // Distribución de calificaciones
-    ratingDistribution: {
-        backgroundColor: '#f8f9fa',
-        padding: '1.5rem',
-        borderRadius: '8px',
-        marginBottom: '2rem',
+    // Modal
+    modalOverlay: {
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+        backdropFilter: 'blur(5px)'
     },
-    distributionTitle: {
-        margin: '0 0 1rem 0',
-        color: '#333',
-        fontSize: '1.1rem',
+    modalContent: {
+        backgroundColor: 'white', padding: '2rem', borderRadius: '16px', width: '90%', maxWidth: '500px',
+        position: 'relative', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
     },
-    ratingBar: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '1rem',
-        marginBottom: '0.5rem',
-    },
-    ratingLabel: {
-        width: '60px',
-        fontSize: '0.9rem',
-        color: '#666',
-    },
-    barContainer: {
-        flex: 1,
-        height: '8px',
-        backgroundColor: '#e0e0e0',
-        borderRadius: '4px',
-        overflow: 'hidden',
-    },
-    barFill: {
-        height: '100%',
-        backgroundColor: '#ffc107',
-        transition: 'width 0.3s ease',
-    },
-    ratingCount: {
-        width: '40px',
-        fontSize: '0.8rem',
-        color: '#666',
-        textAlign: 'right',
-    },
-    // Formulario de reseña
-    reviewFormContainer: {
-        backgroundColor: '#f8f9fa',
-        padding: '1.5rem',
-        borderRadius: '8px',
-        marginBottom: '2rem',
-        border: '1px solid #e0e0e0',
+    closeModalButton: {
+        position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#666'
     },
     formTitle: {
         margin: '0 0 1.5rem 0',
@@ -478,7 +389,6 @@ const styles = {
         border: 'none',
         fontSize: '2rem',
         cursor: 'pointer',
-        color: '#ffc107',
         padding: '0.25rem',
         borderRadius: '4px',
         transition: 'transform 0.2s',
@@ -493,14 +403,6 @@ const styles = {
         display: 'flex',
         flexDirection: 'column',
         gap: '0.5rem',
-    },
-    input: {
-        padding: '12px 16px',
-        border: '2px solid #e0e0e0',
-        borderRadius: '8px',
-        fontSize: '1rem',
-        outline: 'none',
-        transition: 'border-color 0.3s',
     },
     textarea: {
         padding: '12px 16px',
@@ -547,11 +449,6 @@ const styles = {
     // Lista de reseñas
     reviewsList: {
         marginTop: '2rem',
-    },
-    reviewsTitle: {
-        fontSize: '1.4rem',
-        color: '#2d5016',
-        marginBottom: '1.5rem',
     },
     noReviews: {
         textAlign: 'center',
@@ -671,7 +568,6 @@ const styles = {
         fontSize: '0.8rem',
         fontWeight: 'bold',
     },
-    // Estrellas
     starsContainer: {
         display: 'flex',
         gap: '2px',

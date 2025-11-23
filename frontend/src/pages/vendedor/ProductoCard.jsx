@@ -6,13 +6,13 @@ import './ProductoCard.css';
 // Función helper para construir URLs de imagen
 const getImageUrl = (imagenPath) => {
     if (!imagenPath) return null;
-    
+
     if (imagenPath.startsWith('/media/')) {
         return `http://localhost:8000${imagenPath}`;
-    } 
+    }
     else if (imagenPath.startsWith('http')) {
         return imagenPath;
-    } 
+    }
     else {
         return `http://localhost:8000/media/products/${imagenPath}`;
     }
@@ -45,23 +45,23 @@ const ProductoCard = ({ producto, onEditar, onEliminar, onRecargar, showToast })
         }).format(price);
     };
 
-        const handleEliminar = async () => {
+    const handleEliminar = async () => {
         try {
             setLoading(true);
-            
+
             await axios.delete(`http://localhost:8000/api/productos/${producto.id}/`, getAxiosConfig());
-            
+
             if (showToast) {
                 showToast('✅ Producto eliminado correctamente', 'success');
             }
-            
+
             if (onEliminar) {
                 onEliminar(producto.id);
             }
             if (onRecargar) {
                 await onRecargar();
             }
-            
+
             setMostrarConfirmacion(false);
         } catch (error) {
             console.error('Error eliminando producto:', error);
@@ -86,7 +86,7 @@ const ProductoCard = ({ producto, onEditar, onEliminar, onRecargar, showToast })
 
     return (
         <>
-            <div 
+            <div
                 className="producto-card-modern"
                 onMouseEnter={() => setShowActions(true)}
                 onMouseLeave={() => setShowActions(false)}
@@ -94,8 +94,8 @@ const ProductoCard = ({ producto, onEditar, onEliminar, onRecargar, showToast })
                 {/* Imagen del Producto */}
                 <div className="producto-image-container-modern">
                     {imagenUrl ? (
-                        <img 
-                            src={imagenUrl} 
+                        <img
+                            src={imagenUrl}
                             alt={producto.nombre}
                             className="producto-image-modern"
                             onError={(e) => {
@@ -104,9 +104,9 @@ const ProductoCard = ({ producto, onEditar, onEliminar, onRecargar, showToast })
                             }}
                         />
                     ) : null}
-                    <div 
+                    <div
                         className="producto-placeholder-modern"
-                        style={{display: imagenUrl ? 'none' : 'flex'}}
+                        style={{ display: imagenUrl ? 'none' : 'flex' }}
                     >
                         <span className="placeholder-icon-modern">
                             {getPlaceholderIcon(producto)}
@@ -160,15 +160,12 @@ const ProductoCard = ({ producto, onEditar, onEliminar, onRecargar, showToast })
                 <div className="producto-info-modern">
                     <h3 className="producto-nombre-modern">{producto.nombre}</h3>
                     <p className="producto-categoria-modern">{producto.categoria_nombre}</p>
-                    
+
                     {/* Ubicación */}
-                    {(producto.comuna || producto.ciudad) && (
+                    {(producto.comuna || producto.provincia || producto.region) && (
                         <p className="producto-ubicacion-modern">
                             <span className="ubicacion-icon-modern">📍</span>
-                            {producto.comuna && producto.ciudad 
-                                ? `${producto.comuna}, ${producto.ciudad}`
-                                : producto.comuna || producto.ciudad
-                            }
+                            {[producto.comuna, producto.provincia, producto.region].filter(Boolean).join(', ')}
                         </p>
                     )}
 
@@ -176,7 +173,7 @@ const ProductoCard = ({ producto, onEditar, onEliminar, onRecargar, showToast })
                     <div className="producto-stats-modern">
                         <div className="stat-item-modern">
                             <span className="stat-label-modern">Stock</span>
-                            <span 
+                            <span
                                 className="stat-value-modern"
                                 style={{ color: stockStatus.color }}
                             >
@@ -212,16 +209,16 @@ const ProductoCard = ({ producto, onEditar, onEliminar, onRecargar, showToast })
                         <p className="modal-warning-eliminar-modern">
                             Esta acción no se puede deshacer.
                         </p>
-                        
+
                         <div className="modal-actions-eliminar-modern">
-                            <button 
+                            <button
                                 onClick={() => setMostrarConfirmacion(false)}
                                 className="btn-cancelar-eliminar-modern"
                                 disabled={loading}
                             >
                                 Cancelar
                             </button>
-                            <button 
+                            <button
                                 onClick={handleEliminar}
                                 className="btn-confirmar-eliminar-modern"
                                 disabled={loading}
