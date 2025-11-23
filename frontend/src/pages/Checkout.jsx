@@ -265,11 +265,14 @@ const styles = {
         color: '#2d5016',
         marginBottom: '1.5rem',
         textAlign: 'center',
+        borderBottom: '1px solid #f0f0f0',
+        paddingBottom: '1rem',
     },
     summaryItems: {
         marginBottom: '1rem',
         maxHeight: '300px',
         overflowY: 'auto',
+        paddingRight: '20px', // Más espacio entre productos y barra de desplazamiento
     },
     summaryItem: {
         display: 'flex',

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
-const CheckoutPickup = ({ onContinue, onBack }) => {
+const CheckoutPickup = ({ items, onContinue, onBack }) => {
     const [formData, setFormData] = useState({
         nombre: '',
         apellido: '',
@@ -11,6 +11,23 @@ const CheckoutPickup = ({ onContinue, onBack }) => {
         horaRetiro: '',
         notas: ''
     });
+
+    const [vendorInfo, setVendorInfo] = useState(null);
+
+    useEffect(() => {
+        if (items && items.length > 0) {
+            // Obtener información del vendedor del primer producto
+            // Asumimos que la info del vendedor viene anidada en el producto desde el backend
+            // Si hay múltiples vendedores, por ahora mostramos el del primero (MVP)
+            const firstItem = items[0];
+            if (firstItem.vendedor) {
+                setVendorInfo({
+                    direccion: firstItem.vendedor.direccion_retiro || "Dirección no disponible",
+                    horario: firstItem.vendedor.horario_atencion || "Horario no disponible"
+                });
+            }
+        }
+    }, [items]);
 
     const handleChange = (e) => {
         setFormData({
@@ -40,9 +57,26 @@ const CheckoutPickup = ({ onContinue, onBack }) => {
 
             <div style={styles.pickupInfo}>
                 <h3 style={styles.infoTitle}>📍 Punto de Retiro</h3>
-                <p><strong>Dirección:</strong> Av. Vicuña Mackenna 1234, La Florida, Provincia de Santiago, Región Metropolitana</p>
-                <p><strong>Horario:</strong> Lunes a Viernes 9:00 - 18:00</p>
-                <p><strong>Sábados:</strong> 10:00 - 14:00</p>
+
+                <div style={styles.infoBlock}>
+                    <p style={styles.infoLabel}>Dirección:</p>
+                    <p style={styles.infoValue}>
+                        {vendorInfo ? vendorInfo.direccion : "Cargando dirección..."}
+                    </p>
+                </div>
+
+                <div style={styles.infoBlock}>
+                    <p style={styles.infoLabel}>Horario de Atención:</p>
+                    <div style={styles.infoValue}>
+                        {vendorInfo ? (
+                            vendorInfo.horario.split('\n').map((line, index) => (
+                                <div key={index}>{line}</div>
+                            ))
+                        ) : (
+                            "Cargando horario..."
+                        )}
+                    </div>
+                </div>
             </div>
 
             <form onSubmit={handleSubmit} style={styles.form}>
@@ -205,6 +239,21 @@ const styles = {
         fontSize: '1.1rem',
         color: '#2d5016',
         marginBottom: '1rem',
+        borderBottom: '1px solid #e0e0e0',
+        paddingBottom: '0.5rem',
+    },
+    infoBlock: {
+        marginBottom: '1rem',
+    },
+    infoLabel: {
+        fontWeight: 'bold',
+        color: '#555',
+        marginBottom: '0.25rem',
+        fontSize: '0.9rem',
+    },
+    infoValue: {
+        color: '#333',
+        lineHeight: '1.5',
     },
     form: {
         display: 'flex',

@@ -7,7 +7,7 @@ class UsuarioSerializer(serializers.ModelSerializer):
         model = Usuario
         fields = ['id', 'username', 'email', 'first_name', 'last_name', 
                  'tipo_usuario', 'estado', 'telefono', 'direccion', 
-                 'descripcion', 'titulo', 'fecha_registro']
+                 'descripcion', 'titulo', 'direccion_retiro', 'horario_atencion', 'provincia', 'fecha_registro']
         read_only_fields = ['fecha_registro']
 
 class CategoriaSerializer(serializers.ModelSerializer):
@@ -62,6 +62,9 @@ class ProductoSerializer(serializers.ModelSerializer):
                 'rating': round(rating_promedio, 1),
                 'reviews_count': reviews_count,
                 'ventas': ventas_count,
+                'direccion_retiro': instance.vendedor.direccion_retiro,
+                'horario_atencion': instance.vendedor.horario_atencion,
+                'provincia': instance.vendedor.provincia,
                 'fecha_registro': instance.vendedor.fecha_registro.year,
             }
         
@@ -96,7 +99,7 @@ class RegistroSerializer(serializers.ModelSerializer):
     class Meta:
         model = Usuario
         fields = ['username', 'email', 'password', 'password_confirm', 
-                 'tipo_usuario', 'telefono', 'direccion']
+                 'tipo_usuario', 'telefono', 'direccion', 'provincia', 'horario_atencion', 'direccion_retiro']
     
     def validate(self, data):
         if data['password'] != data['password_confirm']:

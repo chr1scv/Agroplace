@@ -23,6 +23,9 @@ const Register = () => {
         region: '',
         comuna: '',
         descripcion_negocio: '',
+        provincia: '',
+        direccion_retiro: '',
+        horario_atencion: '',
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -499,6 +502,47 @@ const Register = () => {
                                             placeholder="Tu comuna"
                                         />
                                     </div>
+                                </div>
+
+                                <div style={styles.formRow}>
+                                    <div style={styles.formGroup}>
+                                        <label style={styles.label}>Provincia</label>
+                                        <input
+                                            type="text"
+                                            name="provincia"
+                                            value={formData.provincia}
+                                            onChange={handleChange}
+                                            required
+                                            style={styles.input}
+                                            placeholder="Tu provincia"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div style={styles.formGroup}>
+                                    <label style={styles.label}>Dirección de Retiro (para clientes)</label>
+                                    <input
+                                        type="text"
+                                        name="direccion_retiro"
+                                        value={formData.direccion_retiro}
+                                        onChange={handleChange}
+                                        required
+                                        style={styles.input}
+                                        placeholder="Dirección donde los clientes retirarán los productos"
+                                    />
+                                </div>
+
+                                <div style={styles.formGroup}>
+                                    <label style={styles.label}>Horario de Atención</label>
+                                    <textarea
+                                        name="horario_atencion"
+                                        value={formData.horario_atencion}
+                                        onChange={handleChange}
+                                        required
+                                        style={styles.textarea}
+                                        placeholder="Ej: Lunes a Viernes 9:00 - 18:00"
+                                        rows="2"
+                                    />
                                 </div>
 
                                 <div style={styles.formGroup}>
