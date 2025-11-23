@@ -164,7 +164,6 @@ const Products = () => {
         setFilteredProducts(filtered);
     };
 
-    // 🛠️ CORREGIDO: Función para manejar agregar al carrito con autenticación
     const handleAddToCart = (product) => {
         if (!isAuthenticated) {
             setSelectedProduct(product);
@@ -179,17 +178,20 @@ const Products = () => {
 
         addToCart(product);
         showToast(`${product.nombre} agregado al carrito`, 'success');
+
     };
 
-    // 🛠️ NUEVO: Función para manejar login exitoso desde el modal
     const handleLoginSuccess = () => {
         setShowAuthModal(false);
 
         if (selectedProduct) {
-            // Agregar el producto pendiente al carrito
             addToCart(selectedProduct);
             showToast(`${selectedProduct.nombre} agregado al carrito`, 'success');
             setSelectedProduct(null);
+
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
         }
     };
 

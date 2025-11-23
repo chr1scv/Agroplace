@@ -1268,7 +1268,7 @@ TOAST NOTIFICATIONS
     box-shadow: var(--shadow-lg);
     font-size: 0.9375rem;
     font-weight: 500;
-    color: var(--text-dark);
+    color: white;
     animation: fadeIn 0.3s ease, slideRight 0.3s ease;
     position: relative;
 }

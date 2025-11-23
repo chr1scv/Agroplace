@@ -136,11 +136,7 @@ const ProductDetail = () => {
         for (let i = 0; i < quantity; i++) {
             addToCart(product);
         }
-        showToast(`${quantity} ${product.nombre} agregado(s) al carrito`, 'success');
-
-        setTimeout(() => {
-            window.location.reload();
-        }, 1500);
+        showToast(`${quantity} ${product.nombre} agregado al carrito`, 'success');
     };
 
     const handleBuyNow = () => {
@@ -176,7 +172,6 @@ const ProductDetail = () => {
         } else {
             showToast(`${quantity} ${product.nombre} agregado(s) al carrito`, 'success');
 
-            // Recargar después de agregar al carrito para actualizar el header
             setTimeout(() => {
                 window.location.reload();
             }, 1500);
