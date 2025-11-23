@@ -2,98 +2,118 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import SimpleProtectedRoute from '../components/SimpleProtectedRoute';
-import PaymentGateway from '../components/PaymentGateway';
-import HeaderCliente from '../pages/cliente/HeaderCliente';  
+import HeaderCliente from '../pages/cliente/HeaderCliente';
 
 const Checkout = () => {
     const { items, clearCart, getCartTotal } = useCart();
     const navigate = useNavigate();
-    
-    const [pasoActual, setPasoActual] = useState(1);
-    const [ordenCreada, setOrdenCreada] = useState(null);
-    const [loading, setLoading] = useState(false);
 
-    // Estados para formularios
+    // Constantes
+    const IVA_RATE = 0.19;
+    const SHIPPING_THRESHOLD = 19000;
+
+    const [pasoActual, setPasoActual] = useState(1);
+    const [tipoEntrega, setTipoEntrega] = useState(''); // 'envio' o 'retiro'
+
+    // Estados para formulario de envío
     const [datosEnvio, setDatosEnvio] = useState({
         nombre: '',
         apellido: '',
         email: '',
         telefono: '',
         direccion: '',
-        ciudad: '',
+        comuna: '',
         region: '',
-        codigoPostal: '',
         instrucciones: ''
     });
 
-    // Aplicar estilos dinámicos a los steps
-    useEffect(() => {
-        const stepNumbers = document.querySelectorAll('.step-number');
-        stepNumbers.forEach((step, index) => {
-            if (index + 1 <= pasoActual) {
-                step.style.backgroundColor = '#4a7c1f';
-                step.style.color = 'white';
-            } else {
-                step.style.backgroundColor = '#e0e0e0';
-                step.style.color = '#666';
-            }
-        });
-    }, [pasoActual]);
+    // Estados para formulario de retiro
+    const [datosRetiro, setDatosRetiro] = useState({
+        nombre: '',
+        apellido: '',
+        email: '',
+        telefono: '',
+        rut: '',
+        fechaRetiro: '',
+        horaRetiro: '',
+        notas: ''
+    });
 
-    const handleDatosEnvioChange = (e) => {
+    // Determinar tipo de entrega al cargar
+    useEffect(() => {
+        const total = getCartTotal();
+        setTipoEntrega(total >= SHIPPING_THRESHOLD ? 'envio' : 'retiro');
+    }, [getCartTotal]);
+
+    const formatPrice = (price) => {
+        return new Intl.NumberFormat('es-CL', {
+            style: 'currency',
+            currency: 'CLP',
+            minimumFractionDigits: 0
+        }).format(price);
+    };
+
+    const calcularResumen = () => {
+        const total = getCartTotal();
+        const subtotal = total / (1 + IVA_RATE);
+        const iva = subtotal * IVA_RATE;
+
+        return { subtotal, iva, total };
+    };
+
+    const handleEnvioChange = (e) => {
         setDatosEnvio({
             ...datosEnvio,
             [e.target.name]: e.target.value
         });
     };
 
-    const calcularResumen = () => {
-        const subtotal = getCartTotal();
-        const envio = subtotal > 50 ? 0 : 5.99;
-        const iva = subtotal * 0.19;
-        const total = subtotal + envio + iva;
-
-        return { subtotal, envio, iva, total };
+    const handleRetiroChange = (e) => {
+        setDatosRetiro({
+            ...datosRetiro,
+            [e.target.name]: e.target.value
+        });
     };
 
-    const handlePaymentSuccess = (paymentResult) => {
-        const resumen = calcularResumen();
-        const nuevaOrden = {
-            id: `ORD-${Date.now()}`,
-            fecha: new Date().toISOString().split('T')[0],
-            productos: items,
-            envio: datosEnvio,
-            pago: paymentResult,
-            total: resumen.total,
-            estado: paymentResult.status || 'confirmado'
-        };
+    const handleContinuar = () => {
+        // Validación básica
+        if (tipoEntrega === 'envio') {
+            if (!datosEnvio.nombre || !datosEnvio.email || !datosEnvio.telefono || !datosEnvio.direccion) {
+                alert('Por favor completa todos los campos obligatorios');
+                return;
+            }
+        } else {
+            if (!datosRetiro.nombre || !datosRetiro.email || !datosRetiro.telefono || !datosRetiro.rut) {
+                alert('Por favor completa todos los campos obligatorios');
+                return;
+            }
+        }
+        setPasoActual(2);
+    };
 
-        setOrdenCreada(nuevaOrden);
+    const handleConfirmarPedido = () => {
+        // Aquí se enviará al backend
+        alert('Pedido confirmado! (Integración con backend pendiente)');
         clearCart();
-        setPasoActual(5);
+        navigate('/productos');
     };
 
-    const handlePaymentError = (error) => {
-        alert(`Error en el pago: ${error}`);
-        setLoading(false);
-    };
+    const { subtotal, iva, total } = calcularResumen();
 
-    const { subtotal, envio, iva, total } = calcularResumen();
-
-    if (items.length === 0 && !ordenCreada) {
+    if (items.length === 0) {
         return (
             <div>
-                <HeaderCliente />  {/* ← HEADER AGREGADO */}
+                <HeaderCliente />
                 <div style={styles.container}>
                     <div style={styles.emptyCart}>
                         <div style={styles.emptyIcon}>🛒</div>
                         <h2>Tu carrito está vacío</h2>
                         <p>Agrega algunos productos antes de proceder al checkout</p>
-                        <button 
+                        <button
                             onClick={() => navigate('/productos')}
                             style={styles.continueShopping}
                         >
-                            🛍️ Continuar Comprando
+                            Continuar Comprando
                         </button>
                     </div>
                 </div>
@@ -104,187 +124,367 @@ const Checkout = () => {
     return (
         <SimpleProtectedRoute allowedRoles={['cliente', 'admin']}>
             <div>
-                <HeaderCliente />  {/* ← HEADER AGREGADO */}
+                <HeaderCliente />
                 <div style={styles.container}>
                     <div style={styles.header}>
                         <h1 style={styles.title}>Finalizar Compra</h1>
-                        <div style={styles.progressBar}>
-                            <div style={styles.progressSteps}>
-                                {[1, 2, 3, 4, 5].map(step => (
-                                    <div key={step} style={styles.step}>
-                                        <div className="step-number" style={styles.stepNumber}>
-                                            {step}
-                                        </div>
-                                        <div style={styles.stepLabel}>
-                                            {step === 1 && 'Envío'}
-                                            {step === 2 && 'Revisión'}
-                                            {step === 3 && 'Pago'}
-                                            {step === 4 && 'Confirmación'}
-                                            {step === 5 && 'Completado'}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
+
+                        {/* Indicador de tipo de entrega */}
+                        <div style={styles.deliveryType}>
+                            {tipoEntrega === 'envio' ? (
+                                <div style={styles.deliveryBadgeShipping}>
+                                    ✓ Envío Gratis Habilitado
+                                </div>
+                            ) : (
+                                <div style={styles.deliveryBadgePickup}>
+                                    Retiro en Tienda
+                                </div>
+                            )}
                         </div>
                     </div>
 
                     <div style={styles.content}>
                         <div style={styles.mainContent}>
-                            {/* PASO 1: Información de Envío */}
+                            {/* PASO 1: Formulario */}
                             {pasoActual === 1 && (
                                 <div style={styles.stepContent}>
-                                    <h2 style={styles.stepTitle}>Información de Envío</h2>
-                                    <form style={styles.form}>
-                                        <div style={styles.formRow}>
-                                            <div style={styles.formGroup}>
-                                                <label style={styles.label}>Nombre *</label>
-                                                <input
-                                                    type="text"
-                                                    name="nombre"
-                                                    value={datosEnvio.nombre}
-                                                    onChange={handleDatosEnvioChange}
-                                                    required
-                                                    style={styles.input}
-                                                    placeholder="Tu nombre"
-                                                />
-                                            </div>
-                                            <div style={styles.formGroup}>
-                                                <label style={styles.label}>Apellido *</label>
-                                                <input
-                                                    type="text"
-                                                    name="apellido"
-                                                    value={datosEnvio.apellido}
-                                                    onChange={handleDatosEnvioChange}
-                                                    required
-                                                    style={styles.input}
-                                                    placeholder="Tu apellido"
-                                                />
-                                            </div>
-                                        </div>
+                                    {tipoEntrega === 'envio' ? (
+                                        // FORMULARIO DE ENVÍO
+                                        <div>
+                                            <h2 style={styles.stepTitle}>Información de Envío</h2>
+                                            <p style={styles.subtitle}>
+                                                Tu pedido califica para envío gratis ({formatPrice(total)} ≥ {formatPrice(SHIPPING_THRESHOLD)})
+                                            </p>
 
-                                        <div style={styles.formRow}>
-                                            <div style={styles.formGroup}>
-                                                <label style={styles.label}>Email *</label>
-                                                <input
-                                                    type="email"
-                                                    name="email"
-                                                    value={datosEnvio.email}
-                                                    onChange={handleDatosEnvioChange}
-                                                    required
-                                                    style={styles.input}
-                                                    placeholder="tu@email.com"
-                                                />
-                                            </div>
-                                            <div style={styles.formGroup}>
-                                                <label style={styles.label}>Teléfono *</label>
-                                                <input
-                                                    type="tel"
-                                                    name="telefono"
-                                                    value={datosEnvio.telefono}
-                                                    onChange={handleDatosEnvioChange}
-                                                    required
-                                                    style={styles.input}
-                                                    placeholder="+56 9 1234 5678"
-                                                />
-                                            </div>
-                                        </div>
+                                            <form style={styles.form}>
+                                                <div style={styles.formRow}>
+                                                    <div style={styles.formGroup}>
+                                                        <label style={styles.label}>Nombre *</label>
+                                                        <input
+                                                            type="text"
+                                                            name="nombre"
+                                                            value={datosEnvio.nombre}
+                                                            onChange={handleEnvioChange}
+                                                            required
+                                                            style={styles.input}
+                                                            placeholder="Tu nombre"
+                                                        />
+                                                    </div>
+                                                    <div style={styles.formGroup}>
+                                                        <label style={styles.label}>Apellido *</label>
+                                                        <input
+                                                            type="text"
+                                                            name="apellido"
+                                                            value={datosEnvio.apellido}
+                                                            onChange={handleEnvioChange}
+                                                            required
+                                                            style={styles.input}
+                                                            placeholder="Tu apellido"
+                                                        />
+                                                    </div>
+                                                </div>
 
-                                        <div style={styles.formGroup}>
-                                            <label style={styles.label}>Dirección *</label>
-                                            <input
-                                                type="text"
-                                                name="direccion"
-                                                value={datosEnvio.direccion}
-                                                onChange={handleDatosEnvioChange}
-                                                required
-                                                style={styles.input}
-                                                placeholder="Calle, número, departamento"
-                                            />
-                                        </div>
+                                                <div style={styles.formRow}>
+                                                    <div style={styles.formGroup}>
+                                                        <label style={styles.label}>Email *</label>
+                                                        <input
+                                                            type="email"
+                                                            name="email"
+                                                            value={datosEnvio.email}
+                                                            onChange={handleEnvioChange}
+                                                            required
+                                                            style={styles.input}
+                                                            placeholder="tu@email.com"
+                                                        />
+                                                    </div>
+                                                    <div style={styles.formGroup}>
+                                                        <label style={styles.label}>Teléfono *</label>
+                                                        <input
+                                                            type="tel"
+                                                            name="telefono"
+                                                            value={datosEnvio.telefono}
+                                                            onChange={handleEnvioChange}
+                                                            required
+                                                            style={styles.input}
+                                                            placeholder="+56 9 1234 5678"
+                                                        />
+                                                    </div>
+                                                </div>
 
-                                        <div style={styles.formRow}>
-                                            <div style={styles.formGroup}>
-                                                <label style={styles.label}>Ciudad *</label>
-                                                <input
-                                                    type="text"
-                                                    name="ciudad"
-                                                    value={datosEnvio.ciudad}
-                                                    onChange={handleDatosEnvioChange}
-                                                    required
-                                                    style={styles.input}
-                                                    placeholder="Ciudad"
-                                                />
-                                            </div>
-                                            <div style={styles.formGroup}>
-                                                <label style={styles.label}>Región *</label>
-                                                <select
-                                                    name="region"
-                                                    value={datosEnvio.region}
-                                                    onChange={handleDatosEnvioChange}
-                                                    required
-                                                    style={styles.select}
-                                                >
-                                                    <option value="">Selecciona región</option>
-                                                    <option value="metropolitana">Región Metropolitana</option>
-                                                    <option value="valparaiso">Valparaíso</option>
-                                                    <option value="biobio">Biobío</option>
-                                                    <option value="araucania">La Araucanía</option>
-                                                    <option value="loslagos">Los Lagos</option>
-                                                </select>
-                                            </div>
-                                            <div style={styles.formGroup}>
-                                                <label style={styles.label}>Código Postal</label>
-                                                <input
-                                                    type="text"
-                                                    name="codigoPostal"
-                                                    value={datosEnvio.codigoPostal}
-                                                    onChange={handleDatosEnvioChange}
-                                                    style={styles.input}
-                                                    placeholder="Código postal"
-                                                />
-                                            </div>
-                                        </div>
+                                                <div style={styles.formGroup}>
+                                                    <label style={styles.label}>Dirección Completa *</label>
+                                                    <input
+                                                        type="text"
+                                                        name="direccion"
+                                                        value={datosEnvio.direccion}
+                                                        onChange={handleEnvioChange}
+                                                        required
+                                                        style={styles.input}
+                                                        placeholder="Calle, número, departamento"
+                                                    />
+                                                </div>
 
-                                        <div style={styles.formGroup}>
-                                            <label style={styles.label}>Instrucciones de entrega (opcional)</label>
-                                            <textarea
-                                                name="instrucciones"
-                                                value={datosEnvio.instrucciones}
-                                                onChange={handleDatosEnvioChange}
-                                                style={styles.textarea}
-                                                placeholder="Ej: Timbre 2 veces, dejar con conserjería, etc."
-                                                rows="3"
-                                            />
-                                        </div>
+                                                <div style={styles.formRow}>
+                                                    <div style={styles.formGroup}>
+                                                        <label style={styles.label}>Comuna *</label>
+                                                        <input
+                                                            type="text"
+                                                            name="comuna"
+                                                            value={datosEnvio.comuna}
+                                                            onChange={handleEnvioChange}
+                                                            required
+                                                            style={styles.input}
+                                                            placeholder="Comuna"
+                                                        />
+                                                    </div>
+                                                    <div style={styles.formGroup}>
+                                                        <label style={styles.label}>Región *</label>
+                                                        <select
+                                                            name="region"
+                                                            value={datosEnvio.region}
+                                                            onChange={handleEnvioChange}
+                                                            required
+                                                            style={styles.select}
+                                                        >
+                                                            <option value="">Selecciona región</option>
+                                                            <option value="metropolitana">Región Metropolitana</option>
+                                                            <option value="valparaiso">Valparaíso</option>
+                                                            <option value="biobio">Biobío</option>
+                                                            <option value="araucania">La Araucanía</option>
+                                                            <option value="loslagos">Los Lagos</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
 
-                                        <div style={styles.stepActions}>
-                                            <button 
-                                                type="button"
-                                                onClick={() => navigate('/carrito')}
-                                                style={styles.backButton}
-                                            >
-                                                ← Volver al Carrito
-                                            </button>
-                                            <button 
-                                                type="button"
-                                                onClick={() => setPasoActual(2)}
-                                                style={styles.continueButton}
-                                            >
-                                                Continuar a Revisión →
-                                            </button>
+                                                <div style={styles.formGroup}>
+                                                    <label style={styles.label}>Instrucciones de entrega (opcional)</label>
+                                                    <textarea
+                                                        name="instrucciones"
+                                                        value={datosEnvio.instrucciones}
+                                                        onChange={handleEnvioChange}
+                                                        style={styles.textarea}
+                                                        placeholder="Ej: Timbre 2 veces, dejar con conserjería, etc."
+                                                        rows="3"
+                                                    />
+                                                </div>
+                                            </form>
                                         </div>
-                                    </form>
+                                    ) : (
+                                        // FORMULARIO DE RETIRO
+                                        <div>
+                                            <h2 style={styles.stepTitle}>Información para Retiro</h2>
+                                            <p style={styles.subtitle}>
+                                                Tu pedido será preparado para retiro en tienda
+                                            </p>
+
+                                            <div style={styles.pickupInfo}>
+                                                <h3>📍 Punto de Retiro</h3>
+                                                <p><strong>Dirección:</strong> Av. Principal 123, Santiago</p>
+                                                <p><strong>Horario:</strong> Lunes a Viernes 9:00 - 18:00</p>
+                                                <p><strong>Sábados:</strong> 10:00 - 14:00</p>
+                                            </div>
+
+                                            <form style={styles.form}>
+                                                <div style={styles.formRow}>
+                                                    <div style={styles.formGroup}>
+                                                        <label style={styles.label}>Nombre *</label>
+                                                        <input
+                                                            type="text"
+                                                            name="nombre"
+                                                            value={datosRetiro.nombre}
+                                                            onChange={handleRetiroChange}
+                                                            required
+                                                            style={styles.input}
+                                                            placeholder="Tu nombre"
+                                                        />
+                                                    </div>
+                                                    <div style={styles.formGroup}>
+                                                        <label style={styles.label}>Apellido *</label>
+                                                        <input
+                                                            type="text"
+                                                            name="apellido"
+                                                            value={datosRetiro.apellido}
+                                                            onChange={handleRetiroChange}
+                                                            required
+                                                            style={styles.input}
+                                                            placeholder="Tu apellido"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div style={styles.formRow}>
+                                                    <div style={styles.formGroup}>
+                                                        <label style={styles.label}>Email *</label>
+                                                        <input
+                                                            type="email"
+                                                            name="email"
+                                                            value={datosRetiro.email}
+                                                            onChange={handleRetiroChange}
+                                                            required
+                                                            style={styles.input}
+                                                            placeholder="tu@email.com"
+                                                        />
+                                                    </div>
+                                                    <div style={styles.formGroup}>
+                                                        <label style={styles.label}>Teléfono *</label>
+                                                        <input
+                                                            type="tel"
+                                                            name="telefono"
+                                                            value={datosRetiro.telefono}
+                                                            onChange={handleRetiroChange}
+                                                            required
+                                                            style={styles.input}
+                                                            placeholder="+56 9 1234 5678"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div style={styles.formGroup}>
+                                                    <label style={styles.label}>RUT *</label>
+                                                    <input
+                                                        type="text"
+                                                        name="rut"
+                                                        value={datosRetiro.rut}
+                                                        onChange={handleRetiroChange}
+                                                        required
+                                                        style={styles.input}
+                                                        placeholder="12.345.678-9"
+                                                    />
+                                                </div>
+
+                                                <div style={styles.formRow}>
+                                                    <div style={styles.formGroup}>
+                                                        <label style={styles.label}>Fecha de Retiro *</label>
+                                                        <input
+                                                            type="date"
+                                                            name="fechaRetiro"
+                                                            value={datosRetiro.fechaRetiro}
+                                                            onChange={handleRetiroChange}
+                                                            required
+                                                            style={styles.input}
+                                                            min={new Date().toISOString().split('T')[0]}
+                                                        />
+                                                    </div>
+                                                    <div style={styles.formGroup}>
+                                                        <label style={styles.label}>Hora Preferida *</label>
+                                                        <select
+                                                            name="horaRetiro"
+                                                            value={datosRetiro.horaRetiro}
+                                                            onChange={handleRetiroChange}
+                                                            required
+                                                            style={styles.select}
+                                                        >
+                                                            <option value="">Selecciona hora</option>
+                                                            <option value="09:00">09:00 - 10:00</option>
+                                                            <option value="10:00">10:00 - 11:00</option>
+                                                            <option value="11:00">11:00 - 12:00</option>
+                                                            <option value="12:00">12:00 - 13:00</option>
+                                                            <option value="14:00">14:00 - 15:00</option>
+                                                            <option value="15:00">15:00 - 16:00</option>
+                                                            <option value="16:00">16:00 - 17:00</option>
+                                                            <option value="17:00">17:00 - 18:00</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+
+                                                <div style={styles.formGroup}>
+                                                    <label style={styles.label}>Notas adicionales (opcional)</label>
+                                                    <textarea
+                                                        name="notas"
+                                                        value={datosRetiro.notas}
+                                                        onChange={handleRetiroChange}
+                                                        style={styles.textarea}
+                                                        placeholder="Cualquier información adicional"
+                                                        rows="3"
+                                                    />
+                                                </div>
+                                            </form>
+                                        </div>
+                                    )}
+
+                                    <div style={styles.stepActions}>
+                                        <button
+                                            type="button"
+                                            onClick={() => navigate('/carrito')}
+                                            style={styles.backButton}
+                                        >
+                                            ← Volver al Carrito
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleContinuar}
+                                            style={styles.continueButton}
+                                        >
+                                            Continuar →
+                                        </button>
+                                    </div>
                                 </div>
                             )}
 
-                            {/* ... resto del código del checkout se mantiene igual ... */}
+                            {/* PASO 2: Confirmación */}
+                            {pasoActual === 2 && (
+                                <div style={styles.stepContent}>
+                                    <h2 style={styles.stepTitle}>Confirmar Pedido</h2>
+
+                                    <div style={styles.confirmationSection}>
+                                        <h3>Resumen de {tipoEntrega === 'envio' ? 'Envío' : 'Retiro'}</h3>
+                                        {tipoEntrega === 'envio' ? (
+                                            <div style={styles.confirmationData}>
+                                                <p><strong>Nombre:</strong> {datosEnvio.nombre} {datosEnvio.apellido}</p>
+                                                <p><strong>Email:</strong> {datosEnvio.email}</p>
+                                                <p><strong>Teléfono:</strong> {datosEnvio.telefono}</p>
+                                                <p><strong>Dirección:</strong> {datosEnvio.direccion}</p>
+                                                <p><strong>Comuna:</strong> {datosEnvio.comuna}</p>
+                                                <p><strong>Región:</strong> {datosEnvio.region}</p>
+                                                {datosEnvio.instrucciones && (
+                                                    <p><strong>Instrucciones:</strong> {datosEnvio.instrucciones}</p>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <div style={styles.confirmationData}>
+                                                <p><strong>Nombre:</strong> {datosRetiro.nombre} {datosRetiro.apellido}</p>
+                                                <p><strong>Email:</strong> {datosRetiro.email}</p>
+                                                <p><strong>Teléfono:</strong> {datosRetiro.telefono}</p>
+                                                <p><strong>RUT:</strong> {datosRetiro.rut}</p>
+                                                <p><strong>Fecha de Retiro:</strong> {datosRetiro.fechaRetiro}</p>
+                                                <p><strong>Hora:</strong> {datosRetiro.horaRetiro}</p>
+                                                {datosRetiro.notas && (
+                                                    <p><strong>Notas:</strong> {datosRetiro.notas}</p>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div style={styles.paymentInfo}>
+                                        <h3>Información de Pago</h3>
+                                        <p>El pago se simulará en los siguientes pasos del proceso.</p>
+                                    </div>
+
+                                    <div style={styles.stepActions}>
+                                        <button
+                                            type="button"
+                                            onClick={() => setPasoActual(1)}
+                                            style={styles.backButton}
+                                        >
+                                            ← Editar Información
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleConfirmarPedido}
+                                            style={styles.confirmButton}
+                                        >
+                                            Confirmar Pedido
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Sidebar - Resumen del Pedido */}
                         <div style={styles.sidebar}>
                             <div style={styles.summaryCard}>
                                 <h3 style={styles.summaryTitle}>Resumen del Pedido</h3>
-                                
+
                                 <div style={styles.summaryItems}>
                                     {items.map(item => (
                                         <div key={item.id} style={styles.summaryItem}>
@@ -293,7 +493,7 @@ const Checkout = () => {
                                                 <span style={styles.itemQuantity}>x{item.quantity}</span>
                                             </div>
                                             <span style={styles.itemPrice}>
-                                                ${((item.precio || 0) * item.quantity).toFixed(2)}
+                                                {formatPrice((item.precio || 0) * item.quantity)}
                                             </span>
                                         </div>
                                     ))}
@@ -304,28 +504,22 @@ const Checkout = () => {
                                 <div style={styles.summaryTotals}>
                                     <div style={styles.totalRow}>
                                         <span>Subtotal:</span>
-                                        <span>${subtotal.toFixed(2)}</span>
-                                    </div>
-                                    <div style={styles.totalRow}>
-                                        <span>Envío:</span>
-                                        <span>{envio === 0 ? 'Gratis' : `$${envio.toFixed(2)}`}</span>
+                                        <span>{formatPrice(subtotal)}</span>
                                     </div>
                                     <div style={styles.totalRow}>
                                         <span>IVA (19%):</span>
-                                        <span>${iva.toFixed(2)}</span>
+                                        <span>{formatPrice(iva)}</span>
+                                    </div>
+                                    <div style={styles.totalRow}>
+                                        <span>Envío:</span>
+                                        <span>{tipoEntrega === 'envio' ? 'Gratis' : 'Retiro en tienda'}</span>
                                     </div>
                                     <div style={styles.totalDivider}></div>
                                     <div style={styles.grandTotal}>
                                         <span>Total:</span>
-                                        <span>${total.toFixed(2)}</span>
+                                        <span>{formatPrice(total)}</span>
                                     </div>
                                 </div>
-
-                                {envio > 0 && (
-                                    <div style={styles.shippingNote}>
-                                        🚚 Envío gratis en compras sobre $50
-                                    </div>
-                                )}
                             </div>
                         </div>
                     </div>
@@ -344,46 +538,33 @@ const styles = {
     },
     header: {
         marginBottom: '2rem',
+        textAlign: 'center',
     },
     title: {
         fontSize: '2.5rem',
         color: '#2d5016',
-        marginBottom: '2rem',
-        textAlign: 'center',
+        marginBottom: '1rem',
     },
-    progressBar: {
-        marginBottom: '2rem',
-    },
-    progressSteps: {
+    deliveryType: {
         display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        maxWidth: '800px',
-        margin: '0 auto',
-    },
-    step: {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        flex: 1,
-        position: 'relative',
-    },
-    stepNumber: {
-        width: '40px',
-        height: '40px',
-        borderRadius: '50%',
-        backgroundColor: '#e0e0e0',
-        display: 'flex',
-        alignItems: 'center',
         justifyContent: 'center',
-        fontWeight: 'bold',
-        marginBottom: '0.5rem',
-        color: '#666',
+        marginBottom: '2rem',
     },
-    stepLabel: {
-        fontSize: '0.9rem',
-        color: '#666',
-        textAlign: 'center',
+    deliveryBadgeShipping: {
+        backgroundColor: '#4caf50',
+        color: 'white',
+        padding: '12px 24px',
+        borderRadius: '8px',
+        fontWeight: 'bold',
+        fontSize: '1rem',
+    },
+    deliveryBadgePickup: {
+        backgroundColor: '#ff9800',
+        color: 'white',
+        padding: '12px 24px',
+        borderRadius: '8px',
+        fontWeight: 'bold',
+        fontSize: '1rem',
     },
     content: {
         display: 'grid',
@@ -403,7 +584,19 @@ const styles = {
     stepTitle: {
         fontSize: '1.8rem',
         color: '#2d5016',
+        marginBottom: '1rem',
+    },
+    subtitle: {
+        fontSize: '1rem',
+        color: '#666',
         marginBottom: '2rem',
+    },
+    pickupInfo: {
+        backgroundColor: '#f8f9fa',
+        padding: '1.5rem',
+        borderRadius: '8px',
+        marginBottom: '2rem',
+        border: '1px solid #e0e0e0',
     },
     form: {
         display: 'flex',
@@ -478,189 +671,32 @@ const styles = {
         fontWeight: 'bold',
         fontSize: '1rem',
     },
-    // Review Sections
-    reviewSections: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '2rem',
-    },
-    reviewSection: {
-        padding: '1.5rem',
-        backgroundColor: '#f8f9fa',
-        borderRadius: '8px',
-        border: '1px solid #e0e0e0',
-    },
-    reviewSectionTitle: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        fontSize: '1.2rem',
-        color: '#2d5016',
-        marginBottom: '1rem',
-    },
-    editButton: {
-        backgroundColor: 'transparent',
-        color: '#4a7c1f',
-        border: '1px solid #4a7c1f',
-        padding: '6px 12px',
-        borderRadius: '4px',
-        cursor: 'pointer',
-        fontSize: '0.8rem',
-    },
-    reviewContent: {
-        lineHeight: '1.6',
-    },
-    reviewProducts: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '1rem',
-    },
-    reviewProduct: {
-        display: 'flex',
-        gap: '1rem',
-        alignItems: 'center',
-        padding: '1rem 0',
-        borderBottom: '1px solid #e0e0e0',
-    },
-    productImage: {
-        width: '50px',
-        height: '50px',
-        backgroundColor: 'white',
-        borderRadius: '8px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '1.5rem',
-    },
-    productInfo: {
-        flex: 1,
-    },
-    productPrice: {
-        fontWeight: 'bold',
-        color: '#2d5016',
-        fontSize: '1.1rem',
-    },
-    // Processing Payment
-    processingPayment: {
-        textAlign: 'center',
-        padding: '3rem 2rem',
-    },
-    processingIcon: {
-        fontSize: '4rem',
-        marginBottom: '1rem',
-    },
-    processingTitle: {
-        fontSize: '1.8rem',
-        color: '#2d5016',
-        marginBottom: '1rem',
-    },
-    processingText: {
-        fontSize: '1.1rem',
-        color: '#666',
-        marginBottom: '2rem',
-    },
-    processingSpinner: {
-        width: '50px',
-        height: '50px',
-        border: '4px solid #f3f3f3',
-        borderTop: '4px solid #4a7c1f',
-        borderRadius: '50%',
-        animation: 'spin 1s linear infinite',
-        margin: '0 auto',
-    },
-    // Confirmation
-    confirmation: {
-        textAlign: 'center',
-        padding: '2rem',
-    },
-    confirmationIcon: {
-        fontSize: '4rem',
-        marginBottom: '1rem',
-    },
-    confirmationTitle: {
-        fontSize: '2rem',
-        color: '#2d5016',
-        marginBottom: '1rem',
-    },
-    confirmationText: {
-        fontSize: '1.1rem',
-        color: '#666',
-        marginBottom: '2rem',
-    },
-    orderSummary: {
-        backgroundColor: '#f8f9fa',
-        padding: '1.5rem',
-        borderRadius: '8px',
-        marginBottom: '2rem',
-        textAlign: 'left',
-    },
-    summaryGrid: {
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: '1rem',
-        marginTop: '1rem',
-    },
-    summaryItem: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        padding: '0.5rem 0',
-    },
-    statusConfirmed: {
-        backgroundColor: '#4caf50',
+    confirmButton: {
+        backgroundColor: '#2d7a3e',
         color: 'white',
-        padding: '4px 8px',
-        borderRadius: '12px',
-        fontSize: '0.8rem',
+        border: 'none',
+        padding: '12px 32px',
+        borderRadius: '8px',
+        cursor: 'pointer',
         fontWeight: 'bold',
+        fontSize: '1.1rem',
     },
-    paymentInstructions: {
-        backgroundColor: '#e8f5e8',
+    confirmationSection: {
+        backgroundColor: '#f8f9fa',
         padding: '1.5rem',
         borderRadius: '8px',
-        marginBottom: '2rem',
-        textAlign: 'left',
+        marginBottom: '1.5rem',
     },
-    instructionsContent: {
-        whiteSpace: 'pre-line',
+    confirmationData: {
         marginTop: '1rem',
-        padding: '1rem',
-        backgroundColor: 'white',
-        borderRadius: '4px',
-        border: '1px solid #4caf50',
+        lineHeight: '1.8',
     },
-    nextSteps: {
+    paymentInfo: {
         backgroundColor: '#fff3e0',
         padding: '1.5rem',
         borderRadius: '8px',
-        marginBottom: '2rem',
-        textAlign: 'left',
+        marginBottom: '1.5rem',
     },
-    stepsList: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.5rem',
-        margin: '1rem 0 0 0',
-    },
-    stepItem: {
-        padding: '0.5rem 0',
-        fontSize: '1rem',
-    },
-    confirmationActions: {
-        display: 'flex',
-        gap: '1rem',
-        justifyContent: 'center',
-    },
-    trackButton: {
-        backgroundColor: '#4a7c1f',
-        color: 'white',
-        border: 'none',
-        padding: '12px 24px',
-        borderRadius: '8px',
-        cursor: 'pointer',
-        fontWeight: 'bold',
-        fontSize: '1rem',
-    },
-    // Sidebar
     sidebar: {
         position: 'sticky',
         top: '2rem',
@@ -728,17 +764,9 @@ const styles = {
         display: 'flex',
         justifyContent: 'space-between',
         fontWeight: 'bold',
-        fontSize: '1.1rem',
+        fontSize: '1.2rem',
         color: '#2d5016',
     },
-    shippingNote: {
-        textAlign: 'center',
-        color: '#4caf50',
-        fontSize: '0.8rem',
-        marginTop: '1rem',
-        fontStyle: 'italic',
-    },
-    // Empty Cart
     emptyCart: {
         textAlign: 'center',
         padding: '4rem 2rem',
@@ -749,7 +777,7 @@ const styles = {
     emptyIcon: {
         fontSize: '4rem',
         marginBottom: '1rem',
-        opacity: 0.5,
+        opacity: 0.5',
     },
     continueShopping: {
         backgroundColor: '#4a7c1f',
@@ -760,19 +788,8 @@ const styles = {
         cursor: 'pointer',
         fontWeight: 'bold',
         fontSize: '1rem',
-        textDecoration: 'none',
-        display: 'inline-block',
+        marginTop: '1rem',
     },
 };
-
-// Agregar animación CSS
-const styleSheet = document.createElement('style');
-styleSheet.innerHTML = `
-    @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-    }
-`;
-document.head.appendChild(styleSheet);
 
 export default Checkout;
