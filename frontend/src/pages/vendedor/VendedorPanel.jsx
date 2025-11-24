@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { getAxiosConfig } from '../../utils/csrf';
 import './VendedorPanel.css';
 import FormularioProducto from './FormularioProducto';
 import ProductoCard from './ProductoCard';
@@ -271,9 +272,7 @@ const VendedorPanel = () => {
 
     const handleEliminarProducto = async (productoId) => {
         try {
-            await axios.delete(`http://localhost:8000/api/productos/${productoId}/`, {
-                withCredentials: true
-            });
+            await axios.delete(`http://localhost:8000/api/productos/${productoId}/`, getAxiosConfig());
 
             await cargarProductosVendedor(vendedor.id);
             showToast('✅ Producto eliminado', 'success');

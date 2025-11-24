@@ -94,7 +94,17 @@ class ProductoViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.AllowAny]
     
     def get_queryset(self):
-        queryset = Producto.objects.filter(activo=True)
+        queryset = Producto.objects.all()  # Cambiado de filter(activo=True) a all()
+        
+        # Si el usuario está autenticado y es vendedor/admin, mostrar todos sus productos
+        if self.request.user.is_authenticated and self.request.user.tipo_usuario in ['vendedor', 'admin']:
+            if self.request.user.tipo_usuario == 'vendedor':
+                # Vendedores ven todos sus productos (activos e inactivos)
+                queryset = Producto.objects.filter(vendedor=self.request.user)
+            # Admins ven todos los productos
+        else:
+            # Usuarios no autenticados o clientes solo ven productos activos
+            queryset = Producto.objects.filter(activo=True)
         
         # Filtros
         categoria = self.request.query_params.get('categoria')
@@ -137,7 +147,7 @@ class ProductoViewSet(viewsets.ModelViewSet):
             elif estado == 'pendiente':
                 queryset = queryset.filter(activo=True, aprobado=False)
             elif estado == 'inactivo':
-                queryset = Producto.objects.filter(activo=False)
+                queryset = queryset.filter(activo=False)
         
         return queryset.select_related('categoria', 'vendedor')
     
@@ -166,15 +176,24 @@ class ProductoViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         """Override destroy para manejar soft delete y evitar problemas de CSRF"""
         try:
+            print(f"🗑️ Intentando eliminar producto. User: {request.user}, Authenticated: {request.user.is_authenticated}")
             instance = self.get_object()
+            print(f"📦 Producto encontrado: {instance.nombre} (ID: {instance.id})")
+            print(f"👤 Vendedor del producto: {instance.vendedor.username if instance.vendedor else 'Sin vendedor'}")
+            
             # Soft delete
             instance.activo = False
             instance.save()
+            print(f"✅ Producto {instance.nombre} marcado como inactivo")
+            
             return Response(
                 {'message': 'Producto eliminado correctamente'},
                 status=status.HTTP_200_OK
             )
         except Exception as e:
+            print(f"❌ ERROR eliminando producto: {type(e).__name__}: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return Response(
                 {'error': str(e)},
                 status=status.HTTP_400_BAD_REQUEST
