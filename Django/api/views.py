@@ -395,11 +395,9 @@ class PedidoViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Actualizar estado del pedido
         pedido.estado = 'entregado'
         pedido.fecha_entrega = timezone.now()
         
-        # Si el método de pago es efectivo, marcar como pagado
         if pedido.metodo_pago == 'efectivo':
             pedido.estado_pago = 'pagado'
         

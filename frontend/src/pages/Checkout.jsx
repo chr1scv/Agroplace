@@ -5,27 +5,25 @@ import { getAxiosConfig } from '../utils/csrf';
 import { useCart } from '../context/CartContext';
 import SimpleProtectedRoute from '../components/SimpleProtectedRoute';
 import HeaderCliente from '../pages/cliente/HeaderCliente';
-
-// Importar componentes modulares
 import CheckoutShipping from '../components/CheckoutShipping';
 import CheckoutPickup from '../components/CheckoutPickup';
 import CheckoutReview from '../components/CheckoutReview';
+import PaymentMethod from '../components/PaymentMethod';
 
 const Checkout = () => {
     const { items: cartItems, clearCart, getCartTotal } = useCart();
     const navigate = useNavigate();
     const location = useLocation();
 
-    // Constantes
     const IVA_RATE = 0.19;
     const SHIPPING_THRESHOLD = 19000;
 
-    const [step, setStep] = useState(1); // 1: Formulario, 2: Revisión
-    const [deliveryType, setDeliveryType] = useState(''); // 'envio' o 'retiro'
+    const [step, setStep] = useState(1);
+    const [deliveryType, setDeliveryType] = useState('');
     const [customerData, setCustomerData] = useState(null);
+    const [paymentData, setPaymentData] = useState(null);
     const [checkoutItems, setCheckoutItems] = useState([]);
 
-    // Filtrar items basados en la selección del carrito
     useEffect(() => {
         const params = new URLSearchParams(location.search);
         const itemsParam = params.get('items');
@@ -78,18 +76,28 @@ const Checkout = () => {
         window.scrollTo(0, 0);
     };
 
+
+    const handlePaymentSubmit = (data) => {
+        setPaymentData(data);
+        setStep(3);
+        window.scrollTo(0, 0);
+    };
+
+    const handleBackToPayment = () => {
+        setStep(2);
+        window.scrollTo(0, 0);
+    };
+
     const handleConfirmOrder = async () => {
         try {
             const { total } = calculateTotals();
 
-            // Construir dirección
             let direccionTexto = '';
             if (deliveryType === 'envio' && customerData) {
                 direccionTexto = `${customerData.direccion}, ${customerData.comuna}, ${customerData.region}`;
                 if (customerData.instrucciones) {
                     direccionTexto += ` (Instrucciones: ${customerData.instrucciones})`;
                 }
-                // Añadir datos de contacto
                 direccionTexto += ` | Contacto: ${customerData.nombre} ${customerData.apellido} (${customerData.telefono})`;
             } else {
                 direccionTexto = 'Retiro en tienda';
@@ -100,8 +108,9 @@ const Checkout = () => {
                     producto_id: item.id,
                     cantidad: item.quantity
                 })),
-                direccion_texto: direccionTexto,
-                metodo_pago: 'transferencia', // Por defecto por ahora
+                metodo_pago: paymentData?.metodo_pago || 'efectivo',
+                tipo_tarjeta: paymentData?.tipo_tarjeta || '',
+                ultimos_digitos: paymentData?.ultimos_digitos || '',
                 total: total,
                 tipo_entrega: deliveryType
             };
@@ -163,12 +172,12 @@ const Checkout = () => {
                             <div style={styles.stepLine}></div>
                             <div style={{ ...styles.step, ...(step >= 2 ? styles.activeStep : {}) }}>
                                 <span style={styles.stepNumber}>2</span>
-                                <span>Revisión</span>
+                                <span>Pago</span>
                             </div>
                             <div style={styles.stepLine}></div>
-                            <div style={styles.step}>
+                            <div style={{ ...styles.step, ...(step >= 3 ? styles.activeStep : {}) }}>
                                 <span style={styles.stepNumber}>3</span>
-                                <span>Pago</span>
+                                <span>Revisión</span>
                             </div>
                         </div>
                     </div>
@@ -188,11 +197,17 @@ const Checkout = () => {
                                         onBack={() => navigate('/carrito')}
                                     />
                                 )
+                            ) : step === 2 ? (
+                                <PaymentMethod
+                                    onContinue={handlePaymentSubmit}
+                                    onBack={handleBackToForm}
+                                />
                             ) : (
                                 <CheckoutReview
                                     data={customerData}
+                                    paymentData={paymentData}
                                     type={deliveryType}
-                                    onBack={handleBackToForm}
+                                    onBack={handleBackToPayment}
                                     onConfirm={handleConfirmOrder}
                                 />
                             )}
