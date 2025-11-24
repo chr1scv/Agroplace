@@ -72,23 +72,17 @@ class ProductoSerializer(serializers.ModelSerializer):
 
 class DetallePedidoSerializer(serializers.ModelSerializer):
     producto_nombre = serializers.CharField(source='producto.nombre', read_only=True)
-    producto_precio = serializers.DecimalField(source='producto.precio', read_only=True, max_digits=10, decimal_places=2)
-    
-    class Meta:
-        model = DetallePedido
-        fields = ['id', 'producto', 'producto_nombre', 'producto_precio', 'cantidad', 'precio_unitario']
-
-class DetallePedidoSerializer(serializers.ModelSerializer):
-    producto_nombre = serializers.CharField(source='producto.nombre', read_only=True)
     producto_imagen = serializers.ImageField(source='producto.imagen', read_only=True)
+    vendedor_nombre = serializers.CharField(source='producto.vendedor.username', read_only=True)
     
     class Meta:
         model = DetallePedido
-        fields = ['id', 'producto', 'producto_nombre', 'producto_imagen', 'cantidad', 'precio_unitario']
+        fields = ['id', 'producto', 'producto_nombre', 'producto_imagen', 'cantidad', 'precio_unitario', 'ganancia_vendedor', 'vendedor_nombre']
 
 class PedidoSerializer(serializers.ModelSerializer):
     detalles = DetallePedidoSerializer(many=True, read_only=True)
     cliente_nombre = serializers.CharField(source='cliente.username', read_only=True)
+    vendedor_nombre = serializers.CharField(source='vendedor.username', read_only=True, allow_null=True)
     
     class Meta:
         model = Pedido
@@ -103,6 +97,10 @@ class CrearPedidoSerializer(serializers.Serializer):
     direccion_envio_id = serializers.IntegerField(required=False, allow_null=True)
     direccion_texto = serializers.CharField(required=False, allow_blank=True)
     metodo_pago = serializers.CharField(max_length=50)
+    estado_pago = serializers.CharField(max_length=20, required=False, default='pendiente')
+    tipo_tarjeta = serializers.CharField(max_length=20, required=False, allow_blank=True)
+    ultimos_digitos = serializers.CharField(max_length=4, required=False, allow_blank=True)
+    transaccion_id = serializers.CharField(max_length=100, required=False, allow_blank=True)
     total = serializers.DecimalField(max_digits=10, decimal_places=2)
     tipo_entrega = serializers.CharField(max_length=20, required=False)
 

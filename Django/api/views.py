@@ -282,20 +282,45 @@ class PedidoViewSet(viewsets.ModelViewSet):
         
         try:
             with transaction.atomic():
-                # 1. Crear el pedido
+                # 1. Determinar el vendedor del pedido (asumimos que todos los productos son del mismo vendedor)
+                primer_producto = Producto.objects.get(id=items[0]['producto_id'])
+                vendedor = primer_producto.vendedor
+                
+                # 2. Procesar método de pago
+                metodo_pago = data['metodo_pago']
+                estado_pago = 'pendiente'  # Por defecto
+                tipo_tarjeta = data.get('tipo_tarjeta', '')
+                ultimos_digitos = data.get('ultimos_digitos', '')
+                transaccion_id = data.get('transaccion_id', '')
+                
+                # Si es tarjeta, simular procesamiento y marcar como pagado
+                if metodo_pago in ['tarjeta_debito', 'tarjeta_credito']:
+                    estado_pago = 'pagado'
+                    # Generar transaccion_id si no se proporcionó
+                    if not transaccion_id:
+                        import uuid
+                        transaccion_id = f"TXN-{uuid.uuid4().hex[:12].upper()}"
+                
+                # 3. Construir dirección
                 direccion = data.get('direccion_texto')
                 if not direccion:
                     direccion = str(data.get('direccion_envio_id', 'Dirección no especificada'))
 
+                # 4. Crear el pedido
                 pedido = Pedido.objects.create(
                     cliente=request.user if request.user.is_authenticated else None,
+                    vendedor=vendedor,
                     direccion_entrega=direccion,
-                    metodo_pago=data['metodo_pago'],
+                    metodo_pago=metodo_pago,
+                    estado_pago=estado_pago,
+                    tipo_tarjeta=tipo_tarjeta,
+                    ultimos_digitos=ultimos_digitos,
+                    transaccion_id=transaccion_id,
                     total=data['total'],
                     estado='pendiente'
                 )
                 
-                # 2. Procesar items y descontar stock
+                # 5. Procesar items y descontar stock
                 detalles_creados = []
                 for item in items:
                     producto_id = item['producto_id']
@@ -311,20 +336,26 @@ class PedidoViewSet(viewsets.ModelViewSet):
                     producto.stock -= cantidad
                     producto.save()
                     
+                    # Calcular ganancia del vendedor (por ahora, el total del producto)
+                    ganancia = producto.precio * cantidad
+                    
                     # Crear detalle
                     detalle = DetallePedido.objects.create(
                         pedido=pedido,
                         producto=producto,
                         cantidad=cantidad,
-                        precio_unitario=producto.precio
+                        precio_unitario=producto.precio,
+                        ganancia_vendedor=ganancia
                     )
                     detalles_creados.append(detalle)
                 
-                # 3. Retornar respuesta exitosa
+                # 6. Retornar respuesta exitosa
                 return Response({
                     'message': 'Pedido creado exitosamente',
                     'pedido_id': pedido.id,
-                    'total': pedido.total
+                    'total': pedido.total,
+                    'estado_pago': pedido.estado_pago,
+                    'metodo_pago': pedido.metodo_pago
                 }, status=status.HTTP_201_CREATED)
                 
         except Producto.DoesNotExist:
@@ -350,6 +381,78 @@ class PedidoViewSet(viewsets.ModelViewSet):
         
         serializer = self.get_serializer(pedido)
         return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    def marcar_entregado(self, request, pk=None):
+        """Marcar pedido como entregado (para vendedores)"""
+        from django.utils import timezone
+        
+        pedido = self.get_object()
+        
+        if pedido.estado == 'entregado':
+            return Response(
+                {'error': 'El pedido ya está marcado como entregado'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Actualizar estado del pedido
+        pedido.estado = 'entregado'
+        pedido.fecha_entrega = timezone.now()
+        
+        # Si el método de pago es efectivo, marcar como pagado
+        if pedido.metodo_pago == 'efectivo':
+            pedido.estado_pago = 'pagado'
+        
+        pedido.save()
+        
+        serializer = self.get_serializer(pedido)
+        return Response({
+            'message': 'Pedido marcado como entregado exitosamente',
+            'pedido': serializer.data
+        })
+
+    @action(detail=True, methods=['post'])
+    def cancelar_pedido(self, request, pk=None):
+        """Cancelar pedido (para clientes)"""
+        pedido = self.get_object()
+        
+        if pedido.estado == 'entregado':
+            return Response(
+                {'error': 'No se puede cancelar un pedido ya entregado'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if pedido.estado == 'cancelado':
+            return Response(
+                {'error': 'El pedido ya está cancelado'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            with transaction.atomic():
+                # Restaurar stock de productos
+                for detalle in pedido.detalles.all():
+                    producto = Producto.objects.select_for_update().get(id=detalle.producto.id)
+                    producto.stock += detalle.cantidad
+                    producto.save()
+                
+                # Actualizar estado del pedido
+                pedido.estado = 'cancelado'
+                
+                # Si el pago fue con tarjeta, marcar como reembolsado
+                if pedido.metodo_pago in ['tarjeta_debito', 'tarjeta_credito']:
+                    pedido.estado_pago = 'reembolsado'
+                
+                pedido.save()
+                
+                serializer = self.get_serializer(pedido)
+                return Response({
+                    'message': 'Pedido cancelado exitosamente',
+                    'pedido': serializer.data
+                })
+                
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 class DireccionEnvioViewSet(viewsets.ModelViewSet):
     queryset = DireccionEnvio.objects.all()

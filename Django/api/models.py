@@ -93,14 +93,25 @@ class Pedido(models.Model):
         ('cancelado', 'Cancelado'),
     ]
     
-    cliente = models.ForeignKey(Usuario, on_delete=models.CASCADE, limit_choices_to={'tipo_usuario': 'cliente'})
+    ESTADO_PAGO = [
+        ('pendiente', 'Pendiente'),
+        ('pagado', 'Pagado'),
+        ('reembolsado', 'Reembolsado'),
+    ]
+    
+    cliente = models.ForeignKey(Usuario, on_delete=models.CASCADE, limit_choices_to={'tipo_usuario': 'cliente'}, related_name='pedidos_cliente')
+    vendedor = models.ForeignKey(Usuario, on_delete=models.CASCADE, limit_choices_to={'tipo_usuario': 'vendedor'}, related_name='pedidos_vendedor', null=True, blank=True)
     fecha_pedido = models.DateTimeField(auto_now_add=True)
+    fecha_entrega = models.DateTimeField(null=True, blank=True)
     estado = models.CharField(max_length=20, choices=ESTADO_PEDIDO, default='pendiente')
     direccion_entrega = models.TextField()
     total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     metodo_pago = models.CharField(max_length=50, default='efectivo')
+    estado_pago = models.CharField(max_length=20, choices=ESTADO_PAGO, default='pendiente')
+    tipo_tarjeta = models.CharField(max_length=20, blank=True)  # 'debito' o 'credito'
+    ultimos_digitos = models.CharField(max_length=4, blank=True)  # Últimos 4 dígitos de la tarjeta
     transaccion_id = models.CharField(max_length=100, blank=True)
-    
+
     class Meta:
         ordering = ['-fecha_pedido']
     
@@ -112,6 +123,7 @@ class DetallePedido(models.Model):
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
     cantidad = models.IntegerField()
     precio_unitario = models.DecimalField(max_digits=10, decimal_places=2)
+    ganancia_vendedor = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     
     def __str__(self):
         return f"{self.cantidad} x {self.producto.nombre}"
