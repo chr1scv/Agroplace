@@ -65,6 +65,7 @@ class Producto(models.Model):
     descripcion = models.TextField()
     precio = models.DecimalField(max_digits=10, decimal_places=2)
     stock = models.IntegerField(default=0)
+    vendidos = models.IntegerField(default=0)  # ← NUEVO: Contador de ventas
     categoria = models.ForeignKey(Categoria, on_delete=models.CASCADE)
     imagen = models.ImageField(upload_to='products/', blank=True, null=True)
     origen = models.CharField(max_length=20, choices=TIPO_ORIGEN, default='convencional')

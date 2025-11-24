@@ -130,8 +130,12 @@ const CheckoutShipping = ({ onContinue, onBack }) => {
                             style={styles.select}
                         >
                             <option value="">Selecciona región</option>
-                            <option value="metropolitana">Región Metropolitana</option>
+                            <option value="coquimbo">Coquimbo</option>
                             <option value="valparaiso">Valparaíso</option>
+                            <option value="metropolitana">Región Metropolitana</option>
+                            <option value="ohiggins">O'Higgins</option>
+                            <option value="maule">Maule</option>
+                            <option value="nuble">Ñuble</option>
                             <option value="biobio">Biobío</option>
                             <option value="araucania">La Araucanía</option>
                             <option value="loslagos">Los Lagos</option>

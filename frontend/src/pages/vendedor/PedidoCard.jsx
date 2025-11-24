@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { getAxiosConfig } from '../../utils/csrf';
 import './PedidoCard.css';
 
 const PedidoCard = ({ pedido, onActualizarEstado, onRecargar }) => {
@@ -41,7 +42,7 @@ const PedidoCard = ({ pedido, onActualizarEstado, onRecargar }) => {
             await axios.post(
                 `http://localhost:8000/api/pedidos/${pedido.id}/cambiar_estado/`,
                 { estado: nuevoEstado },
-                { withCredentials: true }
+                getAxiosConfig()
             );
 
             if (onActualizarEstado) {

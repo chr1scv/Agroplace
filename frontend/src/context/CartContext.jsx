@@ -10,7 +10,6 @@ const cartReducer = (state, action) => {
             const existingItem = state.items.find(item => item.id === action.payload.id);
 
             if (existingItem) {
-                // Si ya existe, aumentar la cantidad
                 return {
                     ...state,
                     items: state.items.map(item =>

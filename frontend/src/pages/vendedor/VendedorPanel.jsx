@@ -279,9 +279,11 @@ const VendedorPanel = () => {
 
     const handleAgregarProducto = async (productoData) => {
         try {
+            const config = getAxiosConfig();
             const response = await axios.post('http://localhost:8000/api/productos/', productoData, {
-                withCredentials: true,
+                ...config,
                 headers: {
+                    ...config.headers,
                     'Content-Type': 'multipart/form-data'
                 }
             });
@@ -298,9 +300,7 @@ const VendedorPanel = () => {
         try {
             await axios.post(`http://localhost:8000/api/pedidos/${pedidoId}/cambiar_estado/`, {
                 estado: nuevoEstado
-            }, {
-                withCredentials: true
-            });
+            }, getAxiosConfig());
 
             await cargarPedidosVendedor(vendedor.id);
             showToast('✅ Estado del pedido actualizado', 'success');
