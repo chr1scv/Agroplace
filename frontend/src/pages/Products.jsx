@@ -78,6 +78,8 @@ const Products = () => {
                     stock: producto.stock,
                     categoria: producto.categoria,
                     categoria_nombre: producto.categoria_nombre || 'Sin categoría',
+                    vendedor_id: typeof producto.vendedor === 'object' ? producto.vendedor.id : producto.vendedor,
+                    vendedor: typeof producto.vendedor === 'object' ? producto.vendedor : null,
                     vendedor_nombre: producto.vendedor_nombre || 'Vendedor',
                     origen: producto.origen,
                     imagen: producto.imagen,
