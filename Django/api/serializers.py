@@ -78,6 +78,14 @@ class DetallePedidoSerializer(serializers.ModelSerializer):
         model = DetallePedido
         fields = ['id', 'producto', 'producto_nombre', 'producto_precio', 'cantidad', 'precio_unitario']
 
+class DetallePedidoSerializer(serializers.ModelSerializer):
+    producto_nombre = serializers.CharField(source='producto.nombre', read_only=True)
+    producto_imagen = serializers.ImageField(source='producto.imagen', read_only=True)
+    
+    class Meta:
+        model = DetallePedido
+        fields = ['id', 'producto', 'producto_nombre', 'producto_imagen', 'cantidad', 'precio_unitario']
+
 class PedidoSerializer(serializers.ModelSerializer):
     detalles = DetallePedidoSerializer(many=True, read_only=True)
     cliente_nombre = serializers.CharField(source='cliente.username', read_only=True)
@@ -85,6 +93,18 @@ class PedidoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Pedido
         fields = '__all__'
+
+class CrearPedidoItemSerializer(serializers.Serializer):
+    producto_id = serializers.IntegerField()
+    cantidad = serializers.IntegerField(min_value=1)
+
+class CrearPedidoSerializer(serializers.Serializer):
+    items = CrearPedidoItemSerializer(many=True)
+    direccion_envio_id = serializers.IntegerField(required=False, allow_null=True)
+    direccion_texto = serializers.CharField(required=False, allow_blank=True)
+    metodo_pago = serializers.CharField(max_length=50)
+    total = serializers.DecimalField(max_digits=10, decimal_places=2)
+    tipo_entrega = serializers.CharField(max_length=20, required=False)
 
 class DireccionEnvioSerializer(serializers.ModelSerializer):
     class Meta:

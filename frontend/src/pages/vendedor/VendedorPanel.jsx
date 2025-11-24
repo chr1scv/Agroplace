@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { getAxiosConfig } from '../../utils/csrf';
 import './VendedorPanel.css';
+import './VendedorPanelExtras.css';
 import FormularioProducto from './FormularioProducto';
 import ProductoCard from './ProductoCard';
 import PedidoCard from './PedidoCard';
@@ -20,52 +21,94 @@ const StatCard = ({ icon, label, value, colorClass, onClick }) => (
 
 const CarruselProductos = ({ productos }) => {
     const [currentIndex, setCurrentIndex] = useState(0);
-    const productosRecientes = productos.slice(-6).reverse();
+    const [isPaused, setIsPaused] = useState(false);
+    // Filtrar solo productos aprobados para el carrusel de "Últimos Productos"
+    const productosRecientes = productos.filter(p => p.aprobado).slice(-6).reverse();
+
+    // Auto-advance carousel every 3 seconds
+    useEffect(() => {
+        if (productosRecientes.length === 0 || isPaused) return;
+
+        const interval = setInterval(() => {
+            setCurrentIndex((prev) => (prev + 1) % productosRecientes.length);
+        }, 3000);
+
+        return () => clearInterval(interval);
+    }, [productosRecientes.length, isPaused]);
 
     const siguiente = () => {
-        setCurrentIndex((prev) => (prev + 1) % Math.max(1, productosRecientes.length - 2));
+        setCurrentIndex((prev) => (prev + 1) % productosRecientes.length);
     };
 
     const anterior = () => {
-        setCurrentIndex((prev) => (prev - 1 + Math.max(1, productosRecientes.length - 2)) % Math.max(1, productosRecientes.length - 2));
+        setCurrentIndex((prev) => (prev - 1 + productosRecientes.length) % productosRecientes.length);
     };
 
     if (productosRecientes.length === 0) {
         return (
             <div className="empty-state-modern">
-                <p>📦 Aún no has agregado productos</p>
+                <p>📦 Aún no has agregado productos aprobados</p>
             </div>
         );
     }
 
+    const productoActual = productosRecientes[currentIndex];
+
     return (
-        <div className="carrusel-modern">
-            <button onClick={anterior} className="carrusel-btn-modern carrusel-btn-left-modern">‹</button>
-            <div className="carrusel-container-modern">
-                <div className="carrusel-track-modern" style={{ transform: `translateX(-${currentIndex * 33.33}%)` }}>
-                    {productosRecientes.map(producto => (
-                        <div key={producto.id} className="carrusel-item-modern">
-                            <div className="carrusel-producto-modern">
-                                <img
-                                    src={producto.imagen || '/placeholder.png'}
-                                    alt={producto.nombre}
-                                    className="carrusel-imagen-modern"
-                                />
-                                <div className="carrusel-info-modern">
-                                    <h4 className="carrusel-nombre-modern">{producto.nombre}</h4>
-                                    <p className="carrusel-precio-modern">
-                                        {new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(producto.precio)}
-                                    </p>
-                                    <span className={`carrusel-badge-modern ${producto.aprobado ? 'badge-aprobado' : 'badge-pendiente'}`}>
-                                        {producto.aprobado ? '✅ Aprobado' : '⏳ Pendiente'}
-                                    </span>
-                                </div>
-                            </div>
+        <div
+            className="carrusel-modern"
+            onMouseEnter={() => setIsPaused(true)}
+            onMouseLeave={() => setIsPaused(false)}
+        >
+            <button onClick={anterior} className="carrusel-btn-modern carrusel-btn-prev">‹</button>
+
+            <div className="carrusel-content-modern">
+                <div className="carrusel-image-container-modern">
+                    {productoActual.imagen ? (
+                        <img
+                            src={`http://localhost:8000${productoActual.imagen}`}
+                            alt={productoActual.nombre}
+                            className="carrusel-image-modern"
+                        />
+                    ) : (
+                        <div className="carrusel-placeholder-modern">📦</div>
+                    )}
+                    <span className={`carrusel-badge-modern ${productoActual.stock < 10 ? 'carrusel-badge-warning' : ''}`}>
+                        {productoActual.aprobado ? '✅ Aprobado' : '⏳ Pendiente'}
+                    </span>
+                </div>
+
+                <div className="carrusel-info-modern">
+                    <h3 className="carrusel-title-modern">{productoActual.nombre}</h3>
+                    <p className="carrusel-description-modern">{productoActual.descripcion}</p>
+
+                    <div className="carrusel-stats-modern">
+                        <div className="carrusel-stat-modern">
+                            <span className="carrusel-stat-label">Precio</span>
+                            <span className="carrusel-stat-value">
+                                {new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(productoActual.precio)}
+                            </span>
                         </div>
-                    ))}
+                        <div className="carrusel-stat-modern">
+                            <span className="carrusel-stat-label">Stock</span>
+                            <span className="carrusel-stat-value">{productoActual.stock}</span>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <button onClick={siguiente} className="carrusel-btn-modern carrusel-btn-right-modern">›</button>
+
+            <button onClick={siguiente} className="carrusel-btn-modern carrusel-btn-next">›</button>
+
+            {/* Indicadores */}
+            <div className="carrusel-indicators-modern">
+                {productosRecientes.map((_, index) => (
+                    <button
+                        key={index}
+                        onClick={() => setCurrentIndex(index)}
+                        className={`carrusel-indicator-modern ${index === currentIndex ? 'carrusel-indicator-active' : ''}`}
+                    />
+                ))}
+            </div>
         </div>
     );
 };
@@ -157,10 +200,9 @@ const VendedorPanel = () => {
                 withCredentials: true
             });
             console.log('📦 Productos cargados:', response.data);
-            response.data.forEach(producto => {
-                console.log(`🖼️ Producto: ${producto.nombre}, Ruta imagen: ${producto.imagen}`);
-            });
-            setProductosReales(response.data);
+            // Filtrar solo productos activos para mostrar en el panel
+            const productosActivos = response.data.filter(p => p.activo);
+            setProductosReales(productosActivos);
         } catch (error) {
             console.error('Error cargando productos reales:', error);
             try {
@@ -437,7 +479,7 @@ const VendedorPanel = () => {
         const [productoEditando, setProductoEditando] = useState(null);
         const [paginaActual, setPaginaActual] = useState(1);
         const [productosPorPagina] = useState(12);
-        const [filtroAprobacion, setFiltroAprobacion] = useState('todos');
+        const [filtroAprobacion, setFiltroAprobacion] = useState('aprobados');
         const [searchTerm, setSearchTerm] = useState('');
 
         const productosFiltrados = productosReales.filter(producto => {

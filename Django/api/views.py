@@ -1,6 +1,7 @@
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
+from django.db import transaction
 from django.db.models import Q
 from django.contrib.auth import authenticate, login, logout
 from django.middleware.csrf import get_token
@@ -266,13 +267,70 @@ class PedidoViewSet(viewsets.ModelViewSet):
         
         return Pedido.objects.none()
     
-    def perform_create(self, serializer):
-        # Para desarrollo: si el usuario está autenticado, asignarlo como cliente
-        if self.request.user.is_authenticated:
-            serializer.save(cliente=self.request.user)
-        else:
-            # Para usuarios no autenticados, crear sin cliente
-            serializer.save()
+    def get_serializer_class(self):
+        if self.action == 'create':
+            from .serializers import CrearPedidoSerializer
+            return CrearPedidoSerializer
+        return PedidoSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        data = serializer.validated_data
+        items = data['items']
+        
+        try:
+            with transaction.atomic():
+                # 1. Crear el pedido
+                direccion = data.get('direccion_texto')
+                if not direccion:
+                    direccion = str(data.get('direccion_envio_id', 'Dirección no especificada'))
+
+                pedido = Pedido.objects.create(
+                    cliente=request.user if request.user.is_authenticated else None,
+                    direccion_entrega=direccion,
+                    metodo_pago=data['metodo_pago'],
+                    total=data['total'],
+                    estado='pendiente'
+                )
+                
+                # 2. Procesar items y descontar stock
+                detalles_creados = []
+                for item in items:
+                    producto_id = item['producto_id']
+                    cantidad = item['cantidad']
+                    
+                    # Bloquear producto para evitar condiciones de carrera
+                    producto = Producto.objects.select_for_update().get(id=producto_id)
+                    
+                    if producto.stock < cantidad:
+                        raise Exception(f"Stock insuficiente para {producto.nombre}. Disponible: {producto.stock}, Solicitado: {cantidad}")
+                    
+                    # Descontar stock
+                    producto.stock -= cantidad
+                    producto.save()
+                    
+                    # Crear detalle
+                    detalle = DetallePedido.objects.create(
+                        pedido=pedido,
+                        producto=producto,
+                        cantidad=cantidad,
+                        precio_unitario=producto.precio
+                    )
+                    detalles_creados.append(detalle)
+                
+                # 3. Retornar respuesta exitosa
+                return Response({
+                    'message': 'Pedido creado exitosamente',
+                    'pedido_id': pedido.id,
+                    'total': pedido.total
+                }, status=status.HTTP_201_CREATED)
+                
+        except Producto.DoesNotExist:
+            return Response({'error': 'Uno de los productos no existe'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
     @action(detail=True, methods=['post'])
     def cambiar_estado(self, request, pk=None):

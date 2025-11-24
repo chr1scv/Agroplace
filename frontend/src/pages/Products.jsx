@@ -22,9 +22,9 @@ const Products = () => {
     const [inStockOnly, setInStockOnly] = useState(false);
     const [showFilters, setShowFilters] = useState(false);
 
-    // Paginación
+    // Paginación - CAMBIADO A 10 productos por página
     const [currentPage, setCurrentPage] = useState(1);
-    const [productsPerPage] = useState(12);
+    const [productsPerPage] = useState(10);
 
     // Estados para notificaciones y autenticación
     const [toasts, setToasts] = useState([]);
@@ -178,7 +178,6 @@ const Products = () => {
 
         addToCart(product);
         showToast(`${product.nombre} agregado al carrito`, 'success');
-
     };
 
     const handleLoginSuccess = () => {
@@ -195,7 +194,6 @@ const Products = () => {
         }
     };
 
-    // 🛠️ NUEVO: Modal de Login Horizontal (igual que en ProductDetail)
     const LoginModal = () => {
         const [formData, setFormData] = useState({ username: '', password: '' });
         const [loading, setLoading] = useState(false);
@@ -225,7 +223,6 @@ const Products = () => {
         return (
             <div className="modal-overlay-modern" onClick={() => setShowAuthModal(false)}>
                 <div className="modal-content-horizontal" onClick={(e) => e.stopPropagation()}>
-                    {/* Botón cerrar */}
                     <button
                         onClick={() => setShowAuthModal(false)}
                         className="modal-close-modern"
@@ -233,9 +230,7 @@ const Products = () => {
                         ✕
                     </button>
 
-                    {/* Contenido horizontal */}
                     <div className="modal-content-horizontal-inner">
-                        {/* Lado izquierdo: Logo y mensaje */}
                         <div className="modal-left-side">
                             <div className="modal-logo-container">
                                 <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#2d7a3e" strokeWidth="2">
@@ -247,7 +242,6 @@ const Products = () => {
                             <p className="modal-submessage">Accede a tu cuenta para agregar productos al carrito</p>
                         </div>
 
-                        {/* Lado derecho: Formulario */}
                         <div className="modal-right-side">
                             <h3 className="modal-title-horizontal">Iniciar Sesión</h3>
 
@@ -317,7 +311,10 @@ const Products = () => {
     const currentProducts = filteredProducts.slice(indexOfFirstProduct, indexOfLastProduct);
     const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
 
-    const paginate = (pageNumber) => setCurrentPage(pageNumber);
+    const paginate = (pageNumber) => {
+        setCurrentPage(pageNumber);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
 
     const clearFilters = () => {
         setSearchTerm('');
@@ -430,7 +427,7 @@ const Products = () => {
                 </div>
             </section>
 
-            {/* Products Grid */}
+            {/* Products Grid Section */}
             <section className="products-grid-section">
                 <div className="container">
                     <div className="products-layout-wrapper">
@@ -537,137 +534,190 @@ const Products = () => {
                                 <span className="results-count">
                                     {filteredProducts.length} producto{filteredProducts.length !== 1 ? 's' : ''} encontrado{filteredProducts.length !== 1 ? 's' : ''}
                                 </span>
+                                {totalPages > 1 && (
+                                    <span className="results-page-info">
+                                        Página {currentPage} de {totalPages}
+                                    </span>
+                                )}
                             </div>
                         </aside>
 
-                        {/* Grid de Productos */}
+                        {/* Grid de Productos - SIN DUPLICADOS */}
                         <div>
                             {currentProducts.length > 0 ? (
-                                <div className="products-grid-modern">
-                                    {currentProducts.map(product => (
-                                        <article key={product.id} className="product-card-modern">
-                                            {/* Product Image */}
-                                            <div className="product-image-wrapper">
-                                                {product.imagen ? (
-                                                    <img
-                                                        src={`http://localhost:8000${product.imagen}`}
-                                                        alt={product.nombre}
-                                                        className="product-image-modern"
-                                                        loading="lazy"
-                                                    />
-                                                ) : (
-                                                    <div className="product-image-placeholder">
-                                                        <span className="placeholder-emoji">
-                                                            {product.categoria_nombre === 'Frutas' ? '🍎' :
-                                                                product.categoria_nombre === 'Verduras' ? '🥕' :
-                                                                    product.categoria_nombre === 'Lácteos' ? '🥛' : '🌱'}
-                                                        </span>
-                                                    </div>
-                                                )}
+                                <>
+                                    <div className="products-grid-modern">
+                                        {currentProducts.map(product => (
+                                            <article key={product.id} className="product-card-modern">
+                                                {/* Product Image */}
+                                                <div className="product-image-wrapper">
+                                                    {product.imagen ? (
+                                                        <img
+                                                            src={`http://localhost:8000${product.imagen}`}
+                                                            alt={product.nombre}
+                                                            className="product-image-modern"
+                                                            loading="lazy"
+                                                        />
+                                                    ) : (
+                                                        <div className="product-image-placeholder">
+                                                            <span className="placeholder-emoji">
+                                                                {product.categoria_nombre === 'Frutas' ? '🍎' :
+                                                                    product.categoria_nombre === 'Verduras' ? '🥕' :
+                                                                        product.categoria_nombre === 'Lácteos' ? '🥛' : '🌱'}
+                                                            </span>
+                                                        </div>
+                                                    )}
 
-                                                {/* Badges */}
-                                                <div className="product-badges">
-                                                    {product.origen === 'organico' && (
-                                                        <span className="badge badge-organic">🌿 Orgánico</span>
-                                                    )}
-                                                    {product.stock === 0 && (
-                                                        <span className="badge badge-sold-out">Agotado</span>
-                                                    )}
-                                                    {product.stock > 0 && product.stock < 10 && (
-                                                        <span className="badge badge-low-stock">Últimas unidades</span>
-                                                    )}
+                                                    {/* Badges */}
+                                                    <div className="product-badges">
+                                                        {product.origen === 'organico' && (
+                                                            <span className="badge badge-organic">🌿 Orgánico</span>
+                                                        )}
+                                                        {product.stock === 0 && (
+                                                            <span className="badge badge-sold-out">Agotado</span>
+                                                        )}
+                                                        {product.stock > 0 && product.stock < 10 && (
+                                                            <span className="badge badge-low-stock">Últimas unidades</span>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Quick View Button */}
+                                                    <button
+                                                        onClick={() => navigate(`/producto/${product.id}`)}
+                                                        className="quick-view-button"
+                                                    >
+                                                        Vista rápida
+                                                    </button>
                                                 </div>
 
-                                                {/* Quick View Button */}
-                                                <button
-                                                    onClick={() => navigate(`/producto/${product.id}`)}
-                                                    className="quick-view-button"
-                                                >
-                                                    Vista rápida
-                                                </button>
-                                            </div>
+                                                {/* Product Content */}
+                                                <div className="product-content-modern">
+                                                    {/* Category Tag */}
+                                                    <span className="product-category-tag">
+                                                        {product.categoria_nombre}
+                                                    </span>
 
-                                            {/* Product Content */}
-                                            <div className="product-content-modern">
-                                                {/* Category Tag */}
-                                                <span className="product-category-tag">
-                                                    {product.categoria_nombre}
-                                                </span>
+                                                    {/* Product Title */}
+                                                    <h3 className="product-title-modern">
+                                                        {product.nombre}
+                                                    </h3>
 
-                                                {/* Product Title */}
-                                                <h3 className="product-title-modern">
-                                                    {product.nombre}
-                                                </h3>
+                                                    {/* Product Description */}
+                                                    <p className="product-description-modern">
+                                                        {product.descripcion && product.descripcion.length > 80
+                                                            ? `${product.descripcion.substring(0, 80)}...`
+                                                            : product.descripcion}
+                                                    </p>
 
-                                                {/* Product Description */}
-                                                <p className="product-description-modern">
-                                                    {product.descripcion && product.descripcion.length > 80
-                                                        ? `${product.descripcion.substring(0, 80)}...`
-                                                        : product.descripcion}
-                                                </p>
-
-                                                {/* Product Meta */}
-                                                <div className="product-meta-modern">
-                                                    <div className="meta-item">
-                                                        <span className="meta-icon">👤</span>
-                                                        <span className="meta-text">{product.vendedor_nombre}</span>
-                                                    </div>
-                                                    {(product.ciudad || product.comuna) && (
+                                                    {/* Product Meta */}
+                                                    <div className="product-meta-modern">
                                                         <div className="meta-item">
-                                                            <span className="meta-icon">📍</span>
-                                                            <span className="meta-text">
-                                                                {product.ciudad}{product.ciudad && product.comuna ? ', ' : ''}{product.comuna}
+                                                            <span className="meta-icon">👤</span>
+                                                            <span className="meta-text">{product.vendedor_nombre}</span>
+                                                        </div>
+                                                        {(product.ciudad || product.comuna) && (
+                                                            <div className="meta-item">
+                                                                <span className="meta-icon">📍</span>
+                                                                <span className="meta-text">
+                                                                    {product.ciudad}{product.ciudad && product.comuna ? ', ' : ''}{product.comuna}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Price and Actions */}
+                                                    <div className="product-footer-modern">
+                                                        <div className="price-wrapper">
+                                                            <span className="product-price-modern">
+                                                                {formatPrice(product.precio || 0)}
+                                                            </span>
+                                                            <span className="price-unit">/kg</span>
+                                                        </div>
+
+                                                        <button
+                                                            onClick={() => handleAddToCart(product)}
+                                                            disabled={product.stock === 0}
+                                                            className={`add-to-cart-button-modern ${product.stock === 0 ? 'disabled' : ''}`}
+                                                        >
+                                                            {product.stock > 0 ? (
+                                                                <>
+                                                                    <span className="cart-icon">🛒</span>
+                                                                    <span>Agregar</span>
+                                                                </>
+                                                            ) : (
+                                                                <span>Agotado</span>
+                                                            )}
+                                                        </button>
+                                                    </div>
+
+                                                    {/* Stock Indicator */}
+                                                    {product.stock > 0 && (
+                                                        <div className="stock-indicator-modern">
+                                                            <div className="stock-bar">
+                                                                <div
+                                                                    className="stock-fill"
+                                                                    style={{
+                                                                        width: `${Math.min((product.stock / 50) * 100, 100)}%`,
+                                                                        backgroundColor: product.stock < 10 ? '#ff6b6b' : '#10b981'
+                                                                    }}
+                                                                ></div>
+                                                            </div>
+                                                            <span className="stock-text">
+                                                                {product.stock} disponibles
                                                             </span>
                                                         </div>
                                                     )}
                                                 </div>
+                                            </article>
+                                        ))}
+                                    </div>
 
-                                                {/* Price and Actions */}
-                                                <div className="product-footer-modern">
-                                                    <div className="price-wrapper">
-                                                        <span className="product-price-modern">
-                                                            {formatPrice(product.precio || 0)}
-                                                        </span>
-                                                        <span className="price-unit">/kg</span>
-                                                    </div>
+                                    {/* Pagination - SE MUESTRA SOLO SI HAY MÁS DE 10 PRODUCTOS */}
+                                    {filteredProducts.length > productsPerPage && (
+                                        <div className="pagination-modern">
+                                            <button
+                                                onClick={() => paginate(currentPage - 1)}
+                                                disabled={currentPage === 1}
+                                                className="pagination-button prev"
+                                            >
+                                                ← Anterior
+                                            </button>
 
-                                                    <button
-                                                        onClick={() => handleAddToCart(product)}
-                                                        disabled={product.stock === 0}
-                                                        className={`add-to-cart-button-modern ${product.stock === 0 ? 'disabled' : ''}`}
-                                                    >
-                                                        {product.stock > 0 ? (
-                                                            <>
-                                                                <span className="cart-icon">🛒</span>
-                                                                <span>Agregar</span>
-                                                            </>
-                                                        ) : (
-                                                            <span>Agotado</span>
-                                                        )}
-                                                    </button>
-                                                </div>
+                                            <div className="pagination-numbers">
+                                                {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                                                    let pageNum;
+                                                    if (totalPages <= 7) {
+                                                        pageNum = i + 1;
+                                                    } else if (currentPage <= 4) {
+                                                        pageNum = i + 1;
+                                                    } else if (currentPage >= totalPages - 3) {
+                                                        pageNum = totalPages - 6 + i;
+                                                    } else {
+                                                        pageNum = currentPage - 3 + i;
+                                                    }
 
-                                                {/* Stock Indicator */}
-                                                {product.stock > 0 && (
-                                                    <div className="stock-indicator-modern">
-                                                        <div className="stock-bar">
-                                                            <div
-                                                                className="stock-fill"
-                                                                style={{
-                                                                    width: `${Math.min((product.stock / 50) * 100, 100)}%`,
-                                                                    backgroundColor: product.stock < 10 ? '#ff6b6b' : '#10b981'
-                                                                }}
-                                                            ></div>
-                                                        </div>
-                                                        <span className="stock-text">
-                                                            {product.stock} disponibles
-                                                        </span>
-                                                    </div>
-                                                )}
+                                                    return (
+                                                        <button
+                                                            key={pageNum}
+                                                            onClick={() => paginate(pageNum)}
+                                                            className={`pagination-number ${currentPage === pageNum ? 'active' : ''}`}
+                                                        >
+                                                            {pageNum}
+                                                        </button>
+                                                    );
+                                                })}
                                             </div>
-                                        </article>
-                                    ))}
-                                </div>
+
+                                            <button
+                                                onClick={() => paginate(currentPage + 1)}
+                                                disabled={currentPage === totalPages}
+                                                className="pagination-button next"
+                                            >
+                                                Siguiente →
+                                            </button>
+                                        </div>
+                                    )}
+                                </>
                             ) : (
                                 <div className="empty-state-modern">
                                     <div className="empty-icon-modern">🔍</div>
@@ -680,248 +730,12 @@ const Products = () => {
                                     </button>
                                 </div>
                             )}
-
-                            {/* Pagination */}
-                            {totalPages > 1 && (
-                                <div className="pagination-modern">
-                                    <button
-                                        onClick={() => paginate(currentPage - 1)}
-                                        disabled={currentPage === 1}
-                                        className="pagination-button prev"
-                                    >
-                                        ← Anterior
-                                    </button>
-
-                                    <div className="pagination-numbers">
-                                        {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-                                            let pageNum;
-                                            if (totalPages <= 5) {
-                                                pageNum = i + 1;
-                                            } else if (currentPage <= 3) {
-                                                pageNum = i + 1;
-                                            } else if (currentPage >= totalPages - 2) {
-                                                pageNum = totalPages - 4 + i;
-                                            } else {
-                                                pageNum = currentPage - 2 + i;
-                                            }
-
-                                            return (
-                                                <button
-                                                    key={pageNum}
-                                                    onClick={() => paginate(pageNum)}
-                                                    className={`pagination-number ${currentPage === pageNum ? 'active' : ''}`}
-                                                >
-                                                    {pageNum}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-
-                                    <button
-                                        onClick={() => paginate(currentPage + 1)}
-                                        disabled={currentPage === totalPages}
-                                        className="pagination-button next"
-                                    >
-                                        Siguiente →
-                                    </button>
-                                </div>
-                            )}
                         </div>
                     </div>
                 </div>
             </section>
 
-            {/* Products Grid */}
-            <section className="products-grid-section">
-                <div className="container">
-                    {currentProducts.length > 0 ? (
-                        <div className="products-grid-modern">
-                            {currentProducts.map(product => (
-                                <article key={product.id} className="product-card-modern">
-                                    {/* Product Image */}
-                                    <div className="product-image-wrapper">
-                                        {product.imagen ? (
-                                            <img
-                                                src={`http://localhost:8000${product.imagen}`}
-                                                alt={product.nombre}
-                                                className="product-image-modern"
-                                                loading="lazy"
-                                            />
-                                        ) : (
-                                            <div className="product-image-placeholder">
-                                                <span className="placeholder-emoji">
-                                                    {product.categoria_nombre === 'Frutas' ? '🍎' :
-                                                        product.categoria_nombre === 'Verduras' ? '🥕' :
-                                                            product.categoria_nombre === 'Lácteos' ? '🥛' : '🌱'}
-                                                </span>
-                                            </div>
-                                        )}
-
-                                        {/* Badges */}
-                                        <div className="product-badges">
-                                            {product.origen === 'organico' && (
-                                                <span className="badge badge-organic">🌿 Orgánico</span>
-                                            )}
-                                            {product.stock === 0 && (
-                                                <span className="badge badge-sold-out">Agotado</span>
-                                            )}
-                                            {product.stock > 0 && product.stock < 10 && (
-                                                <span className="badge badge-low-stock">Últimas unidades</span>
-                                            )}
-                                        </div>
-
-                                        {/* Quick View Button */}
-                                        <button
-                                            onClick={() => navigate(`/producto/${product.id}`)}
-                                            className="quick-view-button"
-                                        >
-                                            Vista rápida
-                                        </button>
-                                    </div>
-
-                                    {/* Product Content */}
-                                    <div className="product-content-modern">
-                                        {/* Category Tag */}
-                                        <span className="product-category-tag">
-                                            {product.categoria_nombre}
-                                        </span>
-
-                                        {/* Product Title */}
-                                        <h3 className="product-title-modern">
-                                            {product.nombre}
-                                        </h3>
-
-                                        {/* Product Description */}
-                                        <p className="product-description-modern">
-                                            {product.descripcion && product.descripcion.length > 80
-                                                ? `${product.descripcion.substring(0, 80)}...`
-                                                : product.descripcion}
-                                        </p>
-
-                                        {/* Product Meta */}
-                                        <div className="product-meta-modern">
-                                            <div className="meta-item">
-                                                <span className="meta-icon">👤</span>
-                                                <span className="meta-text">{product.vendedor_nombre}</span>
-                                            </div>
-                                            {(product.ciudad || product.comuna) && (
-                                                <div className="meta-item">
-                                                    <span className="meta-icon">📍</span>
-                                                    <span className="meta-text">
-                                                        {product.ciudad}{product.ciudad && product.comuna ? ', ' : ''}{product.comuna}
-                                                    </span>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* Price and Actions */}
-                                        <div className="product-footer-modern">
-                                            <div className="price-wrapper">
-                                                <span className="product-price-modern">
-                                                    {formatPrice(product.precio || 0)}
-                                                </span>
-                                                <span className="price-unit">/kg</span>
-                                            </div>
-
-                                            <button
-                                                onClick={() => handleAddToCart(product)}
-                                                disabled={product.stock === 0}
-                                                className={`add-to-cart-button-modern ${product.stock === 0 ? 'disabled' : ''}`}
-                                            >
-                                                {product.stock > 0 ? (
-                                                    <>
-                                                        <span className="cart-icon">🛒</span>
-                                                        <span>Agregar</span>
-                                                    </>
-                                                ) : (
-                                                    <span>Agotado</span>
-                                                )}
-                                            </button>
-                                        </div>
-
-                                        {/* Stock Indicator */}
-                                        {product.stock > 0 && (
-                                            <div className="stock-indicator-modern">
-                                                <div className="stock-bar">
-                                                    <div
-                                                        className="stock-fill"
-                                                        style={{
-                                                            width: `${Math.min((product.stock / 50) * 100, 100)}%`,
-                                                            backgroundColor: product.stock < 10 ? '#ff6b6b' : '#10b981'
-                                                        }}
-                                                    ></div>
-                                                </div>
-                                                <span className="stock-text">
-                                                    {product.stock} disponibles
-                                                </span>
-                                            </div>
-                                        )}
-                                    </div>
-                                </article>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="empty-state-modern">
-                            <div className="empty-icon-modern">🔍</div>
-                            <h3 className="empty-title">No encontramos productos</h3>
-                            <p className="empty-description">
-                                Intenta ajustar los filtros o buscar con otros términos
-                            </p>
-                            <button onClick={clearFilters} className="empty-action-button">
-                                Ver todos los productos
-                            </button>
-                        </div>
-                    )}
-
-                    {/* Pagination */}
-                    {totalPages > 1 && (
-                        <div className="pagination-modern">
-                            <button
-                                onClick={() => paginate(currentPage - 1)}
-                                disabled={currentPage === 1}
-                                className="pagination-button prev"
-                            >
-                                ← Anterior
-                            </button>
-
-                            <div className="pagination-numbers">
-                                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-                                    let pageNum;
-                                    if (totalPages <= 5) {
-                                        pageNum = i + 1;
-                                    } else if (currentPage <= 3) {
-                                        pageNum = i + 1;
-                                    } else if (currentPage >= totalPages - 2) {
-                                        pageNum = totalPages - 4 + i;
-                                    } else {
-                                        pageNum = currentPage - 2 + i;
-                                    }
-
-                                    return (
-                                        <button
-                                            key={pageNum}
-                                            onClick={() => paginate(pageNum)}
-                                            className={`pagination-number ${currentPage === pageNum ? 'active' : ''}`}
-                                        >
-                                            {pageNum}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-
-                            <button
-                                onClick={() => paginate(currentPage + 1)}
-                                disabled={currentPage === totalPages}
-                                className="pagination-button next"
-                            >
-                                Siguiente →
-                            </button>
-                        </div>
-                    )}
-                </div>
-            </section>
-
-            {/* 🛠️ REEMPLAZADO: Modal de Login Horizontal */}
+            {/* Modal de Login */}
             <LoginModal />
 
             {/* Toast Notifications */}

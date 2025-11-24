@@ -72,7 +72,9 @@ const ProductDetail = () => {
                     stock: productData.stock,
                     categoria_nombre: productData.categoria_nombre,
                     vendedor_nombre: productData.vendedor_nombre,
-                    vendedor_id: productData.vendedor,
+                    // Asegurar que vendedor_id sea el ID y vendedor sea el objeto completo
+                    vendedor_id: typeof productData.vendedor === 'object' ? productData.vendedor.id : productData.vendedor,
+                    vendedor: typeof productData.vendedor === 'object' ? productData.vendedor : null,
                     ciudad: productData.ciudad || '',
                     comuna: productData.comuna || '',
                     region: productData.region || '',
@@ -798,132 +800,128 @@ const styles = {
         fontWeight: 'bold'
     },
 
+    locationInDescription: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.5rem',
+        marginTop: '1rem',
+        paddingTop: '1rem',
+        borderTop: '1px solid #e9ecef',
+        color: '#666',
+        fontSize: '0.9rem'
+    },
+    locationIcon: { fontSize: '1.1rem' },
+
     vendorCard: {
         backgroundColor: 'white',
-        padding: '1.5rem',
         borderRadius: '12px',
-        border: '1px solid #e0e0e0',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-        marginBottom: '1rem'
+        padding: '1.5rem',
+        border: '1px solid #e5e5e5',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
     },
     vendorCardTitle: {
-        fontSize: '1rem',
-        color: '#8e8e93',
+        fontSize: '0.9rem',
+        color: '#666',
         marginBottom: '1rem',
-        fontWeight: '500',
+        fontWeight: '500'
     },
     vendorCardDetails: {
         display: 'flex',
-        alignItems: 'flex-start',
-        gap: '1.2rem',
+        gap: '1rem',
         marginBottom: '1rem'
     },
     vendorCardProfile: {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: '0.5rem',
-        minWidth: '70px'
+        gap: '0.5rem'
     },
     vendorCardImageWrapper: {
-        width: '64px',
-        height: '64px',
+        width: '60px',
+        height: '60px',
         borderRadius: '50%',
         overflow: 'hidden',
-        border: '2px solid #f0f0f0',
+        backgroundColor: '#f0f0f0',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
     },
     vendorCardImage: {
         width: '100%',
         height: '100%',
-        objectFit: 'cover',
+        objectFit: 'cover'
     },
     vendorPlaceholderIcon: {
-        width: '100%',
-        height: '100%',
-        backgroundColor: '#e8f5e8',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '2rem',
+        fontSize: '2rem'
     },
     vendorCardRating: {
-        fontSize: '0.85rem',
-        color: '#FFD60A',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.3rem'
-    },
-    ratingStars: {
-        letterSpacing: '0.5px'
-    },
-    ratingNumber: {
-        fontSize: '0.8rem',
-        color: '#48484a'
-    },
-    vendorCardText: {
         display: 'flex',
         flexDirection: 'column',
-        gap: '0.3rem',
-        flexGrow: 1
+        alignItems: 'center',
+        fontSize: '0.8rem'
+    },
+    ratingStars: { color: '#ffc107', letterSpacing: '2px' },
+    ratingNumber: { color: '#666', marginTop: '2px' },
+    vendorCardText: {
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.5rem'
     },
     vendorCardName: {
-        fontWeight: '600',
         fontSize: '1.1rem',
-        color: '#1c1c1e',
-        margin: '0',
-        marginBottom: '0.3rem'
+        fontWeight: 'bold',
+        color: '#333',
+        margin: 0
     },
     vendorCardBadge: {
-        display: 'flex',
+        display: 'inline-flex',
         alignItems: 'center',
         gap: '4px',
-        backgroundColor: '#007AFF',
-        color: 'white',
-        fontSize: '0.75rem',
-        padding: '4px 10px',
-        borderRadius: '12px',
+        backgroundColor: '#e8f5e9',
+        color: '#2e7d32',
+        padding: '4px 8px',
+        borderRadius: '4px',
+        fontSize: '0.8rem',
         fontWeight: '500',
-        width: 'fit-content',
-        marginBottom: '0.5rem'
+        alignSelf: 'flex-start'
     },
+    vendorBadgeIcon: { fontWeight: 'bold' },
     vendorStats: {
         display: 'flex',
-        flexDirection: 'column',
-        gap: '0.25rem',
-        marginTop: '0.5rem'
-    },
-    vendorStat: {
+        gap: '1rem',
+        marginTop: '0.5rem',
         fontSize: '0.85rem',
         color: '#666'
     },
-    viewVendorButton: {
-        backgroundColor: '#f2f2f7',
-        color: '#007AFF',
-        border: 'none',
-        padding: '10px 16px',
-        borderRadius: '10px',
-        fontSize: '0.95rem',
-        fontWeight: '600',
-        cursor: 'pointer',
-        textAlign: 'left',
-        width: '100%',
+    vendorStat: {
         display: 'flex',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        marginTop: '0.8rem',
-        transition: 'background-color 0.2s'
+        gap: '4px'
     },
-    viewVendorIcon: {
-        fontSize: '1.2rem',
-        marginLeft: '5px'
+    viewVendorButton: {
+        width: '100%',
+        padding: '0.8rem',
+        backgroundColor: 'transparent',
+        border: '1px solid #007AFF',
+        color: '#007AFF',
+        borderRadius: '8px',
+        cursor: 'pointer',
+        fontWeight: '600',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '0.5rem',
+        transition: 'all 0.2s'
     },
+    viewVendorIcon: { fontSize: '1.2rem', lineHeight: 1 },
 
     purchaseSection: {
         backgroundColor: 'white',
         padding: '1.5rem',
         borderRadius: '12px',
-        border: '1px solid #e0e0e0',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+        border: '1px solid #e5e5e5',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
     },
     quantitySelector: {
         display: 'flex',
@@ -933,97 +931,77 @@ const styles = {
     },
     quantityLabel: {
         fontWeight: '600',
-        color: '#1c1c1e',
-        fontSize: '1rem'
+        color: '#333'
     },
     quantityControls: {
         display: 'flex',
-        alignItems: 'stretch',
-        border: '1px solid #d1d1d6',
-        borderRadius: '10px',
-        overflow: 'hidden',
-        height: '40px'
+        alignItems: 'center',
+        gap: '1rem',
+        backgroundColor: '#f5f5f5',
+        padding: '0.5rem',
+        borderRadius: '8px'
     },
     quantityButton: {
-        width: '40px',
-        height: '100%',
-        border: 'none',
-        backgroundColor: '#f8f8f8',
-        cursor: 'pointer',
-        fontSize: '1.2rem',
-        fontWeight: '500',
-        color: '#007AFF',
-        transition: 'background-color 0.2s',
-    },
-    quantity: {
-        minWidth: '50px',
-        textAlign: 'center',
-        fontWeight: '600',
-        fontSize: '1.1rem',
+        width: '30px',
+        height: '30px',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center'
+        justifyContent: 'center',
+        border: 'none',
+        backgroundColor: 'white',
+        borderRadius: '6px',
+        cursor: 'pointer',
+        fontSize: '1.2rem',
+        color: '#333',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+    },
+    quantity: {
+        fontSize: '1.1rem',
+        fontWeight: 'bold',
+        minWidth: '20px',
+        textAlign: 'center'
     },
     quantityUnit: {
         color: '#666',
-        fontSize: '0.9rem',
-        marginLeft: '0.5rem'
+        fontSize: '0.9rem'
     },
     actionButtons: {
         display: 'flex',
         flexDirection: 'column',
-        gap: '0.8rem'
+        gap: '1rem'
     },
 
-    locationInDescription: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.5rem',
-        marginTop: '1rem',
-        padding: '0.75rem',
-        backgroundColor: '#f8f9fa',
-        borderRadius: '8px',
-        fontSize: '0.9rem',
-        color: '#666',
-    },
-    locationIcon: {
-        fontSize: '1rem'
-    },
-
+    // Estilos para loading y error
     loading: {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        minHeight: '30vh',
-        fontSize: '1rem',
-        color: '#8e8e93'
+        minHeight: '60vh',
+        color: '#666'
     },
     spinner: {
-        fontSize: '2.5rem',
-        marginBottom: '0.8rem',
-        color: '#007AFF'
+        fontSize: '3rem',
+        marginBottom: '1rem',
+        animation: 'spin 1s linear infinite'
     },
     error: {
         textAlign: 'center',
-        padding: '1.5rem',
-        color: '#ff3b30'
+        padding: '4rem 2rem',
+        color: '#dc3545'
     },
     backButton: {
-        backgroundColor: '#007AFF',
+        marginTop: '1rem',
+        padding: '0.5rem 1rem',
+        backgroundColor: '#6c757d',
         color: 'white',
         border: 'none',
-        padding: '8px 16px',
-        borderRadius: '8px',
-        cursor: 'pointer',
-        marginTop: '1rem',
-        fontWeight: '600'
-    },
+        borderRadius: '4px',
+        cursor: 'pointer'
+    }
 };
 
-// =========================================================================
-// === ESTILOS DEL MODAL DE LOGIN ==========================================
-// =========================================================================
+// Estilos para modales (simplificados para este archivo)
 const loginModalStyles = {
     overlay: {
         position: 'fixed',
@@ -1031,154 +1009,155 @@ const loginModalStyles = {
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        zIndex: 9999,
+        zIndex: 1000,
+        backdropFilter: 'blur(5px)'
     },
     modal: {
-        backgroundColor: '#1a1f2e',
-        borderRadius: '16px',
-        maxWidth: '900px',
+        backgroundColor: 'white',
+        borderRadius: '20px',
         width: '90%',
-        maxHeight: '90vh',
-        overflow: 'auto',
+        maxWidth: '900px',
+        height: '600px',
+        display: 'flex',
         position: 'relative',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+        overflow: 'hidden'
     },
     closeButton: {
         position: 'absolute',
         top: '20px',
         right: '20px',
-        background: 'rgba(255,255,255,0.1)',
+        background: 'none',
         border: 'none',
-        color: 'white',
         fontSize: '24px',
-        width: '40px',
-        height: '40px',
-        borderRadius: '50%',
         cursor: 'pointer',
-        zIndex: 10,
+        color: '#666',
+        zIndex: 10
     },
     content: {
-        display: 'grid',
-        gridTemplateColumns: '1fr 1.2fr',
-        minHeight: '500px',
+        display: 'flex',
+        width: '100%',
+        height: '100%'
     },
     leftSide: {
-        background: 'linear-gradient(135deg, #2d7a3e 0%, #1a4d26 100%)',
-        padding: '60px 40px',
+        flex: 1,
+        backgroundColor: '#f0fdf4',
+        padding: '40px',
         display: 'flex',
         flexDirection: 'column',
-        alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: '16px 0 0 16px',
+        alignItems: 'center',
+        textAlign: 'center'
+    },
+    rightSide: {
+        flex: 1,
+        padding: '40px',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        backgroundColor: 'white'
     },
     logoContainer: {
         marginBottom: '20px',
+        padding: '20px',
+        backgroundColor: 'white',
+        borderRadius: '50%',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
     },
     brandName: {
-        fontSize: '2.5rem',
-        fontWeight: '700',
-        color: 'white',
-        margin: '0 0 10px 0',
+        fontSize: '2rem',
+        color: '#166534',
+        marginBottom: '10px',
+        fontWeight: 'bold'
     },
     message: {
-        fontSize: '1.3rem',
-        color: 'white',
-        margin: '20px 0 10px 0',
-        fontWeight: '600',
+        fontSize: '1.5rem',
+        color: '#1f2937',
+        marginBottom: '10px',
+        fontWeight: '600'
     },
     submessage: {
-        fontSize: '0.95rem',
-        color: 'rgba(255,255,255,0.8)',
-        textAlign: 'center',
-        maxWidth: '280px',
-    },
-    rightSide: {
-        padding: '60px 50px',
-        backgroundColor: '#1a1f2e',
-        borderRadius: '0 16px 16px 0',
+        color: '#4b5563',
+        lineHeight: '1.5'
     },
     title: {
         fontSize: '1.8rem',
-        fontWeight: '700',
-        color: 'white',
         marginBottom: '30px',
+        color: '#1f2937',
+        fontWeight: 'bold'
     },
     form: {
         display: 'flex',
         flexDirection: 'column',
-        gap: '20px',
+        gap: '20px'
     },
     formGroup: {
         display: 'flex',
         flexDirection: 'column',
-        gap: '8px',
+        gap: '8px'
     },
     label: {
         fontSize: '0.9rem',
-        fontWeight: '500',
-        color: '#a0aec0',
+        fontWeight: '600',
+        color: '#374151'
     },
     input: {
-        padding: '12px 16px',
+        padding: '12px',
         borderRadius: '8px',
-        border: '1px solid rgba(255,255,255,0.1)',
-        backgroundColor: 'rgba(255,255,255,0.05)',
-        color: 'white',
+        border: '1px solid #d1d5db',
         fontSize: '1rem',
-        outline: 'none',
+        transition: 'border-color 0.2s',
+        outline: 'none'
     },
     passwordWrapper: {
         position: 'relative',
+        display: 'flex',
+        alignItems: 'center'
     },
     eyeButton: {
         position: 'absolute',
         right: '12px',
-        top: '50%',
-        transform: 'translateY(-50%)',
         background: 'none',
         border: 'none',
         cursor: 'pointer',
-        fontSize: '1.2rem',
+        fontSize: '1.2rem'
     },
     submitButton: {
         padding: '14px',
-        borderRadius: '8px',
-        border: 'none',
-        backgroundColor: '#2d7a3e',
+        backgroundColor: '#166534',
         color: 'white',
+        border: 'none',
+        borderRadius: '8px',
         fontSize: '1rem',
         fontWeight: '600',
         cursor: 'pointer',
-        marginTop: '10px',
-    },
-    errorAlert: {
-        padding: '12px',
-        borderRadius: '8px',
-        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-        border: '1px solid rgba(239, 68, 68, 0.3)',
-        color: '#ef4444',
-        fontSize: '0.9rem',
+        transition: 'background-color 0.2s',
+        marginTop: '10px'
     },
     registerText: {
         textAlign: 'center',
-        color: '#a0aec0',
-        fontSize: '0.9rem',
-        marginTop: '10px',
+        marginTop: '20px',
+        color: '#4b5563'
     },
     registerLink: {
-        color: '#2d7a3e',
-        textDecoration: 'none',
+        color: '#166534',
         fontWeight: '600',
+        textDecoration: 'none'
     },
+    errorAlert: {
+        backgroundColor: '#fee2e2',
+        color: '#991b1b',
+        padding: '12px',
+        borderRadius: '8px',
+        fontSize: '0.9rem',
+        textAlign: 'center'
+    }
 };
 
-// =========================================================================
-// === ESTILOS DEL MODAL DEL VENDEDOR ======================================
-// =========================================================================
 const vendorModalStyles = {
     overlay: {
         position: 'fixed',
@@ -1190,212 +1169,232 @@ const vendorModalStyles = {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        zIndex: 10000,
-        padding: '1rem',
+        zIndex: 1100,
+        backdropFilter: 'blur(5px)'
     },
     modal: {
         backgroundColor: 'white',
-        borderRadius: '16px',
-        maxWidth: '600px',
-        width: '100%',
+        borderRadius: '24px',
+        width: '90%',
+        maxWidth: '800px',
         maxHeight: '90vh',
-        overflow: 'auto',
+        overflowY: 'auto',
         position: 'relative',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
     },
     closeButton: {
         position: 'absolute',
-        top: '1rem',
-        right: '1rem',
-        background: 'rgba(0,0,0,0.1)',
+        top: '20px',
+        right: '20px',
+        background: 'rgba(0,0,0,0.05)',
         border: 'none',
-        color: '#333',
-        fontSize: '1.5rem',
-        width: '40px',
-        height: '40px',
+        width: '36px',
+        height: '36px',
         borderRadius: '50%',
+        fontSize: '20px',
         cursor: 'pointer',
-        zIndex: 10,
-    },
-    header: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '1rem',
-        padding: '2rem 2rem 1rem 2rem',
-        borderBottom: '1px solid #f0f0f0',
-    },
-    avatar: {
-        width: '80px',
-        height: '80px',
-        borderRadius: '50%',
-        overflow: 'hidden',
-        backgroundColor: '#e8f5e8',
+        color: '#666',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        flexShrink: 0,
+        transition: 'all 0.2s',
+        zIndex: 10
+    },
+    header: {
+        padding: '3rem 2rem 2rem',
+        background: 'linear-gradient(to bottom, #f0fdf4, white)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        textAlign: 'center',
+        borderBottom: '1px solid #f0f0f0'
+    },
+    avatar: {
+        width: '100px',
+        height: '100px',
+        borderRadius: '50%',
+        overflow: 'hidden',
+        border: '4px solid white',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+        marginBottom: '1rem',
+        backgroundColor: '#e0e0e0',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
     },
     avatarImage: {
         width: '100%',
         height: '100%',
-        objectFit: 'cover',
+        objectFit: 'cover'
     },
     avatarPlaceholder: {
-        fontSize: '2.5rem',
+        fontSize: '3rem'
     },
     vendorBasicInfo: {
-        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '0.5rem'
     },
     vendorName: {
-        fontSize: '1.5rem',
-        fontWeight: '700',
-        color: '#1c1c1e',
-        margin: '0 0 0.5rem 0',
+        fontSize: '1.8rem',
+        fontWeight: '800',
+        color: '#1f2937',
+        margin: 0
     },
     vendorTitle: {
-        fontSize: '1rem',
-        color: '#2d5016',
-        fontWeight: '600',
-        margin: '0 0 0.5rem 0',
+        fontSize: '1.1rem',
+        color: '#6b7280',
+        margin: 0
     },
     verificationBadge: {
-        display: 'flex',
+        display: 'inline-flex',
         alignItems: 'center',
-        gap: '0.5rem',
-        backgroundColor: '#007AFF',
-        color: 'white',
-        padding: '0.25rem 0.75rem',
-        borderRadius: '12px',
-        fontSize: '0.8rem',
+        gap: '6px',
+        backgroundColor: '#dcfce7',
+        color: '#166534',
+        padding: '6px 12px',
+        borderRadius: '20px',
+        fontSize: '0.9rem',
         fontWeight: '600',
-        width: 'fit-content',
+        marginTop: '0.5rem'
     },
-    badgeIcon: {
-        fontSize: '0.8rem',
-    },
+    badgeIcon: { fontWeight: 'bold' },
     content: {
-        padding: '1.5rem 2rem 2rem 2rem',
+        padding: '2rem'
     },
     statsGrid: {
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
         gap: '1rem',
-        marginBottom: '1.5rem',
+        marginBottom: '2.5rem'
     },
     statItem: {
+        backgroundColor: '#f9fafb',
+        padding: '1rem',
+        borderRadius: '16px',
         display: 'flex',
         alignItems: 'center',
-        gap: '0.75rem',
-        padding: '0.75rem',
-        backgroundColor: '#f8f9fa',
-        borderRadius: '10px',
+        gap: '1rem',
+        border: '1px solid #f3f4f6'
     },
     statIcon: {
         fontSize: '1.5rem',
+        backgroundColor: 'white',
+        width: '40px',
+        height: '40px',
+        borderRadius: '10px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
     },
     statContent: {
         display: 'flex',
-        flexDirection: 'column',
+        flexDirection: 'column'
     },
     statValue: {
-        fontWeight: '700',
-        color: '#1c1c1e',
-        fontSize: '1.1rem',
+        fontSize: '1.2rem',
+        fontWeight: 'bold',
+        color: '#1f2937'
     },
     statLabel: {
         fontSize: '0.8rem',
-        color: '#666',
+        color: '#6b7280'
     },
     section: {
-        marginBottom: '1.5rem',
+        marginBottom: '2.5rem'
     },
     sectionTitle: {
-        fontSize: '1.1rem',
-        fontWeight: '600',
-        color: '#1c1c1e',
-        margin: '0 0 0.75rem 0',
+        fontSize: '1.2rem',
+        fontWeight: '700',
+        color: '#1f2937',
+        marginBottom: '1rem',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.5rem'
     },
     sectionText: {
-        color: '#48484a',
+        color: '#4b5563',
         lineHeight: '1.6',
-        margin: '0',
+        fontSize: '1rem'
     },
     locationInfo: {
         display: 'flex',
-        alignItems: 'flex-start',
-        gap: '0.75rem',
-    },
-    locationIcon: {
-        fontSize: '1.1rem',
-        marginTop: '0.1rem',
+        gap: '1rem',
+        backgroundColor: '#f9fafb',
+        padding: '1rem',
+        borderRadius: '12px'
     },
     locationText: {
-        color: '#48484a',
-        lineHeight: '1.5',
-    },
-    locationDetails: {
-        fontSize: '0.95rem',
-        color: '#666',
-    },
-    contactInfo: {
         display: 'flex',
         flexDirection: 'column',
-        gap: '0.75rem',
+        gap: '0.25rem',
+        color: '#4b5563'
+    },
+    locationDetails: {
+        fontSize: '0.9rem',
+        color: '#6b7280'
+    },
+    contactInfo: {
+        display: 'grid',
+        gap: '1rem'
     },
     contactItem: {
         display: 'flex',
         alignItems: 'center',
-        gap: '0.75rem',
-        color: '#48484a',
+        gap: '1rem',
+        color: '#4b5563'
     },
     contactIcon: {
-        fontSize: '1.1rem',
+        fontSize: '1.2rem',
+        width: '30px',
+        textAlign: 'center'
     },
     productsGrid: {
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-        gap: '1rem',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+        gap: '1rem'
     },
     productCard: {
-        backgroundColor: '#f8f9fa',
-        borderRadius: '8px',
+        border: '1px solid #e5e7eb',
+        borderRadius: '12px',
         overflow: 'hidden',
         transition: 'transform 0.2s',
+        cursor: 'pointer'
     },
     productImage: {
-        width: '100%',
-        height: '100px',
-        backgroundColor: '#e9ecef',
+        height: '120px',
+        backgroundColor: '#f3f4f6',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
     },
     productImageImg: {
         width: '100%',
         height: '100%',
-        objectFit: 'cover',
+        objectFit: 'cover'
     },
     productImagePlaceholder: {
-        width: '100%',
-        height: '100%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '2rem',
-        opacity: 0.7,
+        fontSize: '2rem'
     },
     productInfo: {
-        padding: '0.75rem',
+        padding: '0.75rem'
     },
     productName: {
         fontSize: '0.9rem',
         fontWeight: '600',
-        color: '#1c1c1e',
-        margin: '0 0 0.25rem 0',
-        lineHeight: '1.3',
+        color: '#1f2937',
+        marginBottom: '0.25rem',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis'
     },
     productPrice: {
         fontSize: '1rem',
-        fontWeight: '700',
-        color: '#2d5016',
-    },
+        fontWeight: 'bold',
+        color: '#166534'
+    }
 };
 
 export default ProductDetail;

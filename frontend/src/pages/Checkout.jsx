@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { getAxiosConfig } from '../utils/csrf';
 import { useCart } from '../context/CartContext';
 import SimpleProtectedRoute from '../components/SimpleProtectedRoute';
 import HeaderCliente from '../pages/cliente/HeaderCliente';
@@ -54,11 +56,44 @@ const Checkout = () => {
         window.scrollTo(0, 0);
     };
 
-    const handleConfirmOrder = () => {
-        // Aquí iría la integración con el backend
-        alert('¡Pedido confirmado exitosamente!');
-        clearCart();
-        navigate('/productos');
+    const handleConfirmOrder = async () => {
+        try {
+            const { total } = calculateTotals();
+
+            // Construir dirección
+            let direccionTexto = '';
+            if (deliveryType === 'envio' && customerData) {
+                direccionTexto = `${customerData.direccion}, ${customerData.comuna}, ${customerData.region}`;
+                if (customerData.instrucciones) {
+                    direccionTexto += ` (Instrucciones: ${customerData.instrucciones})`;
+                }
+                // Añadir datos de contacto
+                direccionTexto += ` | Contacto: ${customerData.nombre} ${customerData.apellido} (${customerData.telefono})`;
+            } else {
+                direccionTexto = 'Retiro en tienda';
+            }
+
+            const payload = {
+                items: items.map(item => ({
+                    producto_id: item.id,
+                    cantidad: item.quantity
+                })),
+                direccion_texto: direccionTexto,
+                metodo_pago: 'transferencia', // Por defecto por ahora
+                total: total,
+                tipo_entrega: deliveryType
+            };
+
+            await axios.post('http://localhost:8000/api/pedidos/', payload, getAxiosConfig());
+
+            alert('¡Pedido confirmado exitosamente!');
+            clearCart();
+            navigate('/productos');
+        } catch (error) {
+            console.error('Error al crear pedido:', error);
+            const errorMsg = error.response?.data?.error || 'Error al procesar el pedido';
+            alert(`Error: ${errorMsg}`);
+        }
     };
 
     const { subtotal, iva, total } = calculateTotals();
