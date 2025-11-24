@@ -60,11 +60,46 @@ const cartReducer = (state, action) => {
     }
 };
 
+// Función para migrar items antiguos del carrito
+const migrateCartItems = (items) => {
+    return items.map(item => {
+        // Si vendedor_id es un objeto (estructura antigua), corregirlo
+        if (item.vendedor_id && typeof item.vendedor_id === 'object') {
+            return {
+                ...item,
+                vendedor_id: item.vendedor_id.id || item.vendedor_id,
+                vendedor: item.vendedor_id
+            };
+        }
+        // Si no tiene objeto vendedor pero tiene vendedor_nombre, crear uno básico
+        if (!item.vendedor && item.vendedor_nombre && item.vendedor_id) {
+            return {
+                ...item,
+                vendedor: {
+                    id: item.vendedor_id,
+                    username: item.vendedor_nombre
+                }
+            };
+        }
+        return item;
+    });
+};
+
 // Función para cargar el carrito desde localStorage
 const loadCartFromStorage = () => {
     try {
         const savedCart = localStorage.getItem('agroplace_cart');
-        return savedCart ? JSON.parse(savedCart) : [];
+        const items = savedCart ? JSON.parse(savedCart) : [];
+        // Migrar items antiguos automáticamente
+        const migratedItems = migrateCartItems(items);
+
+        // Si hubo cambios, guardar la versión migrada
+        if (JSON.stringify(items) !== JSON.stringify(migratedItems)) {
+            console.log('🔄 Migrando estructura antigua del carrito...');
+            localStorage.setItem('agroplace_cart', JSON.stringify(migratedItems));
+        }
+
+        return migratedItems;
     } catch (error) {
         console.error('Error loading cart from localStorage:', error);
         return [];
