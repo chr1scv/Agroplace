@@ -1,56 +1,147 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { getAxiosConfig } from '../../utils/csrf';
 import './VendedorPanel.css';
-
-// Importar componentes
+import './VendedorPanelExtras.css';
 import FormularioProducto from './FormularioProducto';
 import ProductoCard from './ProductoCard';
 import PedidoCard from './PedidoCard';
+import VendedorProfileMenu from '../../components/VendedorProfileMenu';
 
-// ✅ Función helper para construir URLs de imagen correctamente
-const getImageUrl = (imagenPath) => {
-    if (!imagenPath) return null;
-    
-    // Si ya empieza con /media/, agregar el dominio
-    if (imagenPath.startsWith('/media/')) {
-        return `http://localhost:8000${imagenPath}`;
-    } 
-    // Si ya es una URL completa, usarla directamente
-    else if (imagenPath.startsWith('http')) {
-        return imagenPath;
-    } 
-    // Si es solo el nombre del archivo, construir la ruta completa
-    else {
-        return `http://localhost:8000/media/products/${imagenPath}`;
+const StatCard = ({ icon, label, value, colorClass, onClick }) => (
+    <div className={`stat-card-modern ${colorClass}`} onClick={onClick} style={{ cursor: onClick ? 'pointer' : 'default' }}>
+        <div className="stat-icon-modern">{icon}</div>
+        <div className="stat-content-modern">
+            <div className="stat-value-modern">{value}</div>
+            <div className="stat-label-modern">{label}</div>
+        </div>
+    </div>
+);
+
+const CarruselProductos = ({ productos }) => {
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const [isPaused, setIsPaused] = useState(false);
+    // Filtrar solo productos aprobados para el carrusel de "Últimos Productos"
+    const productosRecientes = productos.filter(p => p.aprobado).slice(-6).reverse();
+
+    // Auto-advance carousel every 3 seconds
+    useEffect(() => {
+        if (productosRecientes.length === 0 || isPaused) return;
+
+        const interval = setInterval(() => {
+            setCurrentIndex((prev) => (prev + 1) % productosRecientes.length);
+        }, 3000);
+
+        return () => clearInterval(interval);
+    }, [productosRecientes.length, isPaused]);
+
+    const siguiente = () => {
+        setCurrentIndex((prev) => (prev + 1) % productosRecientes.length);
+    };
+
+    const anterior = () => {
+        setCurrentIndex((prev) => (prev - 1 + productosRecientes.length) % productosRecientes.length);
+    };
+
+    if (productosRecientes.length === 0) {
+        return (
+            <div className="empty-state-modern">
+                <p>📦 Aún no has agregado productos aprobados</p>
+            </div>
+        );
     }
+
+    const productoActual = productosRecientes[currentIndex];
+
+    return (
+        <div
+            className="carrusel-modern"
+            onMouseEnter={() => setIsPaused(true)}
+            onMouseLeave={() => setIsPaused(false)}
+        >
+            <button onClick={anterior} className="carrusel-btn-modern carrusel-btn-prev">‹</button>
+
+            <div className="carrusel-content-modern">
+                <div className="carrusel-image-container-modern">
+                    {productoActual.imagen ? (
+                        <img
+                            src={`http://localhost:8000${productoActual.imagen}`}
+                            alt={productoActual.nombre}
+                            className="carrusel-image-modern"
+                        />
+                    ) : (
+                        <div className="carrusel-placeholder-modern">📦</div>
+                    )}
+                    <span className={`carrusel-badge-modern ${productoActual.stock < 10 ? 'carrusel-badge-warning' : ''}`}>
+                        {productoActual.aprobado ? '✅ Aprobado' : '⏳ Pendiente'}
+                    </span>
+                </div>
+
+                <div className="carrusel-info-modern">
+                    <h3 className="carrusel-title-modern">{productoActual.nombre}</h3>
+                    <p className="carrusel-description-modern">{productoActual.descripcion}</p>
+
+                    <div className="carrusel-stats-modern">
+                        <div className="carrusel-stat-modern">
+                            <span className="carrusel-stat-label">Precio</span>
+                            <span className="carrusel-stat-value">
+                                {new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(productoActual.precio)}
+                            </span>
+                        </div>
+                        <div className="carrusel-stat-modern">
+                            <span className="carrusel-stat-label">Stock</span>
+                            <span className="carrusel-stat-value">{productoActual.stock}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button onClick={siguiente} className="carrusel-btn-modern carrusel-btn-next">›</button>
+
+            {/* Indicadores */}
+            <div className="carrusel-indicators-modern">
+                {productosRecientes.map((_, index) => (
+                    <button
+                        key={index}
+                        onClick={() => setCurrentIndex(index)}
+                        className={`carrusel-indicator-modern ${index === currentIndex ? 'carrusel-indicator-active' : ''}`}
+                    />
+                ))}
+            </div>
+        </div>
+    );
 };
 
+const Toast = ({ message, type, onClose }) => {
+    useEffect(() => {
+        const timer = setTimeout(onClose, 3000);
+        return () => clearTimeout(timer);
+    }, [onClose]);
+
+    return (
+        <div className={`toast-modern toast-${type}`}>
+            <span>{message}</span>
+            <button onClick={onClose} className="toast-close-modern">×</button>
+        </div>
+    );
+};
+
+// 🏠 COMPONENTE PRINCIPAL
 const VendedorPanel = () => {
     const [activeTab, setActiveTab] = useState('dashboard');
     const [vendedor, setVendedor] = useState(null);
+    const [loading, setLoading] = useState(true);
     const [productosReales, setProductosReales] = useState([]);
     const [pedidosReales, setPedidosReales] = useState([]);
     const [metricasReales, setMetricasReales] = useState({});
     const [categoriasReales, setCategoriasReales] = useState([]);
     const [notificaciones, setNotificaciones] = useState([]);
-    const [loading, setLoading] = useState(true);
     const [toasts, setToasts] = useState([]);
 
-    // Función para mostrar notificaciones bonitas
-    const showToast = (message, type = 'success', duration = 5000) => {
+    // Toast functions
+    const showToast = (message, type = 'info') => {
         const id = Date.now();
-        const toast = {
-            id,
-            message,
-            type,
-            duration
-        };
-        setToasts(prev => [...prev, toast]);
-        
-        // Auto-remover después de la duración
-        setTimeout(() => {
-            removeToast(id);
-        }, duration);
+        setToasts(prev => [...prev, { id, message, type }]);
     };
 
     const removeToast = (id) => {
@@ -59,22 +150,21 @@ const VendedorPanel = () => {
 
     useEffect(() => {
         cargarDatosReales();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const cargarDatosReales = async () => {
         try {
             setLoading(true);
-            
-            // 1. Obtener usuario logueado
+
             const usuario = JSON.parse(localStorage.getItem('user'));
             setVendedor(usuario);
-            
+
             if (!usuario?.id) {
                 console.error('No se pudo obtener ID del vendedor');
                 return;
             }
 
-            // 2. Cargar todos los datos en paralelo
             await Promise.all([
                 cargarCategoriasReales(),
                 cargarProductosVendedor(usuario.id),
@@ -92,8 +182,7 @@ const VendedorPanel = () => {
         }
     };
 
-    // ✅ CATEGORÍAS REALES desde la base de datos
-    const cargarCategoriasReales = async () => {
+    const cargarCategoriasReales = useCallback(async () => {
         try {
             const response = await axios.get('http://localhost:8000/api/categorias/', {
                 withCredentials: true
@@ -102,23 +191,19 @@ const VendedorPanel = () => {
         } catch (error) {
             console.error('Error cargando categorías reales:', error);
         }
-    };
+    }, []);
 
-    // ✅ PRODUCTOS REALES del vendedor
-    const cargarProductosVendedor = async (vendedorId) => {
+    const cargarProductosVendedor = useCallback(async (vendedorId) => {
         try {
             const response = await axios.get(`http://localhost:8000/api/productos/mis_productos/`, {
                 withCredentials: true
             });
             console.log('📦 Productos cargados:', response.data);
-            // Log de las rutas de imágenes para debugging
-            response.data.forEach(producto => {
-                console.log(`🖼️ Producto: ${producto.nombre}, Ruta imagen: ${producto.imagen}`);
-            });
-            setProductosReales(response.data);
+            // Filtrar solo productos activos para mostrar en el panel
+            const productosActivos = response.data.filter(p => p.activo);
+            setProductosReales(productosActivos);
         } catch (error) {
             console.error('Error cargando productos reales:', error);
-            // Fallback: filtrar productos por vendedor
             try {
                 const allProducts = await axios.get('http://localhost:8000/api/productos/');
                 const misProductos = allProducts.data.filter(p => p.vendedor === vendedorId);
@@ -127,10 +212,9 @@ const VendedorPanel = () => {
                 console.error('Error alternativo:', error2);
             }
         }
-    };
+    }, []);
 
-    // ✅ PEDIDOS REALES del vendedor
-    const cargarPedidosVendedor = async (vendedorId) => {
+    const cargarPedidosVendedor = useCallback(async (vendedorId) => {
         try {
             const response = await axios.get('http://localhost:8000/api/pedidos/', {
                 withCredentials: true
@@ -139,27 +223,11 @@ const VendedorPanel = () => {
         } catch (error) {
             console.error('Error cargando pedidos reales:', error);
         }
-    };
+    }, []);
 
-    // ✅ MÉTRICAS REALES del vendedor
-    const cargarMetricasVendedor = async (vendedorId) => {
-        try {
-            const response = await axios.get('http://localhost:8000/api/auth/dashboard/', {
-                withCredentials: true
-            });
-            setMetricasReales(response.data);
-            
-            // Generar notificaciones basadas en métricas reales
-            generarNotificacionesReales(response.data);
-        } catch (error) {
-            console.error('Error cargando métricas reales:', error);
-        }
-    };
-
-    // ✅ NOTIFICACIONES basadas en datos reales
-    const generarNotificacionesReales = (metricas) => {
+    const generarNotificacionesReales = useCallback((metricas) => {
         const notifs = [];
-        
+
         if (metricas.productos_sin_stock > 0) {
             notifs.push({
                 id: 1,
@@ -170,7 +238,7 @@ const VendedorPanel = () => {
                 leida: false
             });
         }
-        
+
         if (metricas.pedidos_pendientes > 0) {
             notifs.push({
                 id: 2,
@@ -182,7 +250,6 @@ const VendedorPanel = () => {
             });
         }
 
-        // Notificación para productos pendientes de aprobación
         const productosPendientes = productosReales.filter(p => !p.aprobado).length;
         if (productosPendientes > 0) {
             notifs.push({
@@ -194,41 +261,47 @@ const VendedorPanel = () => {
                 leida: false
             });
         }
-        
-        setNotificaciones(notifs);
-    };
 
-    // ✅ AGREGAR PRODUCTO REAL
+        setNotificaciones(notifs);
+    }, [productosReales]);
+
+    const cargarMetricasVendedor = useCallback(async (vendedorId) => {
+        try {
+            const response = await axios.get('http://localhost:8000/api/auth/dashboard/', {
+                withCredentials: true
+            });
+            setMetricasReales(response.data);
+            generarNotificacionesReales(response.data);
+        } catch (error) {
+            console.error('Error cargando métricas reales:', error);
+        }
+    }, [generarNotificacionesReales]);
+
     const handleAgregarProducto = async (productoData) => {
         try {
+            const config = getAxiosConfig();
             const response = await axios.post('http://localhost:8000/api/productos/', productoData, {
-                withCredentials: true,
+                ...config,
                 headers: {
+                    ...config.headers,
                     'Content-Type': 'multipart/form-data'
                 }
             });
-            
-            // Recargar productos después de agregar
+
             await cargarProductosVendedor(vendedor.id);
-            showToast('🎉 Producto creado! Esperando aprobación del administrador.', 'success');
             return response.data;
         } catch (error) {
             console.error('Error agregando producto:', error);
-            showToast('❌ Error al crear producto', 'error');
             throw error;
         }
     };
 
-    // ✅ ACTUALIZAR ESTADO DE PEDIDO REAL
     const handleActualizarEstadoPedido = async (pedidoId, nuevoEstado) => {
         try {
             await axios.post(`http://localhost:8000/api/pedidos/${pedidoId}/cambiar_estado/`, {
                 estado: nuevoEstado
-            }, {
-                withCredentials: true
-            });
-            
-            // Recargar pedidos después de actualizar
+            }, getAxiosConfig());
+
             await cargarPedidosVendedor(vendedor.id);
             showToast('✅ Estado del pedido actualizado', 'success');
         } catch (error) {
@@ -238,14 +311,10 @@ const VendedorPanel = () => {
         }
     };
 
-    // ✅ ELIMINAR PRODUCTO REAL
     const handleEliminarProducto = async (productoId) => {
         try {
-            await axios.delete(`http://localhost:8000/api/productos/${productoId}/`, {
-                withCredentials: true
-            });
-            
-            // Recargar productos después de eliminar
+            await axios.delete(`http://localhost:8000/api/productos/${productoId}/`, getAxiosConfig());
+
             await cargarProductosVendedor(vendedor.id);
             showToast('✅ Producto eliminado', 'success');
         } catch (error) {
@@ -257,9 +326,9 @@ const VendedorPanel = () => {
 
     if (loading) {
         return (
-            <div className="vendedor-loading">
-                <div className="loading-spinner">📊</div>
-                <p>Cargando datos reales del vendedor...</p>
+            <div className="vendedor-loading-modern">
+                <div className="loading-spinner-modern">📊</div>
+                <p>Cargando tu panel...</p>
             </div>
         );
     }
@@ -273,7 +342,7 @@ const VendedorPanel = () => {
             const productosActivos = productosReales.filter(p => p.activo).length;
             const productosPendientes = productosReales.filter(p => !p.aprobado).length;
             const productosAprobados = productosReales.filter(p => p.aprobado).length;
-            
+
             return {
                 totalVendido,
                 stockTotal,
@@ -294,149 +363,109 @@ const VendedorPanel = () => {
             }).format(price);
         };
 
-        // Productos para el carrusel (máximo 6)
-        const productosCarrusel = productosReales.slice(0, 6);
-
         return (
-            <div className="dashboard-tab">
-                <h2>📊 Resumen de tu Negocio</h2>
-                
-                {/* KPIs Principales */}
-                <div className="kpi-grid">
-                    <div className="kpi-card">
-                        <div className="kpi-icon">💰</div>
-                        <div className="kpi-content">
-                            <div className="kpi-value">
-                                {formatPrice(metricasAdicionales.totalVendido)}
-                            </div>
-                            <div className="kpi-label">Total Vendido</div>
-                        </div>
-                    </div>
-                    
-                    <div className="kpi-card">
-                        <div className="kpi-icon">📦</div>
-                        <div className="kpi-content">
-                            <div className="kpi-value">{metricasReales?.total_pedidos || 0}</div>
-                            <div className="kpi-label">Pedidos Totales</div>
-                        </div>
-                    </div>
-                    
-                    <div className="kpi-card">
-                        <div className="kpi-icon">🌱</div>
-                        <div className="kpi-content">
-                            <div className="kpi-value">{metricasAdicionales.productosAprobados}</div>
-                            <div className="kpi-label">Productos Aprobados</div>
-                        </div>
-                    </div>
-                    
-                    <div className="kpi-card">
-                        <div className="kpi-icon">⏳</div>
-                        <div className="kpi-content">
-                            <div className="kpi-value">{metricasAdicionales.productosPendientes}</div>
-                            <div className="kpi-label">Pendientes de Aprobación</div>
-                        </div>
-                    </div>
+            <div className="dashboard-modern">
+                <div className="dashboard-header-modern">
+                    <h1 className="dashboard-title-modern">Hola, {vendedor?.username || 'Vendedor'} 👋</h1>
+                    <p className="dashboard-subtitle-modern">Así va tu negocio hoy</p>
                 </div>
 
-                <div className="dashboard-content-grid">
+                {/* KPIs Grid */}
+                <div className="kpi-grid-modern">
+                    <StatCard
+                        icon="💰"
+                        label="Ventas Totales"
+                        value={formatPrice(metricasReales.ingresos_totales || 0)}
+                        colorClass="stat-card-blue"
+                    />
+                    <StatCard
+                        icon="🛒"
+                        label="Pedidos Pendientes"
+                        value={metricasReales?.pedidos_pendientes || 0}
+                        colorClass="stat-card-amber"
+                        onClick={() => setActiveTab('pedidos')}
+                    />
+                    <StatCard
+                        icon="📦"
+                        label="Productos Activos"
+                        value={metricasAdicionales.productosAprobados}
+                        colorClass="stat-card-green"
+                    />
+                    <StatCard
+                        icon="⚠️"
+                        label="Stock Bajo"
+                        value={metricasAdicionales.productosConStockBajo}
+                        colorClass="stat-card-red"
+                        onClick={() => setActiveTab('productos')}
+                    />
+                </div>
+
+                {/* Grid con Pedidos, Productos Destacados y Carrusel */}
+                <div className="dashboard-grid-modern">
+                    {/* Pedidos Recientes */}
+                    <div className="dashboard-section-modern">
+                        <div className="section-header-modern">
+                            <h2 className="section-title-modern">📦 Pedidos Recientes</h2>
+                            <button
+                                onClick={() => setActiveTab('pedidos')}
+                                className="btn-link-modern"
+                            >
+                                Ver todos →
+                            </button>
+                        </div>
+                        <div className="pedidos-grid-modern">
+                            {pedidosReales.slice(0, 3).map(pedido => (
+                                <PedidoCard
+                                    key={pedido.id}
+                                    pedido={pedido}
+                                    onActualizarEstado={handleActualizarEstadoPedido}
+                                    onRecargar={() => cargarPedidosVendedor(vendedor.id)}
+                                />
+                            ))}
+                            {pedidosReales.length === 0 && (
+                                <div className="empty-state-modern">
+                                    <div className="empty-icon-modern">🛒</div>
+                                    <p>No hay pedidos recientes</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
                     {/* Productos Destacados */}
-                    <div className="dashboard-section">
-                        <h3>🏆 Tus Productos Más Vendidos</h3>
-                        <div className="productos-destacados">
+                    <div className="dashboard-section-modern">
+                        <h2 className="section-title-modern">🏆 Productos Más Vendidos</h2>
+                        <div className="productos-destacados-modern">
                             {productosReales
                                 .filter(p => (p.vendidos || 0) > 0)
                                 .sort((a, b) => (b.vendidos || 0) - (a.vendidos || 0))
                                 .slice(0, 5)
                                 .map(producto => (
-                                    <div key={producto.id} className="producto-destacado">
-                                        <span className="producto-nombre">{producto.nombre}</span>
-                                        <span className="producto-ventas">{producto.vendidos || 0} vendidos</span>
+                                    <div key={producto.id} className="producto-destacado-modern">
+                                        <span className="producto-nombre-modern">{producto.nombre}</span>
+                                        <span className="producto-ventas-modern">{producto.vendidos || 0} vendidos</span>
                                     </div>
                                 ))
                             }
                             {productosReales.filter(p => (p.vendidos || 0) > 0).length === 0 && (
-                                <div className="empty-message">
+                                <div className="empty-state-modern">
                                     <p>📈 Tus productos más vendidos aparecerán aquí</p>
                                 </div>
                             )}
                         </div>
-
-                        {/* Pedidos Recientes */}
-                        <div className="dashboard-section">
-                            <h3>🛒 Pedidos Recientes</h3>
-                            <div className="pedidos-recientes">
-                                {pedidosReales.slice(0, 5).map(pedido => (
-                                    <div key={pedido.id} className="pedido-resumen">
-                                        <span className="pedido-id">#{pedido.id}</span>
-                                        <span className="pedido-cliente">{pedido.cliente_nombre || 'Cliente'}</span>
-                                        <span className="pedido-total">
-                                            {formatPrice(pedido.total || 0)}
-                                        </span>
-                                        <span className={`pedido-estado ${pedido.estado}`}>
-                                            {pedido.estado}
-                                        </span>
-                                    </div>
-                                ))}
-                                {pedidosReales.length === 0 && (
-                                    <div className="empty-message">
-                                        <p>🛒 Tus pedidos aparecerán aquí</p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
                     </div>
 
-                    {/* Carrusel de Productos - CORREGIDO */}
-                    <div className="dashboard-section carrusel-section">
-                        <h3>🔄 Tus Productos</h3>
-                        <div className="productos-carrusel">
-                            {productosCarrusel.map(producto => {
-                                const imagenUrl = getImageUrl(producto.imagen);
-                                console.log(`🖼️ Carrusel - Producto: ${producto.nombre}, Imagen URL: ${imagenUrl}`);
-                                
-                                return (
-                                    <div key={producto.id} className="producto-carrusel-item">
-                                        <div className="carrusel-image">
-                                            {imagenUrl ? (
-                                                <img 
-                                                    src={imagenUrl}
-                                                    alt={producto.nombre}
-                                                    onError={(e) => {
-                                                        console.error('❌ Error cargando imagen:', imagenUrl);
-                                                        e.target.style.display = 'none';
-                                                        e.target.nextSibling.style.display = 'flex';
-                                                    }}
-                                                    onLoad={() => console.log('✅ Imagen cargada:', producto.nombre)}
-                                                />
-                                            ) : null}
-                                            <div 
-                                                className="carrusel-placeholder"
-                                                style={{display: imagenUrl ? 'none' : 'flex'}}
-                                            >
-                                                {producto.categoria_nombre === 'Frutas' ? '🍎' :
-                                                 producto.categoria_nombre === 'Verduras' ? '🥕' : '🌱'}
-                                            </div>
-                                        </div>
-                                        <div className="carrusel-info">
-                                            <h4>{producto.nombre}</h4>
-                                            <p className="carrusel-precio">{formatPrice(producto.precio)}</p>
-                                            <div className={`carrusel-estado ${producto.aprobado ? 'aprobado' : 'pendiente'}`}>
-                                                {producto.aprobado ? '✅ Aprobado' : '⏳ Pendiente'}
-                                            </div>
-                                            <div className="carrusel-stock">
-                                                Stock: {producto.stock} unidades
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                            {productosCarrusel.length === 0 && (
-                                <div className="empty-carrusel">
-                                    <div className="empty-icon">📦</div>
-                                    <p>No tienes productos aún</p>
-                                </div>
-                            )}
+                    {/* Carrusel de Nuevos Productos */}
+                    <div className="dashboard-section-modern carousel-section-modern">
+                        <div className="section-header-modern">
+                            <h2 className="section-title-modern">✨ Últimos Productos</h2>
+                            <button
+                                onClick={() => setActiveTab('productos')}
+                                className="btn-link-modern"
+                            >
+                                Ver todos →
+                            </button>
                         </div>
+                        <CarruselProductos productos={productosReales} />
                     </div>
                 </div>
             </div>
@@ -449,12 +478,14 @@ const VendedorPanel = () => {
         const [productoEditando, setProductoEditando] = useState(null);
         const [paginaActual, setPaginaActual] = useState(1);
         const [productosPorPagina] = useState(12);
-        const [filtroAprobacion, setFiltroAprobacion] = useState('todos');
+        const [filtroAprobacion, setFiltroAprobacion] = useState('aprobados');
+        const [searchTerm, setSearchTerm] = useState('');
 
         const productosFiltrados = productosReales.filter(producto => {
-            if (filtroAprobacion === 'aprobados') return producto.aprobado;
-            if (filtroAprobacion === 'pendientes') return !producto.aprobado;
-            return true;
+            const matchSearch = producto.nombre.toLowerCase().includes(searchTerm.toLowerCase());
+            if (filtroAprobacion === 'aprobados') return producto.aprobado && matchSearch;
+            if (filtroAprobacion === 'pendientes') return !producto.aprobado && matchSearch;
+            return matchSearch;
         });
 
         const indexOfLastProduct = paginaActual * productosPorPagina;
@@ -480,169 +511,168 @@ const VendedorPanel = () => {
                             }
                         }
                     );
-                    showToast('✅ Producto actualizado correctamente', 'success');
                 } else {
                     await handleAgregarProducto(productoData);
                 }
-                
+
                 setMostrarFormulario(false);
                 setProductoEditando(null);
                 await cargarProductosVendedor(vendedor.id);
             } catch (error) {
                 console.error('Error guardando producto:', error);
-                showToast('❌ Error al guardar producto', 'error');
             }
         };
 
         const paginate = (pageNumber) => setPaginaActual(pageNumber);
 
         return (
-            <div className="productos-tab">
-                <div className="tab-header">
+            <div className="productos-tab-modern">
+                <div className="productos-header-modern">
                     <div>
-                        <h2>📦 Gestión de Productos ({productosFiltrados.length})</h2>
-                        <p>Administra todos tus productos agrícolas</p>
+                        <h1 className="tab-title-modern">Mis Productos</h1>
+                        <p className="tab-subtitle-modern">{productosFiltrados.length} productos en total</p>
                     </div>
-                    <div className="tab-header-actions">
-                        <select 
-                            value={filtroAprobacion}
-                            onChange={(e) => {
-                                setFiltroAprobacion(e.target.value);
-                                setPaginaActual(1);
-                            }}
-                            className="filtro-select"
-                        >
-                            <option value="todos">Todos los productos</option>
-                            <option value="aprobados">Solo aprobados</option>
-                            <option value="pendientes">Pendientes de aprobación</option>
-                        </select>
-                        <button 
-                            className="btn-agregar"
-                            onClick={() => {
-                                setProductoEditando(null);
-                                setMostrarFormulario(true);
-                            }}
-                        >
-                            ➕ Agregar Producto
-                        </button>
+                    <button
+                        className="btn-primary-modern"
+                        onClick={() => {
+                            setProductoEditando(null);
+                            setMostrarFormulario(true);
+                        }}
+                    >
+                        <span className="btn-icon-modern">+</span>
+                        Nuevo Producto
+                    </button>
+                </div>
+
+                {/* Barra de búsqueda y filtros */}
+                <div className="productos-filters-modern">
+                    <div className="search-box-modern">
+                        <span className="search-icon-modern">🔍</span>
+                        <input
+                            type="text"
+                            placeholder="Buscar productos..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="search-input-modern"
+                        />
                     </div>
+                    <select
+                        value={filtroAprobacion}
+                        onChange={(e) => {
+                            setFiltroAprobacion(e.target.value);
+                            setPaginaActual(1);
+                        }}
+                        className="filter-select-modern"
+                    >
+                        <option value="todos">Todos</option>
+                        <option value="aprobados">Solo Aprobados</option>
+                        <option value="pendientes">Pendientes</option>
+                    </select>
                 </div>
 
                 {mostrarFormulario && (
-                    <FormularioProducto 
-                        productoEditar={productoEditando}
-                        onGuardar={handleGuardarProducto}
-                        onCancelar={() => {
-                            setMostrarFormulario(false);
-                            setProductoEditando(null);
-                        }}
-                        onRecargar={() => cargarProductosVendedor(vendedor.id)}
-                        categorias={categoriasReales}
-                        showToast={showToast}
-                    />
+                    <div className="modal-overlay-modern">
+                        <div className="modal-content-modern">
+                            <FormularioProducto
+                                productoEditar={productoEditando}
+                                onGuardar={handleGuardarProducto}
+                                onCancelar={() => {
+                                    setMostrarFormulario(false);
+                                    setProductoEditando(null);
+                                }}
+                                onRecargar={() => cargarProductosVendedor(vendedor.id)}
+                                categorias={categoriasReales}
+                                showToast={showToast}
+                            />
+                        </div>
+                    </div>
                 )}
 
-                <div className="productos-stats">
-                    <div className="producto-stat">
-                        <span className="stat-number">{productosReales.length}</span>
-                        <span className="stat-label">Total</span>
-                    </div>
-                    <div className="producto-stat aprobados">
-                        <span className="stat-number">{productosReales.filter(p => p.aprobado).length}</span>
-                        <span className="stat-label">Aprobados</span>
-                    </div>
-                    <div className="producto-stat pendientes">
-                        <span className="stat-number">{productosReales.filter(p => !p.aprobado).length}</span>
-                        <span className="stat-label">Pendientes</span>
-                    </div>
-                </div>
-
-                <div className="productos-grid-paginado">
-                    {productosActuales.length > 0 ? (
-                        <>
-                            <div className="productos-grid">
-                                {productosActuales.map(producto => (
-                                    <ProductoCard 
-                                        key={producto.id}
-                                        producto={producto}
-                                        onEditar={handleEditarProducto}
-                                        onEliminar={() => handleEliminarProducto(producto.id)}
-                                        onRecargar={() => cargarProductosVendedor(vendedor.id)}
-                                        showToast={showToast}
-                                    />
-                                ))}
-                            </div>
-
-                            {totalPages > 1 && (
-                                <div className="pagination">
-                                    <button 
-                                        onClick={() => paginate(paginaActual - 1)}
-                                        disabled={paginaActual === 1}
-                                        className="pagination-btn"
-                                    >
-                                        ← Anterior
-                                    </button>
-                                    
-                                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(number => (
-                                        <button
-                                            key={number}
-                                            onClick={() => paginate(number)}
-                                            className={`pagination-number ${paginaActual === number ? 'active' : ''}`}
-                                        >
-                                            {number}
-                                        </button>
-                                    ))}
-                                    
-                                    <button 
-                                        onClick={() => paginate(paginaActual + 1)}
-                                        disabled={paginaActual === totalPages}
-                                        className="pagination-btn"
-                                    >
-                                        Siguiente →
-                                    </button>
-                                </div>
-                            )}
-
-                            <div className="pagination-info">
-                                Página {paginaActual} de {totalPages} • 
-                                Mostrando {productosActuales.length} de {productosFiltrados.length} productos
-                            </div>
-                        </>
-                    ) : (
-                        <div className="empty-state">
-                            <div className="empty-icon">📦</div>
-                            <h3>No hay productos</h3>
-                            <p>{filtroAprobacion === 'aprobados' ? 
-                                'No tienes productos aprobados aún' : 
-                                filtroAprobacion === 'pendientes' ? 
-                                'No tienes productos pendientes de aprobación' : 
-                                'Comienza agregando tu primer producto agrícola'
-                            }</p>
-                            {filtroAprobacion === 'todos' && (
-                                <button 
-                                    className="btn-primary"
-                                    onClick={() => setMostrarFormulario(true)}
-                                >
-                                    Agregar Primer Producto
-                                </button>
-                            )}
+                {productosActuales.length > 0 ? (
+                    <>
+                        <div className="productos-grid-modern">
+                            {productosActuales.map(producto => (
+                                <ProductoCard
+                                    key={producto.id}
+                                    producto={producto}
+                                    onEditar={handleEditarProducto}
+                                    onEliminar={() => handleEliminarProducto(producto.id)}
+                                    onRecargar={() => cargarProductosVendedor(vendedor.id)}
+                                    showToast={showToast}
+                                />
+                            ))}
                         </div>
-                    )}
-                </div>
+
+                        {totalPages > 1 && (
+                            <div className="pagination-modern">
+                                <button
+                                    onClick={() => paginate(paginaActual - 1)}
+                                    disabled={paginaActual === 1}
+                                    className="pagination-btn-modern"
+                                >
+                                    ← Anterior
+                                </button>
+
+                                <span className="pagination-info-modern">
+                                    Página {paginaActual} de {totalPages}
+                                </span>
+
+                                <button
+                                    onClick={() => paginate(paginaActual + 1)}
+                                    disabled={paginaActual === totalPages}
+                                    className="pagination-btn-modern"
+                                >
+                                    Siguiente →
+                                </button>
+                            </div>
+                        )}
+                    </>
+                ) : (
+                    <div className="empty-state-modern">
+                        <div className="empty-icon-modern">📦</div>
+                        <h3 className="empty-title-modern">No se encontraron productos</h3>
+                        <p className="empty-text-modern">
+                            {searchTerm ? 'Intenta con otro término de búsqueda' : 'Comienza agregando tu primer producto'}
+                        </p>
+                    </div>
+                )}
             </div>
         );
     };
 
     // 🛒 COMPONENTE PEDIDOS CON DATOS REALES
     const PedidosTab = () => {
+        const [filtroEstado, setFiltroEstado] = useState('todos');
+
+        const pedidosFiltrados = pedidosReales.filter(pedido => {
+            if (filtroEstado === 'todos') return true;
+            return pedido.estado === filtroEstado;
+        });
+
         return (
-            <div className="pedidos-tab">
-                <h2>🛒 Pedidos de Clientes ({pedidosReales.length})</h2>
-                
-                <div className="pedidos-list">
-                    {pedidosReales.map(pedido => (
-                        <PedidoCard 
-                            key={pedido.id} 
+            <div className="pedidos-tab-modern">
+                <div className="productos-header-modern">
+                    <div>
+                        <h1 className="tab-title-modern">Gestión de Pedidos</h1>
+                        <p className="tab-subtitle-modern">{pedidosFiltrados.length} pedidos</p>
+                    </div>
+                    <select
+                        value={filtroEstado}
+                        onChange={(e) => setFiltroEstado(e.target.value)}
+                        className="filter-select-modern"
+                    >
+                        <option value="todos">Todos</option>
+                        <option value="pendiente">Pendientes</option>
+                        <option value="procesando">En Proceso</option>
+                        <option value="despachado">Despachados</option>
+                        <option value="entregado">Entregados</option>
+                    </select>
+                </div>
+
+                <div className="pedidos-list-modern">
+                    {pedidosFiltrados.map(pedido => (
+                        <PedidoCard
+                            key={pedido.id}
                             pedido={pedido}
                             onActualizarEstado={handleActualizarEstadoPedido}
                             onRecargar={() => cargarPedidosVendedor(vendedor.id)}
@@ -650,11 +680,11 @@ const VendedorPanel = () => {
                     ))}
                 </div>
 
-                {pedidosReales.length === 0 && (
-                    <div className="empty-state">
-                        <div className="empty-icon">🛒</div>
-                        <h3>No tienes pedidos aún</h3>
-                        <p>Los pedidos de tus productos aparecerán aquí</p>
+                {pedidosFiltrados.length === 0 && (
+                    <div className="empty-state-modern">
+                        <div className="empty-icon-modern">🛒</div>
+                        <h3 className="empty-title-modern">No hay pedidos</h3>
+                        <p className="empty-text-modern">Los pedidos aparecerán aquí cuando los clientes realicen compras</p>
                     </div>
                 )}
             </div>
@@ -666,8 +696,8 @@ const VendedorPanel = () => {
         const [notificacionesLocales, setNotificacionesLocales] = useState(notificaciones);
 
         const marcarComoLeida = (id) => {
-            setNotificacionesLocales(prev => 
-                prev.map(notif => 
+            setNotificacionesLocales(prev =>
+                prev.map(notif =>
                     notif.id === id ? { ...notif, leida: true } : notif
                 )
             );
@@ -676,118 +706,104 @@ const VendedorPanel = () => {
         const notificacionesNoLeidas = notificacionesLocales.filter(n => !n.leida);
 
         return (
-            <div className="notificaciones-tab">
-                <h2>🔔 Notificaciones ({notificacionesNoLeidas.length})</h2>
-                
-                <div className="notificaciones-list">
+            <div className="notificaciones-tab-modern">
+                <h1 className="tab-title-modern">Notificaciones ({notificacionesNoLeidas.length})</h1>
+
+                <div className="notificaciones-list-modern">
                     {notificacionesLocales.map(notif => (
-                        <div 
-                            key={notif.id} 
-                            className={`notificacion ${notif.tipo} ${notif.leida ? 'leida' : ''}`}
+                        <div
+                            key={notif.id}
+                            className={`notificacion-modern ${notif.tipo} ${notif.leida ? 'leida' : ''}`}
                             onClick={() => !notif.leida && marcarComoLeida(notif.id)}
                         >
-                            <div className="notificacion-icono">
+                            <div className="notificacion-icono-modern">
                                 {notif.tipo === 'warning' ? '⚠️' : 'ℹ️'}
                             </div>
-                            <div className="notificacion-contenido">
-                                <div className="notificacion-titulo">{notif.titulo}</div>
-                                <div className="notificacion-mensaje">{notif.mensaje}</div>
-                                <div className="notificacion-fecha">
+                            <div className="notificacion-contenido-modern">
+                                <div className="notificacion-titulo-modern">{notif.titulo}</div>
+                                <div className="notificacion-mensaje-modern">{notif.mensaje}</div>
+                                <div className="notificacion-fecha-modern">
                                     {new Date(notif.fecha).toLocaleDateString('es-CL')}
                                 </div>
                             </div>
-                            {!notif.leida && <div className="notificacion-punto"></div>}
+                            {!notif.leida && <div className="notificacion-punto-modern"></div>}
                         </div>
                     ))}
                 </div>
 
                 {notificacionesLocales.length === 0 && (
-                    <div className="empty-state">
-                        <div className="empty-icon">🔔</div>
-                        <h3>No hay notificaciones</h3>
-                        <p>Te avisaremos cuando tengas novedades importantes</p>
+                    <div className="empty-state-modern">
+                        <div className="empty-icon-modern">🔔</div>
+                        <h3 className="empty-title-modern">No hay notificaciones</h3>
+                        <p className="empty-text-modern">Te avisaremos cuando tengas novedades importantes</p>
                     </div>
                 )}
             </div>
         );
     };
 
-    // 🎨 COMPONENTE TOAST CONTAINER
-    const ToastContainer = () => {
-        return (
-            <div className="toast-container">
-                {toasts.map(toast => (
-                    <div key={toast.id} className={`toast ${toast.type}`}>
-                        <div className="toast-icon">
-                            {toast.type === 'success' ? '✅' : 
-                             toast.type === 'error' ? '❌' : 'ℹ️'}
-                        </div>
-                        <div className="toast-message">{toast.message}</div>
-                        <button 
-                            onClick={() => removeToast(toast.id)}
-                            className="toast-close"
-                        >
-                            ×
-                        </button>
-                    </div>
-                ))}
-            </div>
-        );
-    };
-
     return (
-        <div className="vendedor-panel">
-            {/* Toast Container */}
-            <ToastContainer />
+        <div className="vendedor-panel-modern">
+            {/* Navigation Bar estilo iOS */}
+            <nav className="navbar-modern">
+                <div className="navbar-container-modern">
+                    <div className="navbar-content-modern">
+                        <div className="navbar-left-modern">
+                            <div className="logo-modern">
+                                <div className="logo-icon-modern">🌾</div>
+                                <span className="logo-text-modern">Panel Vendedor</span>
+                            </div>
 
-            <div className="panel-header">
-                <h1>👩‍🌾 Panel del Vendedor</h1>
-                <p>Gestiona tu negocio agrícola con datos reales</p>
-                <div className="vendedor-info">
-                    <span>Vendedor: {vendedor?.username}</span>
-                    <span>•</span>
-                    <span>Productos: {productosReales.length}</span>
-                    <span>•</span>
-                    <span>Pedidos: {pedidosReales.length}</span>
-                    <span>•</span>
-                    <span>Categorías: {categoriasReales.length}</span>
+                            <div className="tabs-modern">
+                                {[
+                                    { id: 'dashboard', icon: '📊', label: 'Dashboard' },
+                                    { id: 'productos', icon: '📦', label: 'Productos' },
+                                    { id: 'pedidos', icon: '🛒', label: 'Pedidos' },
+                                    { id: 'notificaciones', icon: '🔔', label: 'Alertas' }
+                                ].map(tab => (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setActiveTab(tab.id)}
+                                        className={`tab-btn-modern ${activeTab === tab.id ? 'tab-active-modern' : ''}`}
+                                    >
+                                        <span className="tab-icon-modern">{tab.icon}</span>
+                                        <span className="tab-label-modern">{tab.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="navbar-right-modern">
+                            <button className="notification-btn-modern">
+                                <span>🔔</span>
+                                {notificaciones.filter(n => !n.leida).length > 0 && (
+                                    <span className="notification-badge-modern"></span>
+                                )}
+                            </button>
+                            <VendedorProfileMenu user={vendedor} />
+                        </div>
+                    </div>
                 </div>
-            </div>
+            </nav>
 
-            {/* Pestañas de navegación */}
-            <div className="navigation-tabs">
-                <button 
-                    className={activeTab === 'dashboard' ? 'tab-active' : 'tab'}
-                    onClick={() => setActiveTab('dashboard')}
-                >
-                    📊 Dashboard
-                </button>
-                <button 
-                    className={activeTab === 'productos' ? 'tab-active' : 'tab'}
-                    onClick={() => setActiveTab('productos')}
-                >
-                    📦 Productos ({productosReales.length})
-                </button>
-                <button 
-                    className={activeTab === 'pedidos' ? 'tab-active' : 'tab'}
-                    onClick={() => setActiveTab('pedidos')}
-                >
-                    🛒 Pedidos ({pedidosReales.length})
-                </button>
-                <button 
-                    className={activeTab === 'notificaciones' ? 'tab-active' : 'tab'}
-                    onClick={() => setActiveTab('notificaciones')}
-                >
-                    🔔 Notificaciones ({notificaciones.filter(n => !n.leida).length})
-                </button>
-            </div>
-
-            {/* Contenido principal */}
-            <div className="panel-content">
+            {/* Contenido Principal */}
+            <main className="main-content-modern">
                 {activeTab === 'dashboard' && <DashboardTab />}
                 {activeTab === 'productos' && <ProductosTab />}
                 {activeTab === 'pedidos' && <PedidosTab />}
                 {activeTab === 'notificaciones' && <NotificacionesTab />}
+            </main>
+
+            {/* Toasts */}
+            <div className="toast-container-modern">
+                {toasts.map(toast => (
+                    <Toast
+                        key={toast.id}
+                        message={toast.message}
+                        type={toast.type}
+                        onClose={() => removeToast(toast.id)}
+                    />
+                ))}
             </div>
         </div>
     );

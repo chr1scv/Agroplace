@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { getCsrfToken, getAxiosConfig } from '../../utils/csrf';
 import authService from '../../services/auth';
 import './adminStyles.css';
 import { useToast } from '../../hooks/useToast';
@@ -8,6 +9,7 @@ import ToastContainer from '../../components/ToastContainer';
 import PedidoDetalleModal from './PedidoDetalleModal';
 import EditarUsuarioModal from './EditarUsuarioModal';
 import EditarProductoModal from './EditarProductoModal';
+import VerProductoModal from './VerProductoModal';
 import CategoriasTab from './CategoriasTab';
 
 const AdminPanel = () => {
@@ -45,6 +47,25 @@ const AdminPanel = () => {
         };
         checkAuth();
     }, [navigate]);
+
+    // Cargar datos automáticamente al cambiar de pestaña
+    useEffect(() => {
+        if (activeTab === 'vendedoresPendientes') {
+            cargarVendedoresPendientes();
+        }
+        if (activeTab === 'productosPendientes') {
+            cargarProductosPendientes();
+        }
+        if (activeTab === 'usuarios') {
+            cargarUsuarios();
+        }
+        if (activeTab === 'productos') {
+            cargarProductos();
+        }
+        if (activeTab === 'pedidos') {
+            cargarPedidos();
+        }
+    }, [activeTab]);
 
     const cargarDatosIniciales = async () => {
         try {
@@ -129,40 +150,49 @@ const AdminPanel = () => {
     // ✅ EDITAR USUARIO
     const editarUsuario = async (usuarioId, datosActualizados) => {
         try {
+            // Optimistic update
+            setUsuarios(prev => prev.map(u => u.id === usuarioId ? { ...u, ...datosActualizados } : u));
+            setUsuarioEditar(null); // Close modal immediately
+
             await axios.patch(
                 `http://localhost:8000/api/usuarios/${usuarioId}/`,
-                datosActualizados
+                datosActualizados,
+                getAxiosConfig()
             );
 
-            await cargarUsuarios();
-            await cargarEstadisticas();
-
             showToast('✅ Usuario actualizado exitosamente', 'success');
-            setUsuarioEditar(null);
+
+            // Refresh to ensure consistency
+            cargarEstadisticas();
 
         } catch (error) {
             console.error('Error al actualizar usuario:', error);
             showToast('❌ Error al actualizar el usuario', 'error');
+            cargarUsuarios(); // Revert on error
         }
     };
 
     // ✅ EDITAR PRODUCTO
     const editarProducto = async (productoId, datosActualizados) => {
         try {
+            // Optimistic update
+            setProductos(prev => prev.map(p => p.id === productoId ? { ...p, ...datosActualizados } : p));
+            setProductoEditar(null); // Close modal immediately
+
             await axios.patch(
                 `http://localhost:8000/api/productos/${productoId}/`,
-                datosActualizados
+                datosActualizados,
+                getAxiosConfig()
             );
 
-            await cargarProductos();
-            await cargarEstadisticas();
-
             showToast('✅ Producto actualizado exitosamente', 'success');
-            setProductoEditar(null);
+
+            cargarEstadisticas();
 
         } catch (error) {
             console.error('Error al actualizar producto:', error);
             showToast('❌ Error al actualizar el producto', 'error');
+            cargarProductos(); // Revert on error
         }
     };
 
@@ -223,81 +253,105 @@ const AdminPanel = () => {
         }
     };
 
-    // ===== FUNCIONES EXISTENTES (MANTENER) =====
 
-    const aprobarVendedor = async (usuarioId) => {
+    // ===== APROBAR / RECHAZAR VENDEDORES =====
+    const aprobarVendedor = async (id) => {
         try {
-            await axios.patch(`http://localhost:8000/api/usuarios/${usuarioId}/`, {
+            // Optimistic update
+            setVendedoresPendientes(prev => prev.filter(v => v.id !== id));
+
+            // Note: 'activo' is the standard state for approved users, not 'aprobado'
+            await axios.patch(`http://localhost:8000/api/usuarios/${id}/`, {
                 estado: 'activo'
             });
 
-            await cargarVendedoresPendientes();
-            await cargarUsuarios();
-            await cargarEstadisticas();
+            showToast('✅ Vendedor aprobado', 'success');
 
-            showToast('✅ Vendedor aprobado exitosamente', 'success');
+            cargarUsuarios();
+            cargarEstadisticas();
+
         } catch (error) {
             console.error('Error aprobando vendedor:', error);
             showToast('❌ Error al aprobar vendedor', 'error');
+            cargarVendedoresPendientes();
         }
     };
 
-    const rechazarVendedor = async (usuarioId) => {
-        if (window.confirm('¿Estás seguro de que quieres rechazar este vendedor?')) {
-            try {
-                await axios.patch(`http://localhost:8000/api/usuarios/${usuarioId}/`, {
-                    estado: 'rechazado'
-                });
-
-                await cargarVendedoresPendientes();
-                await cargarUsuarios();
-                await cargarEstadisticas();
-
-                showToast('✅ Vendedor rechazado', 'warning');
-            } catch (error) {
-                console.error('Error rechazando vendedor:', error);
-                showToast('❌ Error al rechazar vendedor', 'error');
-            }
-        }
-    };
-
-    const aprobarProducto = async (productoId) => {
+    const rechazarVendedor = async (id) => {
         try {
-            await axios.patch(`http://localhost:8000/api/productos/${productoId}/`, {
-                aprobado: true,
-                activo: true
+            // Optimistic update
+            setVendedoresPendientes(prev => prev.filter(v => v.id !== id));
+
+            await axios.patch(`http://localhost:8000/api/usuarios/${id}/`, {
+                estado: 'rechazado'
             });
 
-            await cargarProductos();
-            await cargarProductosPendientes();
-            await cargarEstadisticas();
+            showToast('❌ Vendedor rechazado', 'success');
 
-            showToast('✅ Producto aprobado exitosamente', 'success');
+            cargarUsuarios();
+            cargarEstadisticas();
+
+        } catch (error) {
+            console.error('Error rechazando vendedor:', error);
+            showToast('❌ Error al rechazar vendedor', 'error');
+            cargarVendedoresPendientes();
+        }
+    };
+
+
+    // ===== APROBAR / RECHAZAR PRODUCTOS =====
+    const aprobarProducto = async (id) => {
+        try {
+            // Optimistic update: Remove from pending list immediately
+            setProductosPendientes(prev => prev.filter(p => p.id !== id));
+
+            await axios.patch(`http://localhost:8000/api/productos/${id}/`, {
+                aprobado: true
+            }, getAxiosConfig());
+
+            showToast('✅ Producto aprobado', 'success');
+
+            // Update other lists in background
+            cargarProductos();
+            cargarEstadisticas();
+
         } catch (error) {
             console.error('Error aprobando producto:', error);
             showToast('❌ Error al aprobar producto', 'error');
+            // Revert on error
+            cargarProductosPendientes();
         }
     };
 
-    const rechazarProducto = async (productoId) => {
-        if (window.confirm('¿Estás seguro de que quieres rechazar este producto?')) {
+    const rechazarProducto = async (id) => {
+        try {
+            // Optimistic update: Remove from pending list immediately
+            setProductosPendientes(prev => prev.filter(p => p.id !== id));
+
+            // Usar el endpoint de rechazo si existe, sino usar patch
             try {
-                await axios.patch(`http://localhost:8000/api/productos/${productoId}/`, {
+                await axios.post(`http://localhost:8000/api/productos/${id}/rechazar/`, {}, getAxiosConfig());
+            } catch (e) {
+                // Fallback a patch
+                await axios.patch(`http://localhost:8000/api/productos/${id}/`, {
                     aprobado: false,
                     activo: false
-                });
-
-                await cargarProductos();
-                await cargarProductosPendientes();
-                await cargarEstadisticas();
-
-                showToast('✅ Producto rechazado', 'warning');
-            } catch (error) {
-                console.error('Error rechazando producto:', error);
-                showToast('❌ Error al rechazar producto', 'error');
+                }, getAxiosConfig());
             }
+
+            showToast('❌ Producto rechazado', 'success');
+
+            cargarProductos();
+            cargarEstadisticas();
+
+        } catch (error) {
+            console.error('Error rechazando producto:', error);
+            showToast('❌ Error al rechazar producto', 'error');
+            cargarProductosPendientes();
         }
     };
+
+
 
     const eliminarUsuario = async (usuarioId, username) => {
         const confirmar = window.confirm(
@@ -307,7 +361,7 @@ const AdminPanel = () => {
 
         if (confirmar) {
             try {
-                await axios.delete(`http://localhost:8000/api/usuarios/${usuarioId}/`);
+                await axios.delete(`http://localhost:8000/api/usuarios/${usuarioId}/`, getAxiosConfig());
 
                 await cargarUsuarios();
                 await cargarEstadisticas();
@@ -328,7 +382,7 @@ const AdminPanel = () => {
 
         if (confirmar) {
             try {
-                await axios.delete(`http://localhost:8000/api/productos/${productoId}/`);
+                await axios.delete(`http://localhost:8000/api/productos/${productoId}/`, getAxiosConfig());
 
                 await cargarProductos();
                 await cargarEstadisticas();
@@ -855,6 +909,26 @@ const UsuariosTab = ({ usuarios, loading, onReload, onEliminarUsuario, onEditarU
 const ProductosTab = ({ productos, loading, onReload, onEliminarProducto, onEditarProducto, formatPrice }) => {
     const [filtro, setFiltro] = useState('');
     const [categoriaFiltro, setCategoriaFiltro] = useState('todos');
+    const [estadoFiltro, setEstadoFiltro] = useState('todos');
+    const [ordenarPor, setOrdenarPor] = useState('recientes');
+    const [productoVer, setProductoVer] = useState(null);
+    const [descripcionModal, setDescripcionModal] = useState(null);
+    const [categorias, setCategorias] = useState([]);
+
+    // Cargar categorías desde la base de datos
+    useEffect(() => {
+        const cargarCategorias = async () => {
+            try {
+                const response = await axios.get('http://localhost:8000/api/categorias/', {
+                    withCredentials: true
+                });
+                setCategorias(response.data);
+            } catch (error) {
+                console.error('Error cargando categorías:', error);
+            }
+        };
+        cargarCategorias();
+    }, []);
 
     if (loading) {
         return (
@@ -865,18 +939,52 @@ const ProductosTab = ({ productos, loading, onReload, onEliminarProducto, onEdit
         );
     }
 
-    // Filtrar productos
-    const productosFiltrados = productos.filter(producto => {
-        const coincideBusqueda = producto.nombre.toLowerCase().includes(filtro.toLowerCase()) ||
-            producto.descripcion?.toLowerCase().includes(filtro.toLowerCase());
+    // Función para obtener el estado del producto
+    const getEstadoProducto = (producto) => {
+        if (!producto.activo) return { texto: 'Inactivo', clase: 'estado-inactivo' };
+        if (producto.aprobado) return { texto: 'Activo', clase: 'estado-activo' };
+        return { texto: 'Pendiente', clase: 'estado-pendiente' };
+    };
 
-        const coincideCategoria = categoriaFiltro === 'todos' ||
-            producto.categoria?.nombre === categoriaFiltro;
+    // Filtrar y ordenar productos
+    const productosFiltrados = productos
+        .filter(producto => {
+            // Búsqueda por texto
+            const coincideBusqueda = producto.nombre.toLowerCase().includes(filtro.toLowerCase()) ||
+                producto.descripcion?.toLowerCase().includes(filtro.toLowerCase());
 
-        return coincideBusqueda && coincideCategoria;
-    });
+            // Filtro de categoría
+            const coincideCategoria = categoriaFiltro === 'todos' ||
+                producto.categoria?.id === parseInt(categoriaFiltro);
 
-    const categorias = [...new Set(productos.map(p => p.categoria?.nombre).filter(Boolean))];
+            // Filtro de estado
+            let coincideEstado = true;
+            if (estadoFiltro === 'activo') {
+                coincideEstado = producto.activo && producto.aprobado;
+            } else if (estadoFiltro === 'pendiente') {
+                coincideEstado = producto.activo && !producto.aprobado;
+            } else if (estadoFiltro === 'inactivo') {
+                coincideEstado = !producto.activo;
+            }
+
+            return coincideBusqueda && coincideCategoria && coincideEstado;
+        })
+        .sort((a, b) => {
+            switch (ordenarPor) {
+                case 'recientes':
+                    return new Date(b.fecha_creacion || 0) - new Date(a.fecha_creacion || 0);
+                case 'precio-asc':
+                    return a.precio - b.precio;
+                case 'precio-desc':
+                    return b.precio - a.precio;
+                case 'nombre':
+                    return a.nombre.localeCompare(b.nombre);
+                case 'stock':
+                    return b.stock - a.stock;
+                default:
+                    return 0;
+            }
+        });
 
     return (
         <div>
@@ -897,140 +1005,475 @@ const ProductosTab = ({ productos, loading, onReload, onEliminarProducto, onEdit
                 </div>
             </div>
 
-            {/* Filtros */}
-            <div className="admin-filtros-container">
-                <div className="admin-search-box">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="admin-search-icon">
-                        <circle cx="11" cy="11" r="8" />
-                        <path d="m21 21-4.3-4.3" />
-                    </svg>
-                    <input
-                        type="text"
-                        placeholder="Buscar productos por nombre o descripción..."
-                        value={filtro}
-                        onChange={(e) => setFiltro(e.target.value)}
-                        className="admin-search-input"
-                    />
-                </div>
+            {/* Filtros Simplificados */}
+            <div className="admin-filtros-section">
+                <div className="admin-filtros-row">
+                    {/* Búsqueda */}
+                    <div className="admin-search-box" style={{ flex: 2 }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="admin-search-icon">
+                            <circle cx="11" cy="11" r="8" />
+                            <path d="m21 21-4.3-4.3" />
+                        </svg>
+                        <input
+                            type="text"
+                            placeholder="Buscar productos por nombre o descripción..."
+                            value={filtro}
+                            onChange={(e) => setFiltro(e.target.value)}
+                            className="admin-search-input"
+                        />
+                    </div>
 
-                <div className="admin-filtro-group">
-                    <label className="admin-filtro-label">Filtrar por categoría:</label>
+                    {/* Ordenar por */}
+                    <select
+                        value={ordenarPor}
+                        onChange={(e) => setOrdenarPor(e.target.value)}
+                        className="admin-filter-select"
+                        style={{ flex: 1 }}
+                    >
+                        <option value="recientes">Más recientes</option>
+                        <option value="nombre">Nombre A-Z</option>
+                        <option value="precio-asc">Precio: Menor a Mayor</option>
+                        <option value="precio-desc">Precio: Mayor a Menor</option>
+                        <option value="stock">Mayor Stock</option>
+                    </select>
+
+                    {/* Estado */}
+                    <select
+                        value={estadoFiltro}
+                        onChange={(e) => setEstadoFiltro(e.target.value)}
+                        className="admin-filter-select"
+                        style={{ flex: 1 }}
+                    >
+                        <option value="todos">Todos los Estados</option>
+                        <option value="activo">Activo</option>
+                        <option value="pendiente">Pendiente</option>
+                        <option value="inactivo">Inactivo</option>
+                    </select>
+
+                    {/* Categoría */}
                     <select
                         value={categoriaFiltro}
                         onChange={(e) => setCategoriaFiltro(e.target.value)}
-                        className="admin-filtro-select"
+                        className="admin-filter-select"
+                        style={{ flex: 1 }}
                     >
-                        <option value="todos">Todas las categorías</option>
-                        {categorias.map(categoria => (
-                            <option key={categoria} value={categoria}>{categoria}</option>
+                        <option value="todos">Todas las Categorías</option>
+                        {categorias.map(cat => (
+                            <option key={cat.id} value={cat.id}>{cat.nombre}</option>
                         ))}
                     </select>
                 </div>
             </div>
 
-            {/* Estadísticas */}
-            <div className="admin-stats-row">
-                <div className="admin-mini-stat">
-                    <div className="admin-mini-stat-number">{productosFiltrados.length}</div>
-                    <div className="admin-mini-stat-label">Productos Encontrados</div>
-                </div>
-                <div className="admin-mini-stat">
-                    <div className="admin-mini-stat-number">{productos.filter(p => p.activo).length}</div>
-                    <div className="admin-mini-stat-label">Productos Activos</div>
-                </div>
-                <div className="admin-mini-stat">
-                    <div className="admin-mini-stat-number">{productos.filter(p => !p.activo).length}</div>
-                    <div className="admin-mini-stat-label">Productos Inactivos</div>
-                </div>
-                <div className="admin-mini-stat">
-                    <div className="admin-mini-stat-number">{categorias.length}</div>
-                    <div className="admin-mini-stat-label">Categorías</div>
-                </div>
-            </div>
-
+            {/* Tabla de Productos */}
             <div className="admin-table-container">
                 <table className="admin-table">
                     <thead>
                         <tr>
-                            <th className="admin-table-header">Producto</th>
-                            <th className="admin-table-header">Categoría</th>
-                            <th className="admin-table-header">Precio</th>
-                            <th className="admin-table-header">Stock</th>
-                            <th className="admin-table-header">Vendedor</th>
-                            <th className="admin-table-header">Estado</th>
-                            <th className="admin-table-header">Acciones</th>
+                            <th>Producto</th>
+                            <th>Descripción</th>
+                            <th>Categoría</th>
+                            <th>Vendedor</th>
+                            <th>Precio</th>
+                            <th>Stock</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {productosFiltrados.map(producto => (
-                            <tr key={producto.id} className="admin-table-row">
-                                <td className="admin-table-cell">
-                                    <div className="admin-producto-info">
-                                        <div className="admin-producto-icon">
-                                            {producto.categoria?.nombre === 'Frutas' ? '🍎' :
-                                                producto.categoria?.nombre === 'Verduras' ? '🥕' : '🌱'}
-                                        </div>
-                                        <div>
-                                            <span className="admin-producto-nombre">{producto.nombre}</span>
-                                            {producto.descripcion && (
-                                                <div className="admin-producto-descripcion">
-                                                    {producto.descripcion.substring(0, 50)}
-                                                    {producto.descripcion.length > 50 ? '...' : ''}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </td>
-                                <td className="admin-table-cell">{producto.categoria?.nombre || 'Sin categoría'}</td>
-                                <td className="admin-table-cell">{formatPrice(producto.precio)}</td>
-                                <td className="admin-table-cell">
-                                    <span className={producto.stock > 0 ? "admin-stock-disponible" : "admin-stock-agotado"}>
-                                        {producto.stock} unidades
-                                    </span>
-                                </td>
-                                <td className="admin-table-cell">{producto.vendedor?.username || 'N/A'}</td>
-                                <td className="admin-table-cell">
-                                    <span className={producto.activo ? "admin-estado-activo" : "admin-estado-inactivo"}>
-                                        {producto.activo ? '✅ Activo' : '❌ Inactivo'}
-                                    </span>
-                                </td>
-                                <td className="admin-table-cell">
-                                    <div className="admin-acciones">
-                                        <button
-                                            onClick={() => onEditarProducto(producto)}
-                                            className="admin-editar-button"
-                                            title="Editar producto"
-                                        >
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '4px' }}>
-                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                            </svg>
-                                            Editar
-                                        </button>
-                                        <button
-                                            className="admin-eliminar-button"
-                                            onClick={() => onEliminarProducto(producto.id, producto.nombre)}
-                                            title="Eliminar producto"
-                                        >
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '4px' }}>
-                                                <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                            </svg>
-                                            Eliminar
-                                        </button>
+                        {productosFiltrados.length === 0 ? (
+                            <tr>
+                                <td colSpan="8" style={{ textAlign: 'center', padding: '40px' }}>
+                                    <div style={{ color: '#6b7280' }}>
+                                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ margin: '0 auto 16px', opacity: 0.3 }}>
+                                            <circle cx="12" cy="12" r="10" />
+                                            <line x1="12" y1="8" x2="12" y2="12" />
+                                            <line x1="12" y1="16" x2="12.01" y2="16" />
+                                        </svg>
+                                        <p>No se encontraron productos</p>
                                     </div>
                                 </td>
                             </tr>
-                        ))}
+                        ) : (
+                            productosFiltrados.map(producto => {
+                                const estado = getEstadoProducto(producto);
+                                return (
+                                    <tr key={producto.id}>
+                                        {/* Producto */}
+                                        <td>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                <div>
+                                                    <div style={{
+                                                        fontWeight: '700',
+                                                        color: '#ffffff',
+                                                        fontSize: '16px',
+                                                        marginBottom: '4px'
+                                                    }}>
+                                                        {producto.nombre}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+
+                                        {/* Descripción */}
+                                        <td>
+                                            <div style={{ textAlign: 'center' }}>
+                                                <button
+                                                    onClick={() => setDescripcionModal(producto)}
+                                                    className="admin-link-button"
+                                                    style={{
+                                                        color: '#60a5fa',
+                                                        cursor: 'pointer',
+                                                        textDecoration: 'underline',
+                                                        background: 'none',
+                                                        border: 'none',
+                                                        padding: '8px 12px',
+                                                        fontSize: '14px',
+                                                        fontWeight: '500'
+                                                    }}
+                                                >
+                                                    Ver descripción
+                                                </button>
+                                            </div>
+                                        </td>
+
+                                        {/* Categoría */}
+                                        <td>
+                                            <div style={{ textAlign: 'center' }}>
+                                                <span className="admin-badge-categoria" style={{
+                                                    display: 'inline-block',
+                                                    padding: '6px 12px',
+                                                    borderRadius: '20px',
+                                                    background: 'rgba(45, 122, 62, 0.2)',
+                                                    color: '#4ade80',
+                                                    fontSize: '12px',
+                                                    fontWeight: '600'
+                                                }}>
+                                                    {producto.categoria?.nombre || 'Sin categoría'}
+                                                </span>
+                                            </div>
+                                        </td>
+
+                                        {/* Vendedor */}
+                                        <td>
+                                            <div style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '10px',
+                                                padding: '8px'
+                                            }}>
+                                                <div style={{
+                                                    width: '40px',
+                                                    height: '40px',
+                                                    borderRadius: '50%',
+                                                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    fontSize: '16px',
+                                                    fontWeight: '700',
+                                                    color: '#ffffff',
+                                                    flexShrink: 0
+                                                }}>
+                                                    {producto.vendedor?.username?.charAt(0).toUpperCase() || '?'}
+                                                </div>
+                                                <div style={{ minWidth: 0 }}>
+                                                    <div style={{
+                                                        fontWeight: '600',
+                                                        color: '#ffffff',
+                                                        fontSize: '14px',
+                                                        whiteSpace: 'nowrap',
+                                                        overflow: 'hidden',
+                                                        textOverflow: 'ellipsis'
+                                                    }}>
+                                                        {producto.vendedor?.username || 'Sin vendedor'}
+                                                    </div>
+                                                    {producto.vendedor?.email && (
+                                                        <div style={{
+                                                            fontSize: '12px',
+                                                            color: '#9ca3af',
+                                                            whiteSpace: 'nowrap',
+                                                            overflow: 'hidden',
+                                                            textOverflow: 'ellipsis'
+                                                        }}>
+                                                            {producto.vendedor.email}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </td>
+
+                                        {/* Precio */}
+                                        <td>
+                                            <span style={{
+                                                fontWeight: '700',
+                                                color: '#10b981',
+                                                fontSize: '15px'
+                                            }}>
+                                                {formatPrice(producto.precio)}
+                                            </span>
+                                        </td>
+
+                                        {/* Stock */}
+                                        <td>
+                                            <span style={{
+                                                fontWeight: '700',
+                                                fontSize: '15px',
+                                                color: producto.stock === 0 ? '#ef4444' : producto.stock < 10 ? '#f59e0b' : '#10b981'
+                                            }}>
+                                                {producto.stock}
+                                            </span>
+                                        </td>
+
+                                        {/* Estado */}
+                                        <td>
+                                            <span className={`admin-badge-estado ${estado.clase}`} style={{
+                                                padding: '6px 12px',
+                                                borderRadius: '20px',
+                                                fontSize: '12px',
+                                                fontWeight: '600',
+                                                textTransform: 'uppercase'
+                                            }}>
+                                                {estado.texto}
+                                            </span>
+                                        </td>
+
+                                        {/* Acciones */}
+                                        <td>
+                                            <div className="admin-table-actions" style={{
+                                                display: 'flex',
+                                                gap: '8px',
+                                                justifyContent: 'center'
+                                            }}>
+                                                <button
+                                                    onClick={() => setProductoVer(producto)}
+                                                    className="admin-action-button admin-action-view"
+                                                    title="Ver detalles"
+                                                    style={{
+                                                        background: 'rgba(96, 165, 250, 0.2)',
+                                                        border: 'none',
+                                                        borderRadius: '8px',
+                                                        padding: '8px',
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.3s ease'
+                                                    }}
+                                                >
+                                                    👁️
+                                                </button>
+                                                <button
+                                                    onClick={() => onEditarProducto(producto)}
+                                                    className="admin-action-button admin-action-edit"
+                                                    title="Editar"
+                                                    style={{
+                                                        background: 'rgba(34, 197, 94, 0.2)',
+                                                        border: 'none',
+                                                        borderRadius: '8px',
+                                                        padding: '8px',
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.3s ease'
+                                                    }}
+                                                >
+                                                    ✏️
+                                                </button>
+                                                <button
+                                                    onClick={() => onEliminarProducto(producto.id, producto.nombre)}
+                                                    className="admin-action-button admin-action-delete"
+                                                    title="Eliminar"
+                                                    style={{
+                                                        background: 'rgba(239, 68, 68, 0.2)',
+                                                        border: 'none',
+                                                        borderRadius: '8px',
+                                                        padding: '8px',
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.3s ease'
+                                                    }}
+                                                >
+                                                    🗑️
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })
+                        )}
                     </tbody>
                 </table>
+
+                {/* Barra de navegación de páginas */}
+                {productosFiltrados.length >= 5 && (
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        padding: '20px',
+                        gap: '10px',
+                        borderTop: '1px solid rgba(45, 122, 62, 0.2)'
+                    }}>
+                        <button style={{
+                            padding: '8px 16px',
+                            background: 'rgba(45, 122, 62, 0.2)',
+                            color: '#ffffff',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '14px'
+                        }}>
+                            Anterior
+                        </button>
+                        <span style={{
+                            color: '#d1d5db',
+                            fontSize: '14px',
+                            padding: '0 16px'
+                        }}>
+                            Página 1 de 1
+                        </span>
+                        <button style={{
+                            padding: '8px 16px',
+                            background: 'rgba(45, 122, 62, 0.2)',
+                            color: '#ffffff',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '14px'
+                        }}>
+                            Siguiente
+                        </button>
+                    </div>
+                )}
             </div>
 
-            {productosFiltrados.length === 0 && (
-                <div className="admin-empty-state">
-                    <div className="admin-empty-icon">📦</div>
-                    <h3 className="admin-empty-title">No se encontraron productos</h3>
-                    <p className="admin-empty-text">Intenta ajustar los filtros de búsqueda</p>
+            {/* Modal de Descripción Unificado */}
+            {descripcionModal && (
+                <div className="modal-overlay" onClick={() => setDescripcionModal(null)}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{
+                        maxWidth: '700px',
+                        background: 'rgba(26, 31, 46, 0.95)',
+                        border: '1px solid rgba(45, 122, 62, 0.3)',
+                        borderRadius: '16px',
+                        overflow: 'hidden'
+                    }}>
+                        <div className="modal-header" style={{
+                            background: 'rgba(15, 20, 25, 0.95)',
+                            padding: '20px 30px',
+                            borderBottom: '1px solid rgba(45, 122, 62, 0.2)'
+                        }}>
+                            <h2 style={{
+                                color: '#ffffff',
+                                margin: 0,
+                                fontSize: '20px',
+                                fontWeight: '700'
+                            }}>
+                                Descripción del Producto
+                            </h2>
+                            <button
+                                onClick={() => setDescripcionModal(null)}
+                                className="modal-close-button"
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: '#9ca3af',
+                                    fontSize: '20px',
+                                    cursor: 'pointer',
+                                    padding: '0',
+                                    width: '30px',
+                                    height: '30px',
+                                    borderRadius: '50%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                }}
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <div className="modal-body" style={{ padding: '30px' }}>
+                            {/* Imagen grande arriba del texto */}
+                            {descripcionModal.imagen && (
+                                <div style={{
+                                    textAlign: 'center',
+                                    marginBottom: '25px'
+                                }}>
+                                    <img
+                                        src={descripcionModal.imagen.startsWith('http') ? descripcionModal.imagen : `http://localhost:8000${descripcionModal.imagen}`}
+                                        alt={descripcionModal.nombre}
+                                        style={{
+                                            width: '280px',
+                                            height: '280px',
+                                            objectFit: 'cover',
+                                            borderRadius: '12px',
+                                            margin: '0 auto',
+                                            display: 'block'
+                                        }}
+                                        onError={(e) => {
+                                            e.target.style.display = 'none';
+                                        }}
+                                    />
+                                </div>
+                            )}
+
+                            {/* Nombre del producto */}
+                            <h3 style={{
+                                marginBottom: '15px',
+                                color: '#ffffff',
+                                fontSize: '18px',
+                                fontWeight: '600',
+                                textAlign: 'center'
+                            }}>
+                                {descripcionModal.nombre}
+                            </h3>
+
+                            {/* Texto de descripción */}
+                            <div style={{
+                                color: '#e5e7eb',
+                                fontSize: '16px',
+                                lineHeight: '1.6',
+                                textAlign: 'left',
+                                background: 'rgba(15, 20, 25, 0.5)',
+                                padding: '20px',
+                                borderRadius: '8px',
+                                border: '1px solid rgba(45, 122, 62, 0.1)'
+                            }}>
+                                {descripcionModal.descripcion || 'No hay descripción disponible para este producto.'}
+                            </div>
+                        </div>
+
+                        <div className="modal-footer" style={{
+                            padding: '20px 30px',
+                            background: 'rgba(15, 20, 25, 0.8)',
+                            borderTop: '1px solid rgba(45, 122, 62, 0.2)',
+                            textAlign: 'center'
+                        }}>
+                            <button
+                                onClick={() => setDescripcionModal(null)}
+                                style={{
+                                    background: 'rgba(45, 122, 62, 0.3)',
+                                    color: '#ffffff',
+                                    border: 'none',
+                                    padding: '12px 30px',
+                                    borderRadius: '8px',
+                                    cursor: 'pointer',
+                                    fontSize: '14px',
+                                    fontWeight: '600',
+                                    transition: 'all 0.3s ease'
+                                }}
+                                onMouseOver={(e) => e.target.style.background = 'rgba(45, 122, 62, 0.5)'}
+                                onMouseOut={(e) => e.target.style.background = 'rgba(45, 122, 62, 0.3)'}
+                            >
+                                Cerrar
+                            </button>
+                        </div>
+                    </div>
                 </div>
+            )}
+
+            {/* Modal de Ver Producto */}
+            {productoVer && (
+                <VerProductoModal
+                    producto={productoVer}
+                    onClose={() => setProductoVer(null)}
+                    formatPrice={formatPrice}
+                />
             )}
         </div>
     );
@@ -1293,7 +1736,7 @@ const DashboardTab = ({ estadisticas, usuarios, productos, pedidos, formatPrice,
         },
         {
             title: 'Pendientes de Revisión',
-            value: (estadisticas.vendedores_pendientes || 0) + (estadisticas.productos_pendientes || 0),
+            value: usuarios.filter(u => u.estado === 'pendiente').length + productos.filter(p => !p.aprobado).length,
             icon: '⏳',
             color: '#ff9800',
             descripcion: 'Solicitudes pendientes'
@@ -1519,10 +1962,6 @@ const ProductosPendientesTab = ({ productosPendientes, loading, onAprobarProduct
                     {productosPendientes.map(producto => (
                         <div key={producto.id} className="admin-producto-card">
                             <div className="admin-producto-header">
-                                <div className="admin-producto-icon">
-                                    {producto.categoria?.nombre === 'Frutas' ? '🍎' :
-                                        producto.categoria?.nombre === 'Verduras' ? '🥕' : '🌱'}
-                                </div>
                                 <div className="admin-producto-info">
                                     <h3 className="admin-producto-nombre">{producto.nombre}</h3>
                                     <p className="admin-producto-categoria">{producto.categoria?.nombre}</p>

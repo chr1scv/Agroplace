@@ -1,9 +1,11 @@
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
+from django.db import transaction
 from django.db.models import Q
 from django.contrib.auth import authenticate, login, logout
-from django.middleware.csrf import get_token  # ← AGREGAR ESTA IMPORTACIÓN
+from django.middleware.csrf import get_token
+from django.views.decorators.csrf import csrf_exempt
 from .models import Usuario, Categoria, Producto, Pedido, DetallePedido, DireccionEnvio
 from .serializers import (
     UsuarioSerializer, CategoriaSerializer, ProductoSerializer, 
@@ -16,53 +18,59 @@ class UsuarioViewSet(viewsets.ModelViewSet):
     serializer_class = UsuarioSerializer
     permission_classes = [permissions.AllowAny]
     
+    def get_queryset(self):
+        """Filtrar usuarios por query parameters"""
+        queryset = Usuario.objects.all()
+        
+        # Filtrar por estado
+        estado = self.request.query_params.get('estado')
+        if estado:
+            queryset = queryset.filter(estado=estado)
+        
+        # Filtrar por tipo de usuario
+        tipo_usuario = self.request.query_params.get('tipo_usuario')
+        if tipo_usuario:
+            queryset = queryset.filter(tipo_usuario=tipo_usuario)
+        
+        return queryset
+    
     @action(detail=True, methods=['post'])
     def aprobar_vendedor(self, request, pk=None):
-        """Aprobar un vendedor pendiente"""
+        """Aprobar un usuario pendiente"""
         usuario = self.get_object()
-        
-        if usuario.tipo_usuario != 'vendedor':
-            return Response(
-                {'error': 'Solo se pueden aprobar usuarios vendedores'}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
         
         if usuario.estado != 'pendiente':
             return Response(
-                {'error': 'El vendedor ya fue procesado'}, 
+                {'error': 'El usuario ya fue procesado'}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
         
         usuario.estado = 'activo'
+        usuario.is_active = True
         usuario.save()
         
         return Response({
-            'message': f'Vendedor {usuario.username} aprobado exitosamente',
+            'message': f'Usuario {usuario.username} aprobado exitosamente',
             'usuario': UsuarioSerializer(usuario).data
         })
     
     @action(detail=True, methods=['post'])
     def rechazar_vendedor(self, request, pk=None):
-        """Rechazar un vendedor pendiente"""
+        """Rechazar un usuario pendiente"""
         usuario = self.get_object()
-        
-        if usuario.tipo_usuario != 'vendedor':
-            return Response(
-                {'error': 'Solo se pueden rechazar usuarios vendedores'}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
         
         if usuario.estado != 'pendiente':
             return Response(
-                {'error': 'El vendedor ya fue procesado'}, 
+                {'error': 'El usuario ya fue procesado'}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
         
         usuario.estado = 'rechazado'
+        usuario.is_active = False
         usuario.save()
         
         return Response({
-            'message': f'Vendedor {usuario.username} rechazado',
+            'message': f'Usuario {usuario.username} rechazado',
             'usuario': UsuarioSerializer(usuario).data
         })
     
@@ -87,7 +95,17 @@ class ProductoViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.AllowAny]
     
     def get_queryset(self):
-        queryset = Producto.objects.filter(activo=True)
+        queryset = Producto.objects.all()  # Cambiado de filter(activo=True) a all()
+        
+        # Si el usuario está autenticado y es vendedor/admin, mostrar todos sus productos
+        if self.request.user.is_authenticated and self.request.user.tipo_usuario in ['vendedor', 'admin']:
+            if self.request.user.tipo_usuario == 'vendedor':
+                # Vendedores ven todos sus productos (activos e inactivos)
+                queryset = Producto.objects.filter(vendedor=self.request.user)
+            # Admins ven todos los productos
+        else:
+            # Usuarios no autenticados o clientes solo ven productos activos Y aprobados
+            queryset = Producto.objects.filter(activo=True, aprobado=True)
         
         # Filtros
         categoria = self.request.query_params.get('categoria')
@@ -114,6 +132,24 @@ class ProductoViewSet(viewsets.ModelViewSet):
         if vendedor:
             queryset = queryset.filter(vendedor_id=vendedor)
         
+        # Filtrar por estado de aprobación
+        aprobado = self.request.query_params.get('aprobado')
+        if aprobado is not None:
+            if aprobado.lower() == 'true':
+                queryset = queryset.filter(aprobado=True)
+            elif aprobado.lower() == 'false':
+                queryset = queryset.filter(aprobado=False)
+        
+        # Filtrar por estado general
+        estado = self.request.query_params.get('estado')
+        if estado:
+            if estado == 'activo':
+                queryset = queryset.filter(activo=True, aprobado=True)
+            elif estado == 'pendiente':
+                queryset = queryset.filter(activo=True, aprobado=False)
+            elif estado == 'inactivo':
+                queryset = queryset.filter(activo=False)
+        
         return queryset.select_related('categoria', 'vendedor')
     
     def perform_create(self, serializer):
@@ -138,10 +174,31 @@ class ProductoViewSet(viewsets.ModelViewSet):
         producto = self.get_object()
         serializer.save()
     
-    def perform_destroy(self, instance):
-        # Soft delete para desarrollo
-        instance.activo = False
-        instance.save()
+    def destroy(self, request, *args, **kwargs):
+        """Override destroy para manejar soft delete y evitar problemas de CSRF"""
+        try:
+            print(f"🗑️ Intentando eliminar producto. User: {request.user}, Authenticated: {request.user.is_authenticated}")
+            instance = self.get_object()
+            print(f"📦 Producto encontrado: {instance.nombre} (ID: {instance.id})")
+            print(f"👤 Vendedor del producto: {instance.vendedor.username if instance.vendedor else 'Sin vendedor'}")
+            
+            # Soft delete
+            instance.activo = False
+            instance.save()
+            print(f"✅ Producto {instance.nombre} marcado como inactivo")
+            
+            return Response(
+                {'message': 'Producto eliminado correctamente'},
+                status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            print(f"❌ ERROR eliminando producto: {type(e).__name__}: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
     
     @action(detail=False, methods=['get'])
     def mis_productos(self, request):
@@ -161,6 +218,29 @@ class ProductoViewSet(viewsets.ModelViewSet):
         productos = Producto.objects.filter(vendedor=request.user)
         serializer = self.get_serializer(productos, many=True)
         return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'])
+    def aprobar(self, request, pk=None):
+        """Aprobar un producto"""
+        producto = self.get_object()
+        producto.aprobado = True
+        producto.save()
+        return Response({
+            'message': 'Producto aprobado exitosamente',
+            'producto': ProductoSerializer(producto).data
+        })
+    
+    @action(detail=True, methods=['post'])
+    def rechazar(self, request, pk=None):
+        """Rechazar un producto"""
+        producto = self.get_object()
+        producto.aprobado = False
+        producto.activo = False
+        producto.save()
+        return Response({
+            'message': 'Producto rechazado',
+            'producto': ProductoSerializer(producto).data
+        })
 
 class PedidoViewSet(viewsets.ModelViewSet):
     queryset = Pedido.objects.all()
@@ -187,13 +267,102 @@ class PedidoViewSet(viewsets.ModelViewSet):
         
         return Pedido.objects.none()
     
-    def perform_create(self, serializer):
-        # Para desarrollo: si el usuario está autenticado, asignarlo como cliente
-        if self.request.user.is_authenticated:
-            serializer.save(cliente=self.request.user)
-        else:
-            # Para usuarios no autenticados, crear sin cliente
-            serializer.save()
+    def get_serializer_class(self):
+        if self.action == 'create':
+            from .serializers import CrearPedidoSerializer
+            return CrearPedidoSerializer
+        return PedidoSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        data = serializer.validated_data
+        items = data['items']
+        
+        try:
+            with transaction.atomic():
+                # 1. Determinar el vendedor del pedido (asumimos que todos los productos son del mismo vendedor)
+                primer_producto = Producto.objects.get(id=items[0]['producto_id'])
+                vendedor = primer_producto.vendedor
+                
+                # 2. Procesar método de pago
+                metodo_pago = data['metodo_pago']
+                estado_pago = 'pendiente'  # Por defecto
+                tipo_tarjeta = data.get('tipo_tarjeta', '')
+                ultimos_digitos = data.get('ultimos_digitos', '')
+                transaccion_id = data.get('transaccion_id', '')
+                
+                # Si es tarjeta, simular procesamiento y marcar como pagado
+                if metodo_pago in ['tarjeta_debito', 'tarjeta_credito']:
+                    estado_pago = 'pagado'
+                    # Generar transaccion_id si no se proporcionó
+                    if not transaccion_id:
+                        import uuid
+                        transaccion_id = f"TXN-{uuid.uuid4().hex[:12].upper()}"
+                
+                # 3. Construir dirección
+                direccion = data.get('direccion_texto')
+                if not direccion:
+                    direccion = str(data.get('direccion_envio_id', 'Dirección no especificada'))
+
+                # 4. Crear el pedido
+                pedido = Pedido.objects.create(
+                    cliente=request.user if request.user.is_authenticated else None,
+                    vendedor=vendedor,
+                    direccion_entrega=direccion,
+                    metodo_pago=metodo_pago,
+                    estado_pago=estado_pago,
+                    tipo_tarjeta=tipo_tarjeta,
+                    ultimos_digitos=ultimos_digitos,
+                    transaccion_id=transaccion_id,
+                    total=data['total'],
+                    estado='pendiente'
+                )
+                
+                # 5. Procesar items y descontar stock
+                detalles_creados = []
+                for item in items:
+                    producto_id = item['producto_id']
+                    cantidad = item['cantidad']
+                    
+                    # Bloquear producto para evitar condiciones de carrera
+                    producto = Producto.objects.select_for_update().get(id=producto_id)
+                    
+                    if producto.stock < cantidad:
+                        raise Exception(f"Stock insuficiente para {producto.nombre}. Disponible: {producto.stock}, Solicitado: {cantidad}")
+                    
+                    # Descontar stock y aumentar vendidos
+                    producto.stock -= cantidad
+                    producto.vendidos = (producto.vendidos or 0) + cantidad
+                    producto.save()
+                    
+                    # Calcular ganancia del vendedor (por ahora, el total del producto)
+                    ganancia = producto.precio * cantidad
+                    
+                    # Crear detalle
+                    detalle = DetallePedido.objects.create(
+                        pedido=pedido,
+                        producto=producto,
+                        cantidad=cantidad,
+                        precio_unitario=producto.precio,
+                        ganancia_vendedor=ganancia
+                    )
+                    detalles_creados.append(detalle)
+                
+                # 6. Retornar respuesta exitosa
+                return Response({
+                    'message': 'Pedido creado exitosamente',
+                    'pedido_id': pedido.id,
+                    'total': pedido.total,
+                    'estado_pago': pedido.estado_pago,
+                    'metodo_pago': pedido.metodo_pago
+                }, status=status.HTTP_201_CREATED)
+                
+        except Producto.DoesNotExist:
+            return Response({'error': 'Uno de los productos no existe'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
     @action(detail=True, methods=['post'])
     def cambiar_estado(self, request, pk=None):
@@ -213,6 +382,76 @@ class PedidoViewSet(viewsets.ModelViewSet):
         
         serializer = self.get_serializer(pedido)
         return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    def marcar_entregado(self, request, pk=None):
+        """Marcar pedido como entregado (para vendedores)"""
+        from django.utils import timezone
+        
+        pedido = self.get_object()
+        
+        if pedido.estado == 'entregado':
+            return Response(
+                {'error': 'El pedido ya está marcado como entregado'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        pedido.estado = 'entregado'
+        pedido.fecha_entrega = timezone.now()
+        
+        if pedido.metodo_pago == 'efectivo':
+            pedido.estado_pago = 'pagado'
+        
+        pedido.save()
+        
+        serializer = self.get_serializer(pedido)
+        return Response({
+            'message': 'Pedido marcado como entregado exitosamente',
+            'pedido': serializer.data
+        })
+
+    @action(detail=True, methods=['post'])
+    def cancelar_pedido(self, request, pk=None):
+        """Cancelar pedido (para clientes)"""
+        pedido = self.get_object()
+        
+        if pedido.estado == 'entregado':
+            return Response(
+                {'error': 'No se puede cancelar un pedido ya entregado'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if pedido.estado == 'cancelado':
+            return Response(
+                {'error': 'El pedido ya está cancelado'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            with transaction.atomic():
+                # Restaurar stock de productos
+                for detalle in pedido.detalles.all():
+                    producto = Producto.objects.select_for_update().get(id=detalle.producto.id)
+                    producto.stock += detalle.cantidad
+                    producto.save()
+                
+                # Actualizar estado del pedido
+                pedido.estado = 'cancelado'
+                
+                # Si el pago fue con tarjeta, marcar como reembolsado
+                if pedido.metodo_pago in ['tarjeta_debito', 'tarjeta_credito']:
+                    pedido.estado_pago = 'reembolsado'
+                
+                pedido.save()
+                
+                serializer = self.get_serializer(pedido)
+                return Response({
+                    'message': 'Pedido cancelado exitosamente',
+                    'pedido': serializer.data
+                })
+                
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 class DireccionEnvioViewSet(viewsets.ModelViewSet):
     queryset = DireccionEnvio.objects.all()
@@ -390,3 +629,46 @@ def dashboard_stats(request):
         }
     
     return Response(stats)
+
+# Agregar al final de views.py
+
+from .models import Review
+from .serializers import ReviewSerializer
+
+class ReviewViewSet(viewsets.ModelViewSet):
+    queryset = Review.objects.all()
+    serializer_class = ReviewSerializer
+    permission_classes = [permissions.AllowAny]
+    
+    def get_queryset(self):
+        queryset = Review.objects.all()
+        
+        # Filtrar por producto
+        producto_id = self.request.query_params.get('producto')
+        if producto_id:
+            queryset = queryset.filter(producto_id=producto_id)
+            
+        return queryset.order_by('-fecha_creacion')
+
+    def perform_create(self, serializer):
+        print(f"📝 Intentando crear reseña. Usuario autenticado: {self.request.user.is_authenticated}")
+        
+        if self.request.user.is_authenticated:
+            print(f"👤 Asignando usuario autenticado: {self.request.user.username}")
+            serializer.save(usuario=self.request.user)
+        else:
+            # Fallback para desarrollo: asignar primer usuario disponible
+            print("⚠️ Usuario no autenticado. Buscando usuario por defecto...")
+            try:
+                default_user = Usuario.objects.filter(tipo_usuario='cliente').first() or Usuario.objects.first()
+                
+                if default_user:
+                    print(f"👤 Asignando usuario por defecto: {default_user.username}")
+                    serializer.save(usuario=default_user)
+                else:
+                    print("❌ No se encontró ningún usuario para asignar.")
+                    # Esto probablemente fallará si el modelo requiere usuario
+                    serializer.save()
+            except Exception as e:
+                print(f"❌ Error al asignar usuario por defecto: {str(e)}")
+                raise e

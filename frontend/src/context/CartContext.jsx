@@ -8,9 +8,8 @@ const cartReducer = (state, action) => {
     switch (action.type) {
         case 'ADD_TO_CART':
             const existingItem = state.items.find(item => item.id === action.payload.id);
-            
+
             if (existingItem) {
-                // Si ya existe, aumentar la cantidad
                 return {
                     ...state,
                     items: state.items.map(item =>
@@ -44,6 +43,12 @@ const cartReducer = (state, action) => {
             };
 
         case 'CLEAR_CART':
+            if (action.payload && Array.isArray(action.payload) && action.payload.length > 0) {
+                return {
+                    ...state,
+                    items: state.items.filter(item => !action.payload.includes(item.id))
+                };
+            }
             return {
                 ...state,
                 items: []
@@ -60,9 +65,55 @@ const cartReducer = (state, action) => {
     }
 };
 
+// Función para migrar items antiguos del carrito
+const migrateCartItems = (items) => {
+    return items.map(item => {
+        // Si vendedor_id es un objeto (estructura antigua), corregirlo
+        if (item.vendedor_id && typeof item.vendedor_id === 'object') {
+            return {
+                ...item,
+                vendedor_id: item.vendedor_id.id || item.vendedor_id,
+                vendedor: item.vendedor_id
+            };
+        }
+        // Si no tiene objeto vendedor pero tiene vendedor_nombre, crear uno básico
+        if (!item.vendedor && item.vendedor_nombre && item.vendedor_id) {
+            return {
+                ...item,
+                vendedor: {
+                    id: item.vendedor_id,
+                    username: item.vendedor_nombre
+                }
+            };
+        }
+        return item;
+    });
+};
+
+// Función para cargar el carrito desde localStorage
+const loadCartFromStorage = () => {
+    try {
+        const savedCart = localStorage.getItem('agroplace_cart');
+        const items = savedCart ? JSON.parse(savedCart) : [];
+        // Migrar items antiguos automáticamente
+        const migratedItems = migrateCartItems(items);
+
+        // Si hubo cambios, guardar la versión migrada
+        if (JSON.stringify(items) !== JSON.stringify(migratedItems)) {
+            console.log('🔄 Migrando estructura antigua del carrito...');
+            localStorage.setItem('agroplace_cart', JSON.stringify(migratedItems));
+        }
+
+        return migratedItems;
+    } catch (error) {
+        console.error('Error loading cart from localStorage:', error);
+        return [];
+    }
+};
+
 // Estado inicial
 const initialState = {
-    items: [],
+    items: loadCartFromStorage(),
     isOpen: false
 };
 
@@ -70,7 +121,14 @@ const initialState = {
 export const CartProvider = ({ children }) => {
     const [state, dispatch] = useReducer(cartReducer, initialState);
 
-    // Acciones
+    React.useEffect(() => {
+        try {
+            localStorage.setItem('agroplace_cart', JSON.stringify(state.items));
+        } catch (error) {
+            console.error('Error saving cart to localStorage:', error);
+        }
+    }, [state.items]);
+
     const addToCart = (product) => {
         dispatch({ type: 'ADD_TO_CART', payload: product });
     };
@@ -87,8 +145,8 @@ export const CartProvider = ({ children }) => {
         }
     };
 
-    const clearCart = () => {
-        dispatch({ type: 'CLEAR_CART' });
+    const clearCart = (itemIds = null) => {
+        dispatch({ type: 'CLEAR_CART', payload: itemIds });
     };
 
     const toggleCart = () => {
@@ -104,6 +162,31 @@ export const CartProvider = ({ children }) => {
         return state.items.reduce((total, item) => total + item.quantity, 0);
     };
 
+    // Agrupar items por vendedor
+    const getItemsByVendor = () => {
+        const grouped = {};
+        state.items.forEach(item => {
+            const vendorId = item.vendedor?.id || item.vendedor_id || 'unknown';
+            if (!grouped[vendorId]) {
+                grouped[vendorId] = {
+                    vendorId,
+                    vendorName: item.vendedor?.username || item.vendedor_nombre || 'Vendedor desconocido',
+                    vendorInfo: item.vendedor || null,
+                    items: [],
+                    total: 0
+                };
+            }
+            grouped[vendorId].items.push(item);
+            grouped[vendorId].total += (item.precio || 0) * item.quantity;
+        });
+        return grouped;
+    };
+
+    // Obtener array de grupos de vendedores
+    const getVendorGroups = () => {
+        return Object.values(getItemsByVendor());
+    };
+
     const value = {
         items: state.items,
         isOpen: state.isOpen,
@@ -113,7 +196,9 @@ export const CartProvider = ({ children }) => {
         clearCart,
         toggleCart,
         getCartTotal,
-        getCartItemsCount
+        getCartItemsCount,
+        getItemsByVendor,
+        getVendorGroups
     };
 
     return (

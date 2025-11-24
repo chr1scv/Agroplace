@@ -27,11 +27,26 @@ const Login = () => {
         try {
             const result = await authService.login(formData.username, formData.password);
 
-            // ✅ REDIRECCIÓN SEGÚN TIPO DE USUARIO
+            console.log('🔍 Usuario logueado:', {
+                username: result.user.username,
+                tipo: result.user.tipo_usuario,
+                estado: result.user.estado
+            });
+
+            // ✅ REDIRECCIÓN SIMPLE Y DIRECTA
             if (result.user.tipo_usuario === 'admin') {
-                navigate('/admin'); // Redirigir al panel de administración
+                navigate('/admin');
+            } else if (result.user.tipo_usuario === 'vendedor') {
+                // Usar el estado que viene directamente del login
+                if (result.user.estado === 'activo') {
+                    console.log('✅ Vendedor activo - redirigiendo al panel');
+                    navigate('/vendedor');
+                } else {
+                    console.log('⏳ Vendedor pendiente - redirigiendo a espera');
+                    navigate('/vendedor/espera');
+                }
             } else {
-                navigate('/productos'); // Redirigir a productos para otros usuarios
+                navigate('/productos');
             }
 
         } catch (err) {

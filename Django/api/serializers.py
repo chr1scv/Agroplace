@@ -1,11 +1,13 @@
 from rest_framework import serializers
-from .models import Usuario, Categoria, Producto, Pedido, DetallePedido, DireccionEnvio
+from django.db import models
+from .models import Usuario, Categoria, Producto, Pedido, DetallePedido, DireccionEnvio, Review
 
 class UsuarioSerializer(serializers.ModelSerializer):
     class Meta:
         model = Usuario
         fields = ['id', 'username', 'email', 'first_name', 'last_name', 
-                 'tipo_usuario', 'telefono', 'direccion', 'fecha_registro']
+                 'tipo_usuario', 'estado', 'telefono', 'direccion', 
+                 'descripcion', 'titulo', 'direccion_retiro', 'horario_atencion', 'provincia', 'fecha_registro']
         read_only_fields = ['fecha_registro']
 
 class CategoriaSerializer(serializers.ModelSerializer):
@@ -14,6 +16,7 @@ class CategoriaSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class ProductoSerializer(serializers.ModelSerializer):
+    # Campos de solo lectura para mostrar nombres
     categoria_nombre = serializers.CharField(source='categoria.nombre', read_only=True)
     vendedor_nombre = serializers.CharField(source='vendedor.username', read_only=True)
     
@@ -22,27 +25,84 @@ class ProductoSerializer(serializers.ModelSerializer):
         fields = '__all__'
     
     def to_representation(self, instance):
+        """
+        Personalizar la representación para incluir objetos anidados en lectura
+        """
         data = super().to_representation(instance)
+        
         # Para desarrollo: convertir URL absoluta a relativa
         if data.get('imagen') and 'http://localhost:8000' in data['imagen']:
             data['imagen'] = data['imagen'].replace('http://localhost:8000', '')
+        
+        # Agregar objetos anidados para lectura
+        if instance.categoria:
+            data['categoria'] = {
+                'id': instance.categoria.id,
+                'nombre': instance.categoria.nombre,
+            }
+        
+        if instance.vendedor:
+            # Calcular estadísticas del vendedor
+            vendedor_reviews = Review.objects.filter(producto__vendedor=instance.vendedor)
+            rating_promedio = vendedor_reviews.aggregate(models.Avg('calificacion'))['calificacion__avg'] or 0
+            reviews_count = vendedor_reviews.count()
+            
+            # Calcular ventas (total de items vendidos en pedidos no cancelados)
+            ventas_count = DetallePedido.objects.filter(
+                producto__vendedor=instance.vendedor,
+                pedido__estado__in=['entregado', 'transito', 'preparacion']
+            ).aggregate(models.Sum('cantidad'))['cantidad__sum'] or 0
+
+            data['vendedor'] = {
+                'id': instance.vendedor.id,
+                'username': instance.vendedor.username,
+                'email': instance.vendedor.email,
+                'descripcion': instance.vendedor.descripcion,
+                'titulo': instance.vendedor.titulo,
+                'rating': round(rating_promedio, 1),
+                'reviews_count': reviews_count,
+                'ventas': ventas_count,
+                'direccion_retiro': instance.vendedor.direccion_retiro,
+                'horario_atencion': instance.vendedor.horario_atencion,
+                'provincia': instance.vendedor.provincia,
+                'fecha_registro': instance.vendedor.fecha_registro.year,
+            }
+        
         return data
 
 class DetallePedidoSerializer(serializers.ModelSerializer):
     producto_nombre = serializers.CharField(source='producto.nombre', read_only=True)
-    producto_precio = serializers.DecimalField(source='producto.precio', read_only=True, max_digits=10, decimal_places=2)
+    producto_imagen = serializers.ImageField(source='producto.imagen', read_only=True)
+    vendedor_nombre = serializers.CharField(source='producto.vendedor.username', read_only=True)
     
     class Meta:
         model = DetallePedido
-        fields = ['id', 'producto', 'producto_nombre', 'producto_precio', 'cantidad', 'precio_unitario']
+        fields = ['id', 'producto', 'producto_nombre', 'producto_imagen', 'cantidad', 'precio_unitario', 'ganancia_vendedor', 'vendedor_nombre']
 
 class PedidoSerializer(serializers.ModelSerializer):
     detalles = DetallePedidoSerializer(many=True, read_only=True)
     cliente_nombre = serializers.CharField(source='cliente.username', read_only=True)
+    vendedor_nombre = serializers.CharField(source='vendedor.username', read_only=True, allow_null=True)
     
     class Meta:
         model = Pedido
         fields = '__all__'
+
+class CrearPedidoItemSerializer(serializers.Serializer):
+    producto_id = serializers.IntegerField()
+    cantidad = serializers.IntegerField(min_value=1)
+
+class CrearPedidoSerializer(serializers.Serializer):
+    items = CrearPedidoItemSerializer(many=True)
+    direccion_envio_id = serializers.IntegerField(required=False, allow_null=True)
+    direccion_texto = serializers.CharField(required=False, allow_blank=True)
+    metodo_pago = serializers.CharField(max_length=50)
+    estado_pago = serializers.CharField(max_length=20, required=False, default='pendiente')
+    tipo_tarjeta = serializers.CharField(max_length=20, required=False, allow_blank=True)
+    ultimos_digitos = serializers.CharField(max_length=4, required=False, allow_blank=True)
+    transaccion_id = serializers.CharField(max_length=100, required=False, allow_blank=True)
+    total = serializers.DecimalField(max_digits=10, decimal_places=2)
+    tipo_entrega = serializers.CharField(max_length=20, required=False)
 
 class DireccionEnvioSerializer(serializers.ModelSerializer):
     class Meta:
@@ -57,7 +117,7 @@ class RegistroSerializer(serializers.ModelSerializer):
     class Meta:
         model = Usuario
         fields = ['username', 'email', 'password', 'password_confirm', 
-                 'tipo_usuario', 'telefono', 'direccion']
+                 'tipo_usuario', 'telefono', 'direccion', 'provincia', 'horario_atencion', 'direccion_retiro']
     
     def validate(self, data):
         if data['password'] != data['password_confirm']:
@@ -78,3 +138,13 @@ class RegistroSerializer(serializers.ModelSerializer):
         user.set_password(password)
         user.save()
         return user
+
+# Agregar al final de serializers.py
+
+class ReviewSerializer(serializers.ModelSerializer):
+    usuario_nombre = serializers.CharField(source='usuario.username', read_only=True)
+    
+    class Meta:
+        model = Review
+        fields = ['id', 'producto', 'usuario', 'usuario_nombre', 'calificacion', 'comentario', 'fecha_creacion']
+        read_only_fields = ['usuario', 'fecha_creacion']

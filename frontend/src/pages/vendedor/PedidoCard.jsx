@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { getAxiosConfig } from '../../utils/csrf';
+import './PedidoCard.css';
 
 const PedidoCard = ({ pedido, onActualizarEstado, onRecargar }) => {
     const [loading, setLoading] = useState(false);
@@ -40,9 +42,9 @@ const PedidoCard = ({ pedido, onActualizarEstado, onRecargar }) => {
             await axios.post(
                 `http://localhost:8000/api/pedidos/${pedido.id}/cambiar_estado/`,
                 { estado: nuevoEstado },
-                { withCredentials: true }
+                getAxiosConfig()
             );
-            
+
             if (onActualizarEstado) {
                 onActualizarEstado(pedido.id, nuevoEstado);
             }
@@ -71,13 +73,13 @@ const PedidoCard = ({ pedido, onActualizarEstado, onRecargar }) => {
                         👤 Cliente: <strong>{pedido.cliente_nombre || 'Cliente'}</strong>
                     </p>
                 </div>
-                
+
                 <div className="pedido-estado-info">
-                    <div 
+                    <div
                         className="estado-badge"
-                        style={{ 
-                            color: estadoInfo.color, 
-                            backgroundColor: estadoInfo.bg 
+                        style={{
+                            color: estadoInfo.color,
+                            backgroundColor: estadoInfo.bg
                         }}
                     >
                         <span className="estado-icon">{estadoInfo.icon}</span>
@@ -103,14 +105,14 @@ const PedidoCard = ({ pedido, onActualizarEstado, onRecargar }) => {
 
             {/* Acciones */}
             <div className="pedido-actions">
-                <button 
+                <button
                     onClick={() => setMostrarDetalles(!mostrarDetalles)}
                     className="btn-detalles"
                 >
                     {mostrarDetalles ? '▲' : '▼'} Ver Detalles
                 </button>
-                
-                <select 
+
+                <select
                     value={pedido.estado}
                     onChange={(e) => handleEstadoChange(e.target.value)}
                     className="estado-select"
@@ -128,7 +130,7 @@ const PedidoCard = ({ pedido, onActualizarEstado, onRecargar }) => {
             {mostrarDetalles && (
                 <div className="pedido-detalles">
                     <h4>📋 Detalles del Pedido</h4>
-                    
+
                     <div className="productos-lista">
                         {pedido.detalles?.map((detalle, index) => (
                             <div key={index} className="producto-detalle">
