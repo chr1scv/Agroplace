@@ -1,6 +1,6 @@
 import React from 'react';
 
-const CheckoutReview = ({ data, type, onBack, onConfirm }) => {
+const CheckoutReview = ({ data, paymentData, type, onBack, onConfirm }) => {
     const isShipping = type === 'envio';
 
     return (
@@ -77,9 +77,34 @@ const CheckoutReview = ({ data, type, onBack, onConfirm }) => {
 
             <div style={styles.paymentInfo}>
                 <h3 style={styles.sectionTitle}>Información de Pago</h3>
-                <p style={styles.paymentText}>
-                    El pago se procesará en el siguiente paso.
-                </p>
+                {paymentData ? (
+                    <div style={styles.dataGrid}>
+                        <div style={styles.dataItem}>
+                            <span style={styles.label}>Método de Pago:</span>
+                            <span>
+                                {paymentData.metodo_pago === 'efectivo' ? '💰 Efectivo' :
+                                    paymentData.metodo_pago === 'tarjeta_debito' ? '💳 Tarjeta de Débito' :
+                                        '💳 Tarjeta de Crédito'}
+                            </span>
+                        </div>
+                        {paymentData.metodo_pago !== 'efectivo' && (
+                            <>
+                                <div style={styles.dataItem}>
+                                    <span style={styles.label}>Tarjeta:</span>
+                                    <span>**** **** **** {paymentData.ultimos_digitos}</span>
+                                </div>
+                                <div style={styles.dataItem}>
+                                    <span style={styles.label}>Tipo:</span>
+                                    <span>{paymentData.tipo_tarjeta === 'debito' ? 'Débito' : 'Crédito'}</span>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                ) : (
+                    <p style={styles.paymentText}>
+                        Pago en efectivo al momento de la entrega
+                    </p>
+                )}
             </div>
 
             <div style={styles.actions}>

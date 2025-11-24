@@ -332,8 +332,9 @@ class PedidoViewSet(viewsets.ModelViewSet):
                     if producto.stock < cantidad:
                         raise Exception(f"Stock insuficiente para {producto.nombre}. Disponible: {producto.stock}, Solicitado: {cantidad}")
                     
-                    # Descontar stock
+                    # Descontar stock y aumentar vendidos
                     producto.stock -= cantidad
+                    producto.vendidos = (producto.vendidos or 0) + cantidad
                     producto.save()
                     
                     # Calcular ganancia del vendedor (por ahora, el total del producto)

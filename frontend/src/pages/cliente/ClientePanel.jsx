@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import authService from '../../services/auth';
+import { orderService } from '../../services/api';
+import api from '../../services/api';
 import { useCart } from '../../context/CartContext';
 import NotificationBell from '../../components/NotificationBell';
 import HeaderCliente from './HeaderCliente';
@@ -8,8 +10,6 @@ import HeaderCliente from './HeaderCliente';
 const ClientePanel = () => {
     const [activeTab, setActiveTab] = useState('pedidos');
     const [pedidos, setPedidos] = useState([]);
-    const [direcciones, setDirecciones] = useState([]);
-    const [favoritos, setFavoritos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState(null);
     const [showDropdown, setShowDropdown] = useState(false);
@@ -39,57 +39,21 @@ const ClientePanel = () => {
         loadUser();
     }, [location]);
 
-    // Datos de ejemplo
+    // Cargar datos (Pedidos)
     useEffect(() => {
-        setTimeout(() => {
-            setPedidos([
-                {
-                    id: 1001,
-                    fecha: '2024-01-16',
-                    estado: 'entregado',
-                    total: 25500,
-                    productos: [
-                        { nombre: 'Manzanas Orgánicas', cantidad: 2, precio: 2500 },
-                        { nombre: 'Zanahorias Frescas', cantidad: 5, precio: 1800 }
-                    ],
-                    direccion: 'Av. Principal 123, Santiago'
-                },
-                {
-                    id: 1002,
-                    fecha: '2024-01-15',
-                    estado: 'enviado',
-                    total: 18750,
-                    productos: [
-                        { nombre: 'Tomates Cherry', cantidad: 3, precio: 3000 },
-                        { nombre: 'Lechuga Romana', cantidad: 2, precio: 1500 }
-                    ],
-                    direccion: 'Av. Principal 123, Santiago'
-                }
-            ]);
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+                const ordersData = await orderService.getAllOrders();
+                setPedidos(ordersData);
+            } catch (error) {
+                console.error("Error fetching data:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
 
-            setDirecciones([
-                {
-                    id: 1,
-                    direccion: 'Av. Principal 123, Santiago',
-                    ciudad: 'Santiago',
-                    codigo_postal: '8320000',
-                    principal: true
-                }
-            ]);
-
-            setFavoritos([
-                {
-                    id: 1,
-                    nombre: 'Manzanas Orgánicas',
-                    precio: 2500,
-                    categoria: 'Frutas',
-                    vendedor: 'Granja Orgánica',
-                    imagen: null
-                }
-            ]);
-
-            setLoading(false);
-        }, 1000);
+        fetchData();
     }, []);
 
     // Header Functions
@@ -147,25 +111,19 @@ const ClientePanel = () => {
         }).format(price);
     };
 
-    const handleCancelarPedido = (pedidoId) => {
+    const handleCancelarPedido = async (pedidoId) => {
         if (window.confirm('¿Estás seguro de que quieres cancelar este pedido?')) {
-            setPedidos(prev => prev.map(pedido =>
-                pedido.id === pedidoId ? { ...pedido, estado: 'cancelado' } : pedido
-            ));
+            try {
+                await api.post(`/pedidos/${pedidoId}/cancelar_pedido/`);
+                setPedidos(prev => prev.map(pedido =>
+                    pedido.id === pedidoId ? { ...pedido, estado: 'cancelado' } : pedido
+                ));
+                alert('Pedido cancelado exitosamente');
+            } catch (error) {
+                console.error('Error cancelando pedido:', error);
+                alert('Error al cancelar el pedido');
+            }
         }
-    };
-
-    const handleAgregarDireccion = (nuevaDireccion) => {
-        const nuevaDir = {
-            id: Date.now(),
-            ...nuevaDireccion,
-            principal: direcciones.length === 0
-        };
-        setDirecciones(prev => [...prev, nuevaDir]);
-    };
-
-    const handleEliminarFavorito = (productoId) => {
-        setFavoritos(prev => prev.filter(fav => fav.id !== productoId));
     };
 
     if (loading) {
@@ -184,7 +142,7 @@ const ClientePanel = () => {
             <div style={styles.panelContainer}>
                 <div style={styles.panelHeader}>
                     <h1 style={styles.panelTitle}>Mis Compras</h1>
-                    <p style={styles.panelSubtitle}>Gestiona tus pedidos, favoritos y direcciones</p>
+                    <p style={styles.panelSubtitle}>Gestiona tus pedidos y perfil</p>
                 </div>
 
                 <div style={styles.tabs}>
@@ -193,18 +151,6 @@ const ClientePanel = () => {
                         onClick={() => setActiveTab('pedidos')}
                     >
                         📦 Mis Pedidos
-                    </button>
-                    <button
-                        style={activeTab === 'favoritos' ? styles.tabActive : styles.tab}
-                        onClick={() => setActiveTab('favoritos')}
-                    >
-                        ❤️ Favoritos
-                    </button>
-                    <button
-                        style={activeTab === 'direcciones' ? styles.tabActive : styles.tab}
-                        onClick={() => setActiveTab('direcciones')}
-                    >
-                        📍 Direcciones
                     </button>
                     <button
                         style={activeTab === 'perfil' ? styles.tabActive : styles.tab}
@@ -222,53 +168,33 @@ const ClientePanel = () => {
                             formatPrice={formatPrice}
                         />
                     )}
-                    {activeTab === 'favoritos' && (
-                        <FavoritosTab
-                            favoritos={favoritos}
-                            onEliminarFavorito={handleEliminarFavorito}
-                            formatPrice={formatPrice}
-                        />
-                    )}
-                    {activeTab === 'direcciones' && (
-                        <DireccionesTab
-                            direcciones={direcciones}
-                            onAgregarDireccion={handleAgregarDireccion}
-                        />
-                    )}
-                    {activeTab === 'perfil' && <PerfilTab formatPrice={formatPrice} />}
+                    {activeTab === 'perfil' && <PerfilTab user={user} formatPrice={formatPrice} navigate={navigate} />}
                 </div>
             </div>
         </div >
     );
 };
 
-const PerfilTab = ({ user, userData, formatPrice, navigate }) => {
-    // CORRECCIÓN: Definimos las variables de visualización DENTRO de PerfilTab
+const PerfilTab = ({ user, formatPrice, navigate }) => {
     const displayUser = user || {};
-    const displayData = userData || {};
 
     const perfil = {
-        // Obtenemos los datos del usuario real (user) y de las métricas (userData)
         nombre: displayUser.first_name || displayUser.username || 'Cliente',
         email: displayUser.email || 'N/A',
         telefono: displayUser.telefono || 'N/A',
         fecha_registro: displayUser.date_joined ? new Date(displayUser.date_joined).toLocaleDateString('es-CL') : 'N/A',
-        
-        // Datos de Perfil/Métricas (usando los datos simulados/reales de userData)
-        nivelFidelidad: displayData.nivelFidelidad || 'Bronce',
-        direccionPrincipal: displayUser.direccion || displayData.direccionPrincipal || 'No asignada',
-        preferencias: displayData.preferencias || ['Orgánicos', 'Frescos'],
-        pedidosRealizados: displayData.pedidosRealizados || 0,
-        totalGastado: displayData.totalGastado || 0,
-        productosFavoritos: displayData.productosFavoritos || 0,
-        direccionesGuardadas: displayData.direccionesGuardadas || 1,
+        nivelFidelidad: 'Bronce',
+        direccionPrincipal: displayUser.direccion || 'No asignada',
+        preferencias: ['Orgánicos', 'Frescos'],
+        pedidosRealizados: 0,
+        totalGastado: 0,
+        productosFavoritos: 0,
+        direccionesGuardadas: 1,
     };
-    
-    // Función para manejar la navegación a las rutas de edición de perfil
+
     const handleNavigation = (path) => {
         navigate(path);
     };
-
 
     return (
         <div>
@@ -289,7 +215,6 @@ const PerfilTab = ({ user, userData, formatPrice, navigate }) => {
                         <span style={styles.detalleLabel}>Teléfono:</span>
                         <span style={styles.detalleValor}>{perfil.telefono}</span>
                     </div>
-                    {/* Más detalles */}
                     <div style={styles.detalleItem}>
                         <span style={styles.detalleLabel}>Dirección Principal:</span>
                         <span style={styles.detalleValor}>{perfil.direccionPrincipal}</span>
@@ -339,7 +264,6 @@ const PerfilTab = ({ user, userData, formatPrice, navigate }) => {
                 </div>
 
                 <div style={styles.perfilActions}>
-                    {/* Los botones navegan a la ruta de configuración /profile/edit (manejada por el Header) */}
                     <button onClick={() => handleNavigation('/profile/edit')} style={styles.editarPerfilButton}>
                         ✏️ Editar Perfil
                     </button>
@@ -357,7 +281,7 @@ const PerfilTab = ({ user, userData, formatPrice, navigate }) => {
         </div>
     );
 };
-// Los componentes PedidosTab, FavoritosTab, DireccionesTab y PerfilTab se mantienen igual...
+
 const PedidosTab = ({ pedidos, onCancelarPedido, formatPrice }) => {
     const getEstadoStyle = (estado) => {
         const estilos = {
@@ -374,265 +298,71 @@ const PedidosTab = ({ pedidos, onCancelarPedido, formatPrice }) => {
         <div>
             <h2 style={styles.tabTitle}>Historial de Pedidos</h2>
 
-            <div style={styles.pedidosList}>
-                {pedidos.map(pedido => (
-                    <div key={pedido.id} style={styles.pedidoCard}>
-                        <div style={styles.pedidoHeader}>
-                            <div>
-                                <h3 style={styles.pedidoId}>Pedido #{pedido.id}</h3>
-                                <p style={styles.pedidoFecha}>Fecha: {pedido.fecha}</p>
-                                <p style={styles.pedidoDireccion}>{pedido.direccion}</p>
-                            </div>
-                            <div style={styles.pedidoInfo}>
-                                <span style={getEstadoStyle(pedido.estado)}>
-                                    {pedido.estado}
-                                </span>
-                                <div style={styles.pedidoTotal}>
-                                    Total: <strong>{formatPrice(pedido.total)}</strong>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div style={styles.productosList}>
-                            <h4>Productos:</h4>
-                            {pedido.productos.map((producto, index) => (
-                                <div key={index} style={styles.productoItem}>
-                                    <span>{producto.cantidad} x {producto.nombre}</span>
-                                    <span>{formatPrice(producto.cantidad * producto.precio)}</span>
-                                </div>
-                            ))}
-                        </div>
-
-                        <div style={styles.pedidoActions}>
-                            <button style={styles.detallesButton}>
-                                👁️ Ver Detalles
-                            </button>
-                            {pedido.estado === 'pendiente' && (
-                                <button
-                                    onClick={() => onCancelarPedido(pedido.id)}
-                                    style={styles.cancelarButton}
-                                >
-                                    ❌ Cancelar Pedido
-                                </button>
-                            )}
-                            {pedido.estado === 'entregado' && (
-                                <button style={styles.repetirButton}>
-                                    🔄 Repetir Pedido
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-};
-
-const FavoritosTab = ({ favoritos, onEliminarFavorito, formatPrice }) => {
-    return (
-        <div>
-            <div style={styles.tabHeader}>
-                <h2 style={styles.tabTitle}>Mis Productos Favoritos</h2>
-                <p style={styles.tabSubtitle}>
-                    {favoritos.length} producto{favoritos.length !== 1 ? 's' : ''} en favoritos
-                </p>
-            </div>
-
-            {favoritos.length === 0 ? (
+            {pedidos.length === 0 ? (
                 <div style={styles.emptyState}>
-                    <div style={styles.emptyIcon}>❤️</div>
-                    <h3>No tienes productos favoritos</h3>
-                    <p>Agrega productos a tus favoritos para verlos aquí</p>
+                    <div style={styles.emptyIcon}>📦</div>
+                    <h3>No tienes pedidos aún</h3>
                     <a href="/productos" style={styles.explorarButton}>
-                        🛍️ Explorar Productos
+                        🛍️ Ir a comprar
                     </a>
                 </div>
             ) : (
-                <div style={styles.favoritosGrid}>
-                    {favoritos.map(producto => (
-                        <div key={producto.id} style={styles.favoritoCard}>
-                            <div style={styles.favoritoImage}>
-                                <div style={styles.placeholderImage}>
-                                    {producto.categoria === 'Frutas' ? '🍎' :
-                                        producto.categoria === 'Verduras' ? '🥕' : '🌱'}
+                <div style={styles.pedidosList}>
+                    {pedidos.map(pedido => (
+                        <div key={pedido.id} style={styles.pedidoCard}>
+                            <div style={styles.pedidoHeader}>
+                                <div>
+                                    <h3 style={styles.pedidoId}>Pedido #{pedido.id}</h3>
+                                    <p style={styles.pedidoFecha}>Fecha: {new Date(pedido.fecha_creacion).toLocaleDateString()}</p>
+                                    <p style={styles.pedidoDireccion}>{pedido.direccion_envio || 'Dirección no disponible'}</p>
+                                </div>
+                                <div style={styles.pedidoInfo}>
+                                    <span style={getEstadoStyle(pedido.estado)}>
+                                        {pedido.estado}
+                                    </span>
+                                    <div style={styles.pedidoTotal}>
+                                        Total: <strong>{formatPrice(pedido.total)}</strong>
+                                    </div>
+                                    {pedido.metodo_pago && (
+                                        <div style={{ fontSize: '0.9rem', color: '#666', marginTop: '5px' }}>
+                                            Pago: {pedido.metodo_pago} ({pedido.estado_pago})
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
-                            <div style={styles.favoritoInfo}>
-                                <h4 style={styles.favoritoNombre}>{producto.nombre}</h4>
-                                <p style={styles.favoritoCategoria}>{producto.categoria}</p>
-                                <p style={styles.favoritoVendedor}>Vendedor: {producto.vendedor}</p>
-                                <div style={styles.favoritoPrecio}>
-                                    {formatPrice(producto.precio)}
-                                </div>
+                            <div style={styles.productosList}>
+                                <h4>Productos:</h4>
+                                {pedido.detalles && pedido.detalles.map((detalle, index) => (
+                                    <div key={index} style={styles.productoItem}>
+                                        <span>{detalle.cantidad} x {detalle.producto_nombre}</span>
+                                        <span>{formatPrice(detalle.cantidad * detalle.precio_unitario)}</span>
+                                    </div>
+                                ))}
                             </div>
 
-                            <div style={styles.favoritoActions}>
-                                <button style={styles.comprarButton}>
-                                    🛒 Comprar
+                            <div style={styles.pedidoActions}>
+                                <button style={styles.detallesButton}>
+                                    👁️ Ver Detalles
                                 </button>
-                                <button
-                                    onClick={() => onEliminarFavorito(producto.id)}
-                                    style={styles.eliminarFavoritoButton}
-                                    title="Eliminar de favoritos"
-                                >
-                                    ❌
-                                </button>
+                                {pedido.estado === 'pendiente' && (
+                                    <button
+                                        onClick={() => onCancelarPedido(pedido.id)}
+                                        style={styles.cancelarButton}
+                                    >
+                                        ❌ Cancelar Pedido
+                                    </button>
+                                )}
+                                {pedido.estado === 'entregado' && (
+                                    <button style={styles.repetirButton}>
+                                        🔄 Repetir Pedido
+                                    </button>
+                                )}
                             </div>
                         </div>
                     ))}
                 </div>
             )}
-        </div>
-    );
-};
-
-const DireccionesTab = ({ direcciones, onAgregarDireccion }) => {
-    const [mostrarFormulario, setMostrarFormulario] = useState(false);
-    const [nuevaDireccion, setNuevaDireccion] = useState({
-        direccion: '',
-        ciudad: '',
-        codigo_postal: '',
-        principal: false
-    });
-
-    const handleInputChange = (e) => {
-        const { name, value, type, checked } = e.target;
-        setNuevaDireccion(prev => ({
-            ...prev,
-            [name]: type === 'checkbox' ? checked : value
-        }));
-    };
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        onAgregarDireccion(nuevaDireccion);
-        setNuevaDireccion({
-            direccion: '',
-            ciudad: '',
-            codigo_postal: '',
-            principal: false
-        });
-        setMostrarFormulario(false);
-    };
-
-    return (
-        <div>
-            <div style={styles.tabHeader}>
-                <h2 style={styles.tabTitle}>Mis Direcciones</h2>
-                <button
-                    onClick={() => setMostrarFormulario(true)}
-                    style={styles.agregarButton}
-                >
-                    ➕ Agregar Dirección
-                </button>
-            </div>
-
-            {mostrarFormulario && (
-                <div style={styles.formularioDireccion}>
-                    <h3>Agregar Nueva Dirección</h3>
-                    <form onSubmit={handleSubmit} style={styles.form}>
-                        <div style={styles.formGroup}>
-                            <label style={styles.label}>Dirección *</label>
-                            <input
-                                type="text"
-                                name="direccion"
-                                value={nuevaDireccion.direccion}
-                                onChange={handleInputChange}
-                                required
-                                style={styles.input}
-                                placeholder="Calle, número, departamento"
-                            />
-                        </div>
-
-                        <div style={styles.formRow}>
-                            <div style={styles.formGroup}>
-                                <label style={styles.label}>Ciudad *</label>
-                                <input
-                                    type="text"
-                                    name="ciudad"
-                                    value={nuevaDireccion.ciudad}
-                                    onChange={handleInputChange}
-                                    required
-                                    style={styles.input}
-                                    placeholder="Ciudad"
-                                />
-                            </div>
-
-                            <div style={styles.formGroup}>
-                                <label style={styles.label}>Código Postal</label>
-                                <input
-                                    type="text"
-                                    name="codigo_postal"
-                                    value={nuevaDireccion.codigo_postal}
-                                    onChange={handleInputChange}
-                                    style={styles.input}
-                                    placeholder="Código postal"
-                                />
-                            </div>
-                        </div>
-
-                        <div style={styles.checkboxGroup}>
-                            <input
-                                type="checkbox"
-                                name="principal"
-                                checked={nuevaDireccion.principal}
-                                onChange={handleInputChange}
-                                style={styles.checkbox}
-                            />
-                            <label style={styles.checkboxLabel}>
-                                Establecer como dirección principal
-                            </label>
-                        </div>
-
-                        <div style={styles.formActions}>
-                            <button type="submit" style={styles.guardarButton}>
-                                💾 Guardar Dirección
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setMostrarFormulario(false)}
-                                style={styles.cancelarButton}
-                            >
-                                ❌ Cancelar
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            )}
-
-            <div style={styles.direccionesGrid}>
-                {direcciones.map(direccion => (
-                    <div key={direccion.id} style={styles.direccionCard}>
-                        <div style={styles.direccionHeader}>
-                            <h4 style={styles.direccionTitulo}>
-                                Dirección {direccion.principal && '(Principal)'}
-                            </h4>
-                            {direccion.principal && (
-                                <span style={styles.principalBadge}>⭐ Principal</span>
-                            )}
-                        </div>
-
-                        <div style={styles.direccionInfo}>
-                            <p style={styles.direccionTexto}>{direccion.direccion}</p>
-                            <p style={styles.direccionCiudad}>
-                                {direccion.ciudad} {direccion.codigo_postal && `- ${direccion.codigo_postal}`}
-                            </p>
-                        </div>
-
-                        <div style={styles.direccionActions}>
-                            <button style={styles.editarButton}>
-                                ✏️ Editar
-                            </button>
-                            {!direccion.principal && (
-                                <button style={styles.eliminarButton}>
-                                    🗑️ Eliminar
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                ))}
-            </div>
         </div>
     );
 };

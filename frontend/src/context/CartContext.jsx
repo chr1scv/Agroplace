@@ -44,6 +44,12 @@ const cartReducer = (state, action) => {
             };
 
         case 'CLEAR_CART':
+            if (action.payload && Array.isArray(action.payload) && action.payload.length > 0) {
+                return {
+                    ...state,
+                    items: state.items.filter(item => !action.payload.includes(item.id))
+                };
+            }
             return {
                 ...state,
                 items: []
@@ -140,8 +146,8 @@ export const CartProvider = ({ children }) => {
         }
     };
 
-    const clearCart = () => {
-        dispatch({ type: 'CLEAR_CART' });
+    const clearCart = (itemIds = null) => {
+        dispatch({ type: 'CLEAR_CART', payload: itemIds });
     };
 
     const toggleCart = () => {

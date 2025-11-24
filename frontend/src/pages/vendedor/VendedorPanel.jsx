@@ -375,7 +375,7 @@ const VendedorPanel = () => {
                     <StatCard
                         icon="💰"
                         label="Ventas Totales"
-                        value={formatPrice(metricasAdicionales.totalVendido)}
+                        value={formatPrice(metricasReales.ingresos_totales || 0)}
                         colorClass="stat-card-blue"
                     />
                     <StatCard
