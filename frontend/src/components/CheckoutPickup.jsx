@@ -12,20 +12,21 @@ const CheckoutPickup = ({ items, onContinue, onBack }) => {
         notas: ''
     });
 
-    const [vendorInfo, setVendorInfo] = useState(null);
+    const [vendors, setVendors] = useState([]);
 
     useEffect(() => {
         if (items && items.length > 0) {
-            // Obtener información del vendedor del primer producto
-            // Asumimos que la info del vendedor viene anidada en el producto desde el backend
-            // Si hay múltiples vendedores, por ahora mostramos el del primero (MVP)
-            const firstItem = items[0];
-            if (firstItem.vendedor) {
-                setVendorInfo({
-                    direccion: firstItem.vendedor.direccion_retiro || "Dirección no disponible",
-                    horario: firstItem.vendedor.horario_atencion || "Horario no disponible"
-                });
-            }
+            const uniqueVendors = {};
+            items.forEach(item => {
+                if (item.vendedor) {
+                    // Usar el ID del vendedor como clave para evitar duplicados
+                    const vendorId = item.vendedor.id;
+                    if (!uniqueVendors[vendorId]) {
+                        uniqueVendors[vendorId] = item.vendedor;
+                    }
+                }
+            });
+            setVendors(Object.values(uniqueVendors));
         }
     }, [items]);
 
@@ -48,35 +49,55 @@ const CheckoutPickup = ({ items, onContinue, onBack }) => {
         onContinue(formData);
     };
 
+    const getFormattedAddress = (v) => {
+        let direccionCompleta = v.direccion_retiro || v.direccion || "Dirección no disponible";
+        if (v.provincia) {
+            direccionCompleta += `, Provincia de ${v.provincia}`;
+        }
+        return direccionCompleta;
+    };
+
     return (
         <div style={styles.container}>
             <h2 style={styles.title}>Información para Retiro</h2>
             <p style={styles.subtitle}>
-                Tu pedido será preparado para retiro en tienda
+                Tu pedido será preparado para retiro en los siguientes puntos:
             </p>
 
             <div style={styles.pickupInfo}>
-                <h3 style={styles.infoTitle}>📍 Punto de Retiro</h3>
+                <h3 style={styles.infoTitle}>📍 Puntos de Retiro</h3>
 
-                <div style={styles.infoBlock}>
-                    <p style={styles.infoLabel}>Dirección:</p>
-                    <p style={styles.infoValue}>
-                        {vendorInfo ? vendorInfo.direccion : "Cargando dirección..."}
-                    </p>
-                </div>
+                {vendors.length > 0 ? (
+                    vendors.map((v, index) => (
+                        <div key={v.id || index} style={{
+                            marginBottom: '1.5rem',
+                            borderBottom: index < vendors.length - 1 ? '1px solid #e0e0e0' : 'none',
+                            paddingBottom: index < vendors.length - 1 ? '1rem' : '0'
+                        }}>
+                            <h4 style={{ color: '#2d5016', marginBottom: '0.5rem', fontSize: '1rem', fontWeight: 'bold' }}>
+                                Tienda: {v.titulo || v.username || v.first_name}
+                            </h4>
 
-                <div style={styles.infoBlock}>
-                    <p style={styles.infoLabel}>Horario de Atención:</p>
-                    <div style={styles.infoValue}>
-                        {vendorInfo ? (
-                            vendorInfo.horario.split('\n').map((line, index) => (
-                                <div key={index}>{line}</div>
-                            ))
-                        ) : (
-                            "Cargando horario..."
-                        )}
-                    </div>
-                </div>
+                            <div style={styles.infoBlock}>
+                                <p style={styles.infoLabel}>Dirección:</p>
+                                <p style={styles.infoValue}>
+                                    {getFormattedAddress(v)}
+                                </p>
+                            </div>
+
+                            <div style={styles.infoBlock}>
+                                <p style={styles.infoLabel}>Horario de Atención:</p>
+                                <div style={styles.infoValue}>
+                                    {(v.horario_atencion || "Horario no disponible").split('\n').map((line, i) => (
+                                        <div key={i}>{line}</div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    ))
+                ) : (
+                    <p>Cargando información de puntos de retiro...</p>
+                )}
             </div>
 
             <form onSubmit={handleSubmit} style={styles.form}>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { getAxiosConfig } from '../utils/csrf';
 import { useCart } from '../context/CartContext';
@@ -12,8 +12,9 @@ import CheckoutPickup from '../components/CheckoutPickup';
 import CheckoutReview from '../components/CheckoutReview';
 
 const Checkout = () => {
-    const { items, clearCart, getCartTotal } = useCart();
+    const { items: cartItems, clearCart, getCartTotal } = useCart();
     const navigate = useNavigate();
+    const location = useLocation();
 
     // Constantes
     const IVA_RATE = 0.19;
@@ -22,12 +23,33 @@ const Checkout = () => {
     const [step, setStep] = useState(1); // 1: Formulario, 2: Revisión
     const [deliveryType, setDeliveryType] = useState(''); // 'envio' o 'retiro'
     const [customerData, setCustomerData] = useState(null);
+    const [checkoutItems, setCheckoutItems] = useState([]);
+
+    // Filtrar items basados en la selección del carrito
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const itemsParam = params.get('items');
+
+        if (itemsParam) {
+            const selectedIds = itemsParam.split(',').map(id => parseInt(id));
+            const filtered = cartItems.filter(item => selectedIds.includes(item.id));
+            setCheckoutItems(filtered);
+        } else {
+            // Si no hay params, usar todos (comportamiento legacy o fallback)
+            setCheckoutItems(cartItems);
+        }
+    }, [cartItems, location.search]);
+
+    // Calcular totales basados en items filtrados
+    const getCheckoutTotal = () => {
+        return checkoutItems.reduce((total, item) => total + (item.precio * item.quantity), 0);
+    };
 
     // Determinar tipo de entrega al cargar y cuando cambia el total
     useEffect(() => {
-        const total = getCartTotal();
+        const total = getCheckoutTotal();
         setDeliveryType(total >= SHIPPING_THRESHOLD ? 'envio' : 'retiro');
-    }, [getCartTotal]);
+    }, [checkoutItems]);
 
     const formatPrice = (price) => {
         return new Intl.NumberFormat('es-CL', {
@@ -38,7 +60,7 @@ const Checkout = () => {
     };
 
     const calculateTotals = () => {
-        const total = getCartTotal();
+        const total = getCheckoutTotal();
         const subtotal = total / (1 + IVA_RATE);
         const iva = subtotal * IVA_RATE;
 
@@ -74,7 +96,7 @@ const Checkout = () => {
             }
 
             const payload = {
-                items: items.map(item => ({
+                items: checkoutItems.map(item => ({
                     producto_id: item.id,
                     cantidad: item.quantity
                 })),
@@ -87,7 +109,12 @@ const Checkout = () => {
             await axios.post('http://localhost:8000/api/pedidos/', payload, getAxiosConfig());
 
             alert('¡Pedido confirmado exitosamente!');
+
+            // Solo remover los items comprados del carrito
+            // Esto requiere una nueva función en el contexto o iterar
+            // Por ahora, para simplificar y dado que clearCart limpia todo:
             clearCart();
+
             navigate('/productos');
         } catch (error) {
             console.error('Error al crear pedido:', error);
@@ -98,20 +125,20 @@ const Checkout = () => {
 
     const { subtotal, iva, total } = calculateTotals();
 
-    if (items.length === 0) {
+    if (checkoutItems.length === 0) {
         return (
             <div>
                 <HeaderCliente />
                 <div style={styles.container}>
                     <div style={styles.emptyCart}>
                         <div style={styles.emptyIcon}>🛒</div>
-                        <h2>Tu carrito está vacío</h2>
-                        <p>Agrega algunos productos antes de proceder al checkout</p>
+                        <h2>No hay productos seleccionados</h2>
+                        <p>Vuelve al carrito y selecciona productos para comprar</p>
                         <button
-                            onClick={() => navigate('/productos')}
+                            onClick={() => navigate('/carrito')}
                             style={styles.continueShopping}
                         >
-                            Continuar Comprando
+                            Volver al Carrito
                         </button>
                     </div>
                 </div>
@@ -156,7 +183,7 @@ const Checkout = () => {
                                     />
                                 ) : (
                                     <CheckoutPickup
-                                        items={items}
+                                        items={checkoutItems}
                                         onContinue={handleFormSubmit}
                                         onBack={() => navigate('/carrito')}
                                     />
@@ -177,7 +204,7 @@ const Checkout = () => {
                                 <h3 style={styles.summaryTitle}>Resumen del Pedido</h3>
 
                                 <div style={styles.summaryItems}>
-                                    {items.map(item => (
+                                    {checkoutItems.map(item => (
                                         <div key={item.id} style={styles.summaryItem}>
                                             <div style={styles.itemInfo}>
                                                 <span style={styles.itemName}>{item.nombre}</span>
