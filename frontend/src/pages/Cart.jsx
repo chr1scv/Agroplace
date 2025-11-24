@@ -82,6 +82,27 @@ const Cart = () => {
         }
     };
 
+    // Manejar selección de todos los productos de un vendedor
+    const handleVendorSelectAll = (vendorGroup) => {
+        const vendorItemIds = vendorGroup.items.map(item => item.id);
+        const allSelected = vendorItemIds.every(id => selectedItems.includes(id));
+
+        if (allSelected) {
+            // Deseleccionar todos
+            setSelectedItems([]);
+            setSelectedVendorId(null);
+        } else {
+            // Si hay un vendedor diferente seleccionado, mostrar error
+            if (selectedVendorId !== null && selectedVendorId !== vendorGroup.vendorId) {
+                alert('⚠️ Solo puedes seleccionar productos de un mismo vendedor a la vez.\n\nPor favor, deselecciona los productos actuales primero.');
+                return;
+            }
+            // Seleccionar todos
+            setSelectedVendorId(vendorGroup.vendorId);
+            setSelectedItems(vendorItemIds);
+        }
+    };
+
     const handleCheckout = () => {
         if (selectedItems.length === 0) {
             alert('Por favor selecciona al menos un producto para continuar');
@@ -92,6 +113,10 @@ const Cart = () => {
 
     // Obtener grupos de vendedores
     const vendorGroups = getVendorGroups();
+
+    // Debug: Mostrar información de agrupación
+    console.log('Vendor Groups:', vendorGroups);
+    console.log('Items:', items);
 
     if (items.length === 0) {
         return (
@@ -131,110 +156,127 @@ const Cart = () => {
                             </button>
                         </div>
 
-                        {vendorGroups.map((vendorGroup) => (
-                            <div key={vendorGroup.vendorId} style={styles.vendorGroup}>
-                                {/* Header del Vendedor */}
-                                <div style={styles.vendorHeader}>
-                                    <div style={styles.vendorInfo}>
-                                        <div style={styles.vendorIcon}>🏪</div>
-                                        <div>
-                                            <h4 style={styles.vendorName}>{vendorGroup.vendorName}</h4>
-                                            <p style={styles.vendorItemCount}>
-                                                {vendorGroup.items.length} producto{vendorGroup.items.length !== 1 ? 's' : ''}
-                                            </p>
+                        {vendorGroups.map((vendorGroup) => {
+                            const vendorItemIds = vendorGroup.items.map(item => item.id);
+                            const allVendorItemsSelected = vendorItemIds.every(id => selectedItems.includes(id));
+                            const someVendorItemsSelected = vendorItemIds.some(id => selectedItems.includes(id));
+
+                            return (
+                                <div key={vendorGroup.vendorId} style={styles.vendorGroup}>
+                                    {/* Header del Vendedor con Checkbox Maestro */}
+                                    <div style={styles.vendorHeader}>
+                                        <div style={styles.vendorInfo}>
+                                            <input
+                                                type="checkbox"
+                                                checked={allVendorItemsSelected}
+                                                ref={input => {
+                                                    if (input) {
+                                                        input.indeterminate = someVendorItemsSelected && !allVendorItemsSelected;
+                                                    }
+                                                }}
+                                                onChange={() => handleVendorSelectAll(vendorGroup)}
+                                                style={styles.vendorCheckbox}
+                                            />
+                                            <div style={styles.vendorIcon}>🏪</div>
+                                            <div>
+                                                <h4 style={styles.vendorName}>{vendorGroup.vendorName}</h4>
+                                                <p style={styles.vendorItemCount}>
+                                                    {vendorGroup.items.length} producto{vendorGroup.items.length !== 1 ? 's' : ''}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div style={styles.vendorTotal}>
+                                            <span style={styles.vendorTotalLabel}>Total:</span>
+                                            <span style={styles.vendorTotalAmount}>{formatPrice(vendorGroup.total)}</span>
                                         </div>
                                     </div>
-                                    <div style={styles.vendorTotal}>
-                                        <span style={styles.vendorTotalLabel}>Total:</span>
-                                        <span style={styles.vendorTotalAmount}>{formatPrice(vendorGroup.total)}</span>
-                                    </div>
-                                </div>
 
-                                {/* Productos del Vendedor */}
-                                {vendorGroup.items.map(item => {
-                                    const isSelected = selectedItems.includes(item.id);
-                                    const isFromSelectedVendor = selectedVendorId === null || selectedVendorId === vendorGroup.vendorId;
+                                    {/* Productos del Vendedor */}
+                                    {vendorGroup.items.map(item => {
+                                        const isSelected = selectedItems.includes(item.id);
+                                        const isFromSelectedVendor = selectedVendorId === null || selectedVendorId === vendorGroup.vendorId;
 
-                                    return (
-                                        <div
-                                            key={item.id}
-                                            style={{
-                                                ...styles.cartItem,
-                                                ...(isSelected ? styles.cartItemSelected : {}),
-                                                ...((!isFromSelectedVendor) ? styles.cartItemDisabled : {})
-                                            }}
-                                        >
-                                            {/* Checkbox */}
-                                            <div style={styles.checkboxContainer}>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={isSelected}
-                                                    onChange={() => handleItemSelect(item.id, vendorGroup.vendorId)}
-                                                    style={styles.checkbox}
-                                                />
-                                            </div>
-
-                                            <div style={styles.itemImage}>
-                                                {item.imagen ? (
-                                                    <img
-                                                        src={`http://localhost:8000${item.imagen}`}
-                                                        alt={item.nombre}
-                                                        style={styles.productImage}
+                                        return (
+                                            <div
+                                                key={item.id}
+                                                style={{
+                                                    ...styles.cartItem,
+                                                    ...(isSelected ? styles.cartItemSelected : {}),
+                                                    ...((!isFromSelectedVendor) ? styles.cartItemDisabled : {})
+                                                }}
+                                            >
+                                                {/* Checkbox */}
+                                                <div style={styles.checkboxContainer}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isSelected}
+                                                        onChange={() => handleItemSelect(item.id, vendorGroup.vendorId)}
+                                                        style={styles.checkbox}
                                                     />
-                                                ) : (
-                                                    <div style={styles.placeholderImage}>
-                                                        {item.categoria_nombre === 'Frutas' ? '🍎' :
-                                                            item.categoria_nombre === 'Verduras' ? '🥕' :
-                                                                item.categoria_nombre === 'Granos' ? '🌾' : '🌱'}
-                                                    </div>
-                                                )}
-                                            </div>
+                                                </div>
 
-                                            <div style={styles.itemDetails}>
-                                                <h4 style={styles.itemName}>{item.nombre}</h4>
-                                                <p style={styles.itemDescription}>{item.descripcion}</p>
-                                                <div style={styles.itemMeta}>
-                                                    {item.origen === 'organico' && (
-                                                        <span style={styles.organicTag}>Orgánico</span>
+                                                <div style={styles.itemImage}>
+                                                    {item.imagen ? (
+                                                        <img
+                                                            src={`http://localhost:8000${item.imagen}`}
+                                                            alt={item.nombre}
+                                                            style={styles.productImage}
+                                                        />
+                                                    ) : (
+                                                        <div style={styles.placeholderImage}>
+                                                            {item.categoria_nombre === 'Frutas' ? '🍎' :
+                                                                item.categoria_nombre === 'Verduras' ? '🥕' :
+                                                                    item.categoria_nombre === 'Granos' ? '🌾' : '🌱'}
+                                                        </div>
                                                     )}
                                                 </div>
-                                            </div>
 
-                                            <div style={styles.itemPrice}>
-                                                <span style={styles.price}>{formatPrice(item.precio || 0)}</span>
-                                            </div>
+                                                <div style={styles.itemDetails}>
+                                                    <h4 style={styles.itemName}>{item.nombre}</h4>
+                                                    <p style={styles.itemDescription}>{item.descripcion}</p>
+                                                    <div style={styles.itemMeta}>
+                                                        {item.origen === 'organico' && (
+                                                            <span style={styles.organicTag}>Orgánico</span>
+                                                        )}
+                                                    </div>
+                                                </div>
 
-                                            <div style={styles.itemQuantity}>
+                                                <div style={styles.itemPrice}>
+                                                    <span style={styles.price}>{formatPrice(item.precio || 0)}</span>
+                                                </div>
+
+                                                <div style={styles.itemQuantity}>
+                                                    <button
+                                                        onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
+                                                        style={styles.quantityButton}
+                                                    >
+                                                        -
+                                                    </button>
+                                                    <span style={styles.quantity}>{item.quantity}</span>
+                                                    <button
+                                                        onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                                                        style={styles.quantityButton}
+                                                    >
+                                                        +
+                                                    </button>
+                                                </div>
+
+                                                <div style={styles.itemTotal}>
+                                                    <span style={styles.total}>{formatPrice((item.precio || 0) * item.quantity)}</span>
+                                                </div>
+
                                                 <button
-                                                    onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
-                                                    style={styles.quantityButton}
+                                                    onClick={() => removeFromCart(item.id)}
+                                                    style={styles.removeButton}
                                                 >
-                                                    -
-                                                </button>
-                                                <span style={styles.quantity}>{item.quantity}</span>
-                                                <button
-                                                    onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
-                                                    style={styles.quantityButton}
-                                                >
-                                                    +
+                                                    ×
                                                 </button>
                                             </div>
-
-                                            <div style={styles.itemTotal}>
-                                                <span style={styles.total}>{formatPrice((item.precio || 0) * item.quantity)}</span>
-                                            </div>
-
-                                            <button
-                                                onClick={() => removeFromCart(item.id)}
-                                                style={styles.removeButton}
-                                            >
-                                                ×
-                                            </button>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        ))}
+                                        );
+                                    })}
+                                </div>
+                            );
+                        })}
                     </div>
 
                     <div style={styles.summarySection}>
@@ -410,6 +452,11 @@ const styles = {
         display: 'flex',
         alignItems: 'center',
         gap: '0.75rem',
+    },
+    vendorCheckbox: {
+        width: '20px',
+        height: '20px',
+        cursor: 'pointer',
     },
     vendorIcon: {
         fontSize: '1.5rem',
