@@ -8,7 +8,6 @@ import ProductoCard from './ProductoCard';
 import PedidoCard from './PedidoCard';
 import VendedorProfileMenu from '../../components/VendedorProfileMenu';
 
-// 🎨 COMPONENTES AUXILIARES
 const StatCard = ({ icon, label, value, colorClass, onClick }) => (
     <div className={`stat-card-modern ${colorClass}`} onClick={onClick} style={{ cursor: onClick ? 'pointer' : 'default' }}>
         <div className="stat-icon-modern">{icon}</div>

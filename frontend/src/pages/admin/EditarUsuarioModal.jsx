@@ -8,9 +8,15 @@ const EditarUsuarioModal = ({ usuario, onClose, onSave }) => {
         last_name: '',
         telefono: '',
         direccion: '',
+        provincia: '',
+        direccion_retiro: '',
+        horario_atencion: '',
+        descripcion: '',
+        titulo: '',
         tipo_usuario: 'cliente',
         estado: 'activo',
     });
+
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState({});
 
@@ -23,6 +29,11 @@ const EditarUsuarioModal = ({ usuario, onClose, onSave }) => {
                 last_name: usuario.last_name || '',
                 telefono: usuario.telefono || '',
                 direccion: usuario.direccion || '',
+                provincia: usuario.provincia || '',
+                direccion_retiro: usuario.direccion_retiro || '',
+                horario_atencion: usuario.horario_atencion || '',
+                descripcion: usuario.descripcion || '',
+                titulo: usuario.titulo || '',
                 tipo_usuario: usuario.tipo_usuario || 'cliente',
                 estado: usuario.estado || 'activo',
             });
@@ -64,7 +75,7 @@ const EditarUsuarioModal = ({ usuario, onClose, onSave }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         if (!validateForm()) {
             return;
         }
@@ -92,8 +103,8 @@ const EditarUsuarioModal = ({ usuario, onClose, onSave }) => {
                     </div>
                     <button onClick={onClose} style={styles.closeButton}>
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <line x1="18" y1="6" x2="6" y2="18"/>
-                            <line x1="6" y1="6" x2="18" y2="18"/>
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
                         </svg>
                     </button>
                 </div>
@@ -108,8 +119,8 @@ const EditarUsuarioModal = ({ usuario, onClose, onSave }) => {
                                     <label style={styles.label}>
                                         Username *
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={styles.labelIcon}>
-                                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                                            <circle cx="12" cy="7" r="4"/>
+                                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                                            <circle cx="12" cy="7" r="4" />
                                         </svg>
                                     </label>
                                     <input
@@ -127,8 +138,8 @@ const EditarUsuarioModal = ({ usuario, onClose, onSave }) => {
                                     <label style={styles.label}>
                                         Email *
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={styles.labelIcon}>
-                                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                                            <polyline points="22,6 12,13 2,6"/>
+                                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                                            <polyline points="22,6 12,13 2,6" />
                                         </svg>
                                     </label>
                                     <input
@@ -180,7 +191,7 @@ const EditarUsuarioModal = ({ usuario, onClose, onSave }) => {
                                     <label style={styles.label}>
                                         Teléfono
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={styles.labelIcon}>
-                                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
                                         </svg>
                                     </label>
                                     <input
@@ -197,8 +208,8 @@ const EditarUsuarioModal = ({ usuario, onClose, onSave }) => {
                                     <label style={styles.label}>
                                         Dirección
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={styles.labelIcon}>
-                                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                                            <circle cx="12" cy="10" r="3"/>
+                                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                                            <circle cx="12" cy="10" r="3" />
                                         </svg>
                                     </label>
                                     <input
@@ -210,6 +221,76 @@ const EditarUsuarioModal = ({ usuario, onClose, onSave }) => {
                                         placeholder="Calle 123, Ciudad"
                                     />
                                 </div>
+                            </div>
+                        </div>
+
+                        {/* Información de Vendedor (Condicional) */}
+                        {formData.tipo_usuario === 'vendedor' && (
+                            <div style={styles.section}>
+                                <h3 style={styles.sectionTitle}>Información de Vendedor</h3>
+                                <div style={styles.formGrid}>
+                                    <div style={styles.formGroup}>
+                                        <label style={styles.label}>Provincia</label>
+                                        <input
+                                            type="text"
+                                            name="provincia"
+                                            value={formData.provincia}
+                                            onChange={handleChange}
+                                            style={styles.input}
+                                            placeholder="Ej: Santiago"
+                                        />
+                                    </div>
+                                    <div style={styles.formGroup}>
+                                        <label style={styles.label}>Horario de Atención</label>
+                                        <input
+                                            type="text"
+                                            name="horario_atencion"
+                                            value={formData.horario_atencion}
+                                            onChange={handleChange}
+                                            style={styles.input}
+                                            placeholder="Ej: Lunes a Viernes 9:00 - 18:00"
+                                        />
+                                    </div>
+                                </div>
+                                <div style={styles.formGroup}>
+                                    <label style={styles.label}>Dirección de Retiro</label>
+                                    <input
+                                        type="text"
+                                        name="direccion_retiro"
+                                        value={formData.direccion_retiro}
+                                        onChange={handleChange}
+                                        style={styles.input}
+                                        placeholder="Dirección completa para retiro de productos"
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Perfil Público */}
+                        <div style={styles.section}>
+                            <h3 style={styles.sectionTitle}>Perfil Público</h3>
+                            <div style={styles.formGrid}>
+                                <div style={styles.formGroup}>
+                                    <label style={styles.label}>Título del Perfil</label>
+                                    <input
+                                        type="text"
+                                        name="titulo"
+                                        value={formData.titulo}
+                                        onChange={handleChange}
+                                        style={styles.input}
+                                        placeholder="Ej: Granja Los Aromos"
+                                    />
+                                </div>
+                            </div>
+                            <div style={styles.formGroup}>
+                                <label style={styles.label}>Descripción</label>
+                                <textarea
+                                    name="descripcion"
+                                    value={formData.descripcion}
+                                    onChange={handleChange}
+                                    style={{ ...styles.input, minHeight: '100px', resize: 'vertical' }}
+                                    placeholder="Descripción breve del usuario o tienda..."
+                                />
                             </div>
                         </div>
 
@@ -251,9 +332,9 @@ const EditarUsuarioModal = ({ usuario, onClose, onSave }) => {
                         {/* Información de Ayuda */}
                         <div style={styles.infoBox}>
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2d7a3e" strokeWidth="2">
-                                <circle cx="12" cy="12" r="10"/>
-                                <line x1="12" y1="16" x2="12" y2="12"/>
-                                <line x1="12" y1="8" x2="12.01" y2="8"/>
+                                <circle cx="12" cy="12" r="10" />
+                                <line x1="12" y1="16" x2="12" y2="12" />
+                                <line x1="12" y1="8" x2="12.01" y2="8" />
                             </svg>
                             <div style={styles.infoText}>
                                 Los campos marcados con (*) son obligatorios. Asegúrate de verificar la información antes de guardar.
@@ -262,15 +343,15 @@ const EditarUsuarioModal = ({ usuario, onClose, onSave }) => {
 
                         {/* Botones dentro del formulario */}
                         <div style={styles.modalFooter}>
-                            <button 
+                            <button
                                 type="button"
-                                onClick={onClose} 
+                                onClick={onClose}
                                 style={styles.cancelButton}
                                 disabled={loading}
                             >
                                 Cancelar
                             </button>
-                            <button 
+                            <button
                                 type="submit"
                                 style={loading ? styles.saveButtonDisabled : styles.saveButton}
                                 disabled={loading}
@@ -278,23 +359,23 @@ const EditarUsuarioModal = ({ usuario, onClose, onSave }) => {
                                 {loading ? (
                                     <>
                                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 1s linear infinite', marginRight: '8px' }}>
-                                            <line x1="12" y1="2" x2="12" y2="6"/>
-                                            <line x1="12" y1="18" x2="12" y2="22"/>
-                                            <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/>
-                                            <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/>
-                                            <line x1="2" y1="12" x2="6" y2="12"/>
-                                            <line x1="18" y1="12" x2="22" y2="12"/>
-                                            <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/>
-                                            <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/>
+                                            <line x1="12" y1="2" x2="12" y2="6" />
+                                            <line x1="12" y1="18" x2="12" y2="22" />
+                                            <line x1="4.93" y1="4.93" x2="7.76" y2="7.76" />
+                                            <line x1="16.24" y1="16.24" x2="19.07" y2="19.07" />
+                                            <line x1="2" y1="12" x2="6" y2="12" />
+                                            <line x1="18" y1="12" x2="22" y2="12" />
+                                            <line x1="4.93" y1="19.07" x2="7.76" y2="16.24" />
+                                            <line x1="16.24" y1="7.76" x2="19.07" y2="4.93" />
                                         </svg>
                                         Guardando...
                                     </>
                                 ) : (
                                     <>
                                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '8px' }}>
-                                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-                                            <polyline points="17 21 17 13 7 13 7 21"/>
-                                            <polyline points="7 3 7 8 15 8"/>
+                                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                                            <polyline points="17 21 17 13 7 13 7 21" />
+                                            <polyline points="7 3 7 8 15 8" />
                                         </svg>
                                         Guardar Cambios
                                     </>
