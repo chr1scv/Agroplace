@@ -104,8 +104,8 @@ class ProductoViewSet(viewsets.ModelViewSet):
                 queryset = Producto.objects.filter(vendedor=self.request.user)
             # Admins ven todos los productos
         else:
-            # Usuarios no autenticados o clientes solo ven productos activos
-            queryset = Producto.objects.filter(activo=True)
+            # Usuarios no autenticados o clientes solo ven productos activos Y aprobados
+            queryset = Producto.objects.filter(activo=True, aprobado=True)
         
         # Filtros
         categoria = self.request.query_params.get('categoria')
