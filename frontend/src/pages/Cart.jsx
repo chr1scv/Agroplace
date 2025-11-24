@@ -1,11 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import HeaderCliente from '../pages/cliente/HeaderCliente';
 
 const Cart = () => {
-    const { items, updateQuantity, removeFromCart, clearCart, getCartTotal } = useCart();
+    const { items, updateQuantity, removeFromCart, clearCart, getCartTotal, getVendorGroups } = useCart();
     const navigate = useNavigate();
+
+    const [selectedItems, setSelectedItems] = useState([]);
+    const [selectedVendorId, setSelectedVendorId] = useState(null);
 
     // Constante de IVA (19% en Chile)
     const IVA_RATE = 0.19;
@@ -40,13 +43,55 @@ const Cart = () => {
         return { percentage, remaining, hasShipping: total >= SHIPPING_THRESHOLD };
     };
 
+    // Calcular total de items seleccionados
+    const getSelectedTotal = () => {
+        return selectedItems.reduce((total, itemId) => {
+            const item = items.find(i => i.id === itemId);
+            return total + ((item?.precio || 0) * item.quantity);
+        }, 0);
+    };
+
     const handleQuantityChange = (productId, newQuantity) => {
         updateQuantity(productId, newQuantity);
     };
 
-    const handleCheckout = () => {
-        navigate('/checkout');
+    const handleItemSelect = (itemId, vendorId) => {
+        // Si no hay vendedor seleccionado, seleccionar este vendedor
+        if (selectedVendorId === null) {
+            setSelectedVendorId(vendorId);
+            setSelectedItems([itemId]);
+            return;
+        }
+
+        // Si el vendedor es diferente al seleccionado, mostrar error
+        if (selectedVendorId !== vendorId) {
+            alert('⚠️ Solo puedes seleccionar productos de un mismo vendedor a la vez.\n\nPor favor, deselecciona los productos actuales o procede al checkout con el vendedor actual.');
+            return;
+        }
+
+        // Toggle selection del item
+        if (selectedItems.includes(itemId)) {
+            const newSelected = selectedItems.filter(id => id !== itemId);
+            setSelectedItems(newSelected);
+            // Si no quedan items seleccionados, resetear vendedor
+            if (newSelected.length === 0) {
+                setSelectedVendorId(null);
+            }
+        } else {
+            setSelectedItems([...selectedItems, itemId]);
+        }
     };
+
+    const handleCheckout = () => {
+        if (selectedItems.length === 0) {
+            alert('Por favor selecciona al menos un producto para continuar');
+            return;
+        }
+        navigate(`/checkout?vendor=${selectedVendorId}&items=${selectedItems.join(',')}`);
+    };
+
+    // Obtener grupos de vendedores
+    const vendorGroups = getVendorGroups();
 
     if (items.length === 0) {
         return (
@@ -74,7 +119,7 @@ const Cart = () => {
             <div style={styles.container}>
                 <div style={styles.header}>
                     <h1 style={styles.title}>Mi Carrito de Compras</h1>
-                    <p style={styles.subtitle}>Revisa tus productos antes de comprar</p>
+                    <p style={styles.subtitle}>Selecciona los productos que deseas comprar</p>
                 </div>
 
                 <div style={styles.cartContent}>
@@ -86,65 +131,108 @@ const Cart = () => {
                             </button>
                         </div>
 
-                        {items.map(item => (
-                            <div key={item.id} style={styles.cartItem}>
-                                <div style={styles.itemImage}>
-                                    {item.imagen ? (
-                                        <img
-                                            src={`http://localhost:8000${item.imagen}`}
-                                            alt={item.nombre}
-                                            style={styles.productImage}
-                                        />
-                                    ) : (
-                                        <div style={styles.placeholderImage}>
-                                            {item.categoria_nombre === 'Frutas' ? '🍎' :
-                                                item.categoria_nombre === 'Verduras' ? '🥕' :
-                                                    item.categoria_nombre === 'Granos' ? '🌾' : '🌱'}
+                        {vendorGroups.map((vendorGroup) => (
+                            <div key={vendorGroup.vendorId} style={styles.vendorGroup}>
+                                {/* Header del Vendedor */}
+                                <div style={styles.vendorHeader}>
+                                    <div style={styles.vendorInfo}>
+                                        <div style={styles.vendorIcon}>🏪</div>
+                                        <div>
+                                            <h4 style={styles.vendorName}>{vendorGroup.vendorName}</h4>
+                                            <p style={styles.vendorItemCount}>
+                                                {vendorGroup.items.length} producto{vendorGroup.items.length !== 1 ? 's' : ''}
+                                            </p>
                                         </div>
-                                    )}
-                                </div>
-
-                                <div style={styles.itemDetails}>
-                                    <h4 style={styles.itemName}>{item.nombre}</h4>
-                                    <p style={styles.itemDescription}>{item.descripcion}</p>
-                                    <div style={styles.itemMeta}>
-                                        <span style={styles.vendor}>Vendedor: {item.vendedor_nombre}</span>
-                                        {item.origen === 'organico' && (
-                                            <span style={styles.organicTag}>Orgánico</span>
-                                        )}
+                                    </div>
+                                    <div style={styles.vendorTotal}>
+                                        <span style={styles.vendorTotalLabel}>Total:</span>
+                                        <span style={styles.vendorTotalAmount}>{formatPrice(vendorGroup.total)}</span>
                                     </div>
                                 </div>
 
-                                <div style={styles.itemPrice}>
-                                    <span style={styles.price}>{formatPrice(item.precio || 0)}</span>
-                                </div>
+                                {/* Productos del Vendedor */}
+                                {vendorGroup.items.map(item => {
+                                    const isSelected = selectedItems.includes(item.id);
+                                    const isFromSelectedVendor = selectedVendorId === null || selectedVendorId === vendorGroup.vendorId;
 
-                                <div style={styles.itemQuantity}>
-                                    <button
-                                        onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
-                                        style={styles.quantityButton}
-                                    >
-                                        -
-                                    </button>
-                                    <span style={styles.quantity}>{item.quantity}</span>
-                                    <button
-                                        onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
-                                        style={styles.quantityButton}
-                                    >
-                                        +
-                                    </button>
-                                </div>
+                                    return (
+                                        <div
+                                            key={item.id}
+                                            style={{
+                                                ...styles.cartItem,
+                                                ...(isSelected ? styles.cartItemSelected : {}),
+                                                ...((!isFromSelectedVendor) ? styles.cartItemDisabled : {})
+                                            }}
+                                        >
+                                            {/* Checkbox */}
+                                            <div style={styles.checkboxContainer}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isSelected}
+                                                    onChange={() => handleItemSelect(item.id, vendorGroup.vendorId)}
+                                                    style={styles.checkbox}
+                                                />
+                                            </div>
 
-                                <div style={styles.itemTotal}>
-                                    <span style={styles.total}>{formatPrice((item.precio || 0) * item.quantity)}</span>
-                                </div>
+                                            <div style={styles.itemImage}>
+                                                {item.imagen ? (
+                                                    <img
+                                                        src={`http://localhost:8000${item.imagen}`}
+                                                        alt={item.nombre}
+                                                        style={styles.productImage}
+                                                    />
+                                                ) : (
+                                                    <div style={styles.placeholderImage}>
+                                                        {item.categoria_nombre === 'Frutas' ? '🍎' :
+                                                            item.categoria_nombre === 'Verduras' ? '🥕' :
+                                                                item.categoria_nombre === 'Granos' ? '🌾' : '🌱'}
+                                                    </div>
+                                                )}
+                                            </div>
 
-                                <button
-                                    onClick={() => removeFromCart(item.id)}
-                                    style={styles.removeButton}
-                                >
-                                    ×
-                                </button>
+                                            <div style={styles.itemDetails}>
+                                                <h4 style={styles.itemName}>{item.nombre}</h4>
+                                                <p style={styles.itemDescription}>{item.descripcion}</p>
+                                                <div style={styles.itemMeta}>
+                                                    {item.origen === 'organico' && (
+                                                        <span style={styles.organicTag}>Orgánico</span>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div style={styles.itemPrice}>
+                                                <span style={styles.price}>{formatPrice(item.precio || 0)}</span>
+                                            </div>
+
+                                            <div style={styles.itemQuantity}>
+                                                <button
+                                                    onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
+                                                    style={styles.quantityButton}
+                                                >
+                                                    -
+                                                </button>
+                                                <span style={styles.quantity}>{item.quantity}</span>
+                                                <button
+                                                    onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                                                    style={styles.quantityButton}
+                                                >
+                                                    +
+                                                </button>
+                                            </div>
+
+                                            <div style={styles.itemTotal}>
+                                                <span style={styles.total}>{formatPrice((item.precio || 0) * item.quantity)}</span>
+                                            </div>
+
+                                            <button
+                                                onClick={() => removeFromCart(item.id)}
+                                                style={styles.removeButton}
+                                            >
+                                                ×
+                                            </button>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         ))}
                     </div>
@@ -152,6 +240,14 @@ const Cart = () => {
                     <div style={styles.summarySection}>
                         <div style={styles.summaryCard}>
                             <h3 style={styles.summaryTitle}>Resumen del Pedido</h3>
+
+                            {selectedItems.length > 0 && (
+                                <div style={styles.selectedInfo}>
+                                    <p style={styles.selectedText}>
+                                        ✓ {selectedItems.length} producto{selectedItems.length !== 1 ? 's' : ''} seleccionado{selectedItems.length !== 1 ? 's' : ''}
+                                    </p>
+                                </div>
+                            )}
 
                             {/* Barra de Progreso para Envío Gratis */}
                             <div style={styles.shippingProgress}>
@@ -200,12 +296,33 @@ const Cart = () => {
                                 <span><strong>{formatPrice(getCartTotal())}</strong></span>
                             </div>
 
+                            {selectedItems.length > 0 && (
+                                <>
+                                    <div style={styles.summaryDivider}></div>
+                                    <div style={styles.selectedTotalRow}>
+                                        <span><strong>Total Seleccionado:</strong></span>
+                                        <span style={styles.selectedTotalAmount}><strong>{formatPrice(getSelectedTotal())}</strong></span>
+                                    </div>
+                                </>
+                            )}
+
                             <button
                                 onClick={handleCheckout}
-                                style={styles.checkoutButton}
+                                style={{
+                                    ...styles.checkoutButton,
+                                    ...(selectedItems.length === 0 ? styles.checkoutButtonDisabled : {})
+                                }}
+                                disabled={selectedItems.length === 0}
                             >
-                                Proceder con la Compra
+                                {selectedItems.length > 0
+                                    ? `Proceder al Checkout (${selectedItems.length} producto${selectedItems.length !== 1 ? 's' : ''})`
+                                    : 'Selecciona productos para continuar'
+                                }
                             </button>
+
+                            <div style={styles.infoNote}>
+                                💡 Selecciona los productos que deseas comprar. Solo puedes seleccionar productos de un mismo vendedor.
+                            </div>
 
                             <Link to="/productos" style={styles.continueLink}>
                                 ← Continuar Comprando
@@ -272,6 +389,57 @@ const styles = {
         boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
         padding: '1.5rem',
     },
+    vendorGroup: {
+        marginBottom: '2rem',
+        padding: '1rem',
+        backgroundColor: '#f8f9fa',
+        borderRadius: '8px',
+        border: '2px solid #e0e0e0',
+    },
+    vendorHeader: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '0.75rem',
+        backgroundColor: 'white',
+        borderRadius: '6px',
+        marginBottom: '1rem',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+    },
+    vendorInfo: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.75rem',
+    },
+    vendorIcon: {
+        fontSize: '1.5rem',
+    },
+    vendorName: {
+        fontSize: '1rem',
+        fontWeight: 'bold',
+        color: '#2d5016',
+        margin: 0,
+    },
+    vendorItemCount: {
+        fontSize: '0.75rem',
+        color: '#666',
+        margin: '0.15rem 0 0 0',
+    },
+    vendorTotal: {
+        textAlign: 'right',
+    },
+    vendorTotalLabel: {
+        display: 'block',
+        fontSize: '0.75rem',
+        color: '#666',
+        marginBottom: '0.15rem',
+    },
+    vendorTotalAmount: {
+        display: 'block',
+        fontSize: '1.1rem',
+        fontWeight: 'bold',
+        color: '#2d5016',
+    },
     cartHeader: {
         display: 'flex',
         justifyContent: 'space-between',
@@ -291,17 +459,37 @@ const styles = {
     },
     cartItem: {
         display: 'grid',
-        gridTemplateColumns: '100px 1fr auto auto auto auto',
+        gridTemplateColumns: '40px 80px 1fr auto auto auto auto',
         gap: '1rem',
         alignItems: 'center',
-        padding: '1rem 0',
-        borderBottom: '1px solid #f0f0f0',
+        padding: '1rem',
+        borderRadius: '6px',
+        marginBottom: '0.5rem',
+        backgroundColor: 'white',
+        transition: 'all 0.2s',
+    },
+    cartItemSelected: {
+        backgroundColor: '#e8f5e9',
+        border: '2px solid #4caf50',
+    },
+    cartItemDisabled: {
+        opacity: 0.5,
+    },
+    checkboxContainer: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    checkbox: {
+        width: '20px',
+        height: '20px',
+        cursor: 'pointer',
     },
     itemImage: {
-        width: '100px',
-        height: '100px',
+        width: '80px',
+        height: '80px',
         backgroundColor: '#f8f9fa',
-        borderRadius: '8px',
+        borderRadius: '6px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -313,33 +501,30 @@ const styles = {
         objectFit: 'cover',
     },
     placeholderImage: {
-        fontSize: '2.5rem',
+        fontSize: '2rem',
         opacity: 0.7,
     },
     itemDetails: {
         minWidth: 0,
     },
     itemName: {
-        fontSize: '1.1rem',
+        fontSize: '1rem',
         fontWeight: 'bold',
         color: '#2d5016',
-        marginBottom: '0.5rem',
+        marginBottom: '0.25rem',
     },
     itemDescription: {
         color: '#666',
-        fontSize: '0.9rem',
-        marginBottom: '0.5rem',
+        fontSize: '0.85rem',
+        marginBottom: '0.25rem',
         overflow: 'hidden',
         textOverflow: 'ellipsis',
         whiteSpace: 'nowrap',
     },
     itemMeta: {
         display: 'flex',
-        gap: '1rem',
-        fontSize: '0.8rem',
-    },
-    vendor: {
-        color: '#666',
+        gap: '0.5rem',
+        fontSize: '0.75rem',
     },
     organicTag: {
         color: '#4caf50',
@@ -351,7 +536,7 @@ const styles = {
     price: {
         fontWeight: 'bold',
         color: '#2d5016',
-        fontSize: '1.1rem',
+        fontSize: '1rem',
     },
     itemQuantity: {
         display: 'flex',
@@ -359,20 +544,19 @@ const styles = {
         gap: '0.5rem',
     },
     quantityButton: {
-        width: '30px',
-        height: '30px',
+        width: '28px',
+        height: '28px',
         border: '1px solid #ddd',
         backgroundColor: 'white',
         borderRadius: '4px',
         cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        fontSize: '0.9rem',
     },
     quantity: {
-        minWidth: '30px',
+        minWidth: '25px',
         textAlign: 'center',
         fontWeight: 'bold',
+        fontSize: '0.9rem',
     },
     itemTotal: {
         textAlign: 'center',
@@ -380,13 +564,13 @@ const styles = {
     total: {
         fontWeight: 'bold',
         color: '#2d5016',
-        fontSize: '1.1rem',
+        fontSize: '1rem',
     },
     removeButton: {
         backgroundColor: 'transparent',
         border: 'none',
         cursor: 'pointer',
-        fontSize: '1.5rem',
+        fontSize: '1.3rem',
         color: '#dc3545',
         fontWeight: 'bold',
     },
@@ -403,10 +587,22 @@ const styles = {
     summaryTitle: {
         fontSize: '1.3rem',
         color: '#2d5016',
-        marginBottom: '1.5rem',
+        marginBottom: '1rem',
         textAlign: 'center',
     },
-    // Estilos de la barra de progreso
+    selectedInfo: {
+        backgroundColor: '#e8f5e9',
+        padding: '0.75rem',
+        borderRadius: '6px',
+        marginBottom: '1rem',
+        textAlign: 'center',
+    },
+    selectedText: {
+        color: '#2d5016',
+        fontWeight: 'bold',
+        margin: 0,
+        fontSize: '0.9rem',
+    },
     shippingProgress: {
         marginBottom: '1.5rem',
         padding: '1rem',
@@ -468,7 +664,16 @@ const styles = {
         display: 'flex',
         justifyContent: 'space-between',
         fontSize: '1.2rem',
+        marginBottom: '1rem',
+    },
+    selectedTotalRow: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        fontSize: '1.1rem',
         marginBottom: '1.5rem',
+    },
+    selectedTotalAmount: {
+        color: '#4caf50',
     },
     checkoutButton: {
         width: '100%',
@@ -477,10 +682,25 @@ const styles = {
         border: 'none',
         padding: '15px',
         borderRadius: '8px',
-        fontSize: '1.1rem',
+        fontSize: '1rem',
         fontWeight: 'bold',
         cursor: 'pointer',
         marginBottom: '1rem',
+        transition: 'background-color 0.2s',
+    },
+    checkoutButtonDisabled: {
+        backgroundColor: '#ccc',
+        cursor: 'not-allowed',
+    },
+    infoNote: {
+        backgroundColor: '#fff3cd',
+        color: '#856404',
+        padding: '0.75rem',
+        borderRadius: '6px',
+        fontSize: '0.85rem',
+        marginBottom: '1rem',
+        textAlign: 'center',
+        lineHeight: '1.4',
     },
     continueLink: {
         display: 'block',

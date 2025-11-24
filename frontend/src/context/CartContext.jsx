@@ -80,6 +80,7 @@ const initialState = {
 // Provider del Carrito
 export const CartProvider = ({ children }) => {
     const [state, dispatch] = useReducer(cartReducer, initialState);
+
     React.useEffect(() => {
         try {
             localStorage.setItem('agroplace_cart', JSON.stringify(state.items));
@@ -121,6 +122,31 @@ export const CartProvider = ({ children }) => {
         return state.items.reduce((total, item) => total + item.quantity, 0);
     };
 
+    // Agrupar items por vendedor
+    const getItemsByVendor = () => {
+        const grouped = {};
+        state.items.forEach(item => {
+            const vendorId = item.vendedor?.id || item.vendedor_id || 'unknown';
+            if (!grouped[vendorId]) {
+                grouped[vendorId] = {
+                    vendorId,
+                    vendorName: item.vendedor?.username || item.vendedor_nombre || 'Vendedor desconocido',
+                    vendorInfo: item.vendedor || null,
+                    items: [],
+                    total: 0
+                };
+            }
+            grouped[vendorId].items.push(item);
+            grouped[vendorId].total += (item.precio || 0) * item.quantity;
+        });
+        return grouped;
+    };
+
+    // Obtener array de grupos de vendedores
+    const getVendorGroups = () => {
+        return Object.values(getItemsByVendor());
+    };
+
     const value = {
         items: state.items,
         isOpen: state.isOpen,
@@ -130,7 +156,9 @@ export const CartProvider = ({ children }) => {
         clearCart,
         toggleCart,
         getCartTotal,
-        getCartItemsCount
+        getCartItemsCount,
+        getItemsByVendor,
+        getVendorGroups
     };
 
     return (
