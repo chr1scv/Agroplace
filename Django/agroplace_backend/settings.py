@@ -9,7 +9,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = 'django-insecure-x&fk3d136b#32bf8d@^+-z9q67!41%ujf0nq*k-7&o!z@_bmhv'
 DEBUG = True
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.amazonaws.com', '.yourdomain.com']  # ← Agregar para AWS
+ALLOWED_HOSTS = [
+    'localhost', 
+    '127.0.0.1', 
+    '3.89.213.239'
+]
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -57,9 +61,9 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'agroplace_db',
-        'USER': 'root',
-        'PASSWORD': '',
-        'HOST': 'localhost', 
+        'USER': 'admin',
+        'PASSWORD': 'admin123',
+        'HOST': 'agroplace-mysql.cr48swwciw4h.us-east-1.rds.amazonaws.com',
         'PORT': '3306',
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",

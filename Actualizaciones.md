@@ -37,3 +37,9 @@ Estas son las actualizaciones realizadas en el proyecto desde la última sincron
 
 ## ⚙️ General
 - **Variables CSS Globales**: Actualización de variables en `VendedorPanel.css` y `adminStyles.css` para asegurar consistencia en el tema oscuro a través de toda la aplicación.
+
+## 🐛 Correcciones Críticas
+### 🛡️ Panel de Administrador (`AdminPanel`)
+- **Visibilidad de Productos Pendientes**: Se corrigió un error donde los productos pendientes no aparecían en el panel de administrador.
+  - **Causa**: Las peticiones a la API (`cargarProductosPendientes`, `cargarProductos`, etc.) no incluían las credenciales de autenticación, por lo que el backend las trataba como anónimas y filtraba los datos sensibles.
+  - **Solución**: Se implementó `getAxiosConfig()` en todas las llamadas `axios.get` relevantes para asegurar que el token de autenticación se envíe correctamente.

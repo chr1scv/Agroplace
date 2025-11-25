@@ -84,7 +84,7 @@ const AdminPanel = () => {
 
     const cargarEstadisticas = async () => {
         try {
-            const response = await axios.get('http://localhost:8000/api/auth/dashboard/');
+            const response = await axios.get('http://localhost:8000/api/auth/dashboard/', getAxiosConfig());
             setEstadisticas(response.data);
         } catch (error) {
             console.error('Error cargando estadísticas:', error);
@@ -93,7 +93,7 @@ const AdminPanel = () => {
 
     const cargarVendedoresPendientes = async () => {
         try {
-            const response = await axios.get('http://localhost:8000/api/usuarios/?estado=pendiente&tipo_usuario=vendedor');
+            const response = await axios.get('http://localhost:8000/api/usuarios/?estado=pendiente&tipo_usuario=vendedor', getAxiosConfig());
             setVendedoresPendientes(response.data);
         } catch (error) {
             console.error('Error cargando vendedores pendientes:', error);
@@ -102,7 +102,7 @@ const AdminPanel = () => {
 
     const cargarProductosPendientes = async () => {
         try {
-            const response = await axios.get('http://localhost:8000/api/productos/?aprobado=false');
+            const response = await axios.get('http://localhost:8000/api/productos/?aprobado=false', getAxiosConfig());
             setProductosPendientes(response.data);
         } catch (error) {
             console.error('Error cargando productos pendientes:', error);
@@ -120,7 +120,7 @@ const AdminPanel = () => {
 
     const cargarProductos = async () => {
         try {
-            const response = await axios.get('http://localhost:8000/api/productos/');
+            const response = await axios.get('http://localhost:8000/api/productos/', getAxiosConfig());
             setProductos(response.data);
         } catch (error) {
             console.error('Error cargando productos:', error);
