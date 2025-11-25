@@ -21,8 +21,8 @@ class Usuario(AbstractUser):
     direccion = models.TextField(blank=True)
     descripcion = models.TextField(blank=True)  # ← NUEVO: Biografía del vendedor
     titulo = models.CharField(max_length=100, blank=True)  # ← NUEVO: Título (ej. Productor Verificado)
-    direccion_retiro = models.TextField(blank=True, default="Av. Vicuña Mackenna 1234, La Florida, Provincia de Santiago, Región Metropolitana")
-    horario_atencion = models.TextField(blank=True, default="Lunes a Viernes 9:00 - 18:00\nSábados: 10:00 - 14:00")
+    direccion_retiro = models.TextField(blank=True, default="")
+    horario_atencion = models.TextField(blank=True, default="")
     provincia = models.CharField(max_length=100, blank=True)  # ← NUEVO: Provincia del vendedor
     fecha_registro = models.DateTimeField(auto_now_add=True)
     

@@ -126,6 +126,19 @@ class AuthService {
                 direccion: userData.direccion,
                 first_name: userData.nombre,
                 last_name: userData.apellido,
+                // Campos específicos de vendedor
+                rut: userData.rut,
+                razon_social: userData.razon_social,
+                tipo_productos: userData.tipo_productos,
+                certificaciones: userData.certificaciones,
+                region: userData.region,
+                comuna: userData.comuna,
+                provincia: userData.provincia,
+                direccion_retiro: userData.direccion_retiro,
+                horario_atencion: userData.horario_atencion,
+                // Mapeamos descripcion_negocio a descripcion (campo del modelo)
+                descripcion: userData.descripcion_negocio || '',
+                titulo: userData.razon_social || '', // Usamos razón social como título por defecto
             };
 
             console.log('📤 Datos a enviar:', JSON.stringify(registerData, null, 2));

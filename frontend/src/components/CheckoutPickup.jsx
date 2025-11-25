@@ -50,7 +50,14 @@ const CheckoutPickup = ({ items, onContinue, onBack }) => {
     };
 
     const getFormattedAddress = (v) => {
-        let direccionCompleta = v.direccion_retiro || v.direccion || "Dirección no disponible";
+        // Detectar si es el placeholder antiguo
+        const isPlaceholder = v.direccion_retiro && v.direccion_retiro.includes("Av. Vicuña Mackenna 1234");
+
+        if (!v.direccion_retiro || isPlaceholder) {
+            return <span style={{ color: '#dc3545', fontStyle: 'italic' }}>Dirección no disponible. Contactar al vendedor.</span>;
+        }
+
+        let direccionCompleta = v.direccion_retiro;
         if (v.provincia) {
             direccionCompleta += `, Provincia de ${v.provincia}`;
         }
@@ -68,33 +75,43 @@ const CheckoutPickup = ({ items, onContinue, onBack }) => {
                 <h3 style={styles.infoTitle}>📍 Puntos de Retiro</h3>
 
                 {vendors.length > 0 ? (
-                    vendors.map((v, index) => (
-                        <div key={v.id || index} style={{
-                            marginBottom: '1.5rem',
-                            borderBottom: index < vendors.length - 1 ? '1px solid #e0e0e0' : 'none',
-                            paddingBottom: index < vendors.length - 1 ? '1rem' : '0'
-                        }}>
-                            <h4 style={{ color: '#2d5016', marginBottom: '0.5rem', fontSize: '1rem', fontWeight: 'bold' }}>
-                                Tienda: {v.titulo || v.username || v.first_name}
-                            </h4>
+                    vendors.map((v, index) => {
+                        // Detectar si el horario es el placeholder antiguo
+                        const isPlaceholderHorario = v.horario_atencion && v.horario_atencion.includes("Lunes a Viernes 9:00 - 18:00");
+                        const showHorario = v.horario_atencion && !isPlaceholderHorario;
 
-                            <div style={styles.infoBlock}>
-                                <p style={styles.infoLabel}>Dirección:</p>
-                                <p style={styles.infoValue}>
-                                    {getFormattedAddress(v)}
-                                </p>
-                            </div>
+                        return (
+                            <div key={v.id || index} style={{
+                                marginBottom: '1.5rem',
+                                borderBottom: index < vendors.length - 1 ? '1px solid #e0e0e0' : 'none',
+                                paddingBottom: index < vendors.length - 1 ? '1rem' : '0'
+                            }}>
+                                <h4 style={{ color: '#2d5016', marginBottom: '0.5rem', fontSize: '1rem', fontWeight: 'bold' }}>
+                                    Tienda: {v.titulo || v.username || v.first_name}
+                                </h4>
 
-                            <div style={styles.infoBlock}>
-                                <p style={styles.infoLabel}>Horario de Atención:</p>
-                                <div style={styles.infoValue}>
-                                    {(v.horario_atencion || "Horario no disponible").split('\n').map((line, i) => (
-                                        <div key={i}>{line}</div>
-                                    ))}
+                                <div style={styles.infoBlock}>
+                                    <p style={styles.infoLabel}>Dirección:</p>
+                                    <p style={styles.infoValue}>
+                                        {getFormattedAddress(v)}
+                                    </p>
+                                </div>
+
+                                <div style={styles.infoBlock}>
+                                    <p style={styles.infoLabel}>Horario de Atención:</p>
+                                    <div style={styles.infoValue}>
+                                        {showHorario ? (
+                                            v.horario_atencion.split('\n').map((line, i) => (
+                                                <div key={i}>{line}</div>
+                                            ))
+                                        ) : (
+                                            <span style={{ color: '#666', fontStyle: 'italic' }}>Horario por coordinar</span>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    ))
+                        );
+                    })
                 ) : (
                     <p>Cargando información de puntos de retiro...</p>
                 )}
