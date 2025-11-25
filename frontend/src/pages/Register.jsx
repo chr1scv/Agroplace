@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import authService from '../services/auth';
 
 const Register = () => {
@@ -32,6 +32,7 @@ const Register = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
 
     const handleChange = (e) => {
         setFormData({
@@ -76,8 +77,9 @@ const Register = () => {
                 // Vendedores van a página de espera
                 navigate('/vendedor/espera');
             } else {
-                // Clientes van directamente a productos
-                navigate('/productos');
+                // Clientes: Verificar si hay una ruta previa
+                const from = location.state?.from?.pathname || '/productos';
+                navigate(from, { replace: true });
             }
 
         } catch (err) {
@@ -649,17 +651,17 @@ const Register = () => {
 
             <style>
                 {`
-                    @keyframes spin {
-                        from { transform: rotate(0deg); }
-                        to { transform: rotate(360deg); }
-                    }
-                    
-                    input:focus, select:focus, textarea:focus {
-                        outline: none;
-                        border-color: #2d7a3e !important;
-                        box-shadow: 0 0 0 3px rgba(45, 122, 62, 0.1) !important;
-                    }
-                `}
+                        @keyframes spin {
+                            from { transform: rotate(0deg); }
+                            to { transform: rotate(360deg); }
+                        }
+                        
+                        input:focus, select:focus, textarea:focus {
+                            outline: none;
+                            border-color: #2d7a3e !important;
+                            box-shadow: 0 0 0 3px rgba(45, 122, 62, 0.1) !important;
+                        }
+                    `}
             </style>
         </div>
     );
@@ -1028,4 +1030,4 @@ const styles = {
     },
 };
 
-export default Register;    
+export default Register;

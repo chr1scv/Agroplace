@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import authService from '../services/auth';
 import ReviewSystem from '../components/ReviewSystem';
@@ -9,6 +9,7 @@ import '../styles/Products.css';
 const ProductDetail = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const { addToCart } = useCart();
 
     const [product, setProduct] = useState(null);
@@ -282,7 +283,7 @@ const ProductDetail = () => {
                                 </button>
                                 <p style={loginModalStyles.registerText}>
                                     ¿No tienes cuenta?{' '}
-                                    <Link to="/registro" style={loginModalStyles.registerLink}>
+                                    <Link to="/registro" state={{ from: location }} style={loginModalStyles.registerLink}>
                                         Regístrate aquí
                                     </Link>
                                 </p>

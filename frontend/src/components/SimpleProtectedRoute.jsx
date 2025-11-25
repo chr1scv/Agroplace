@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import authService from '../services/auth';
 
 const SimpleProtectedRoute = ({ children, allowedRoles = [] }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [currentUser, setCurrentUser] = useState(null);
+    const location = useLocation();
 
     useEffect(() => {
         const checkAuth = async () => {
@@ -36,7 +37,7 @@ const SimpleProtectedRoute = ({ children, allowedRoles = [] }) => {
     // Si no hay usuario, redirigir al login
     if (!currentUser) {
         console.log('❌ No user found, redirecting to login');
-        return <Navigate to="/login" replace />;
+        return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
     // TEMPORAL: Permitir acceso a todos los usuarios autenticados

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import authService from '../services/auth';
 
 const Login = () => {
@@ -11,6 +11,7 @@ const Login = () => {
     const [error, setError] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
 
     const handleChange = (e) => {
         setFormData({
@@ -197,7 +198,7 @@ const Login = () => {
                         <span style={styles.dividerText}>¿Nuevo en Agroplace?</span>
                     </div>
 
-                    <Link to="/registro" style={styles.registerLink}>
+                    <Link to="/registro" state={{ from: location.state?.from }} style={styles.registerLink}>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '8px' }}>
                             <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
                             <circle cx="8.5" cy="7" r="4" />

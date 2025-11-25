@@ -35,20 +35,20 @@ const Cart = () => {
         return getSubtotal() * IVA_RATE;
     };
 
-    // Calcular progreso hacia envío gratis
-    const getShippingProgress = () => {
-        const total = getCartTotal();
-        const percentage = Math.min((total / SHIPPING_THRESHOLD) * 100, 100);
-        const remaining = Math.max(SHIPPING_THRESHOLD - total, 0);
-        return { percentage, remaining, hasShipping: total >= SHIPPING_THRESHOLD };
-    };
-
     // Calcular total de items seleccionados
     const getSelectedTotal = () => {
         return selectedItems.reduce((total, itemId) => {
             const item = items.find(i => i.id === itemId);
             return total + ((item?.precio || 0) * item.quantity);
         }, 0);
+    };
+
+    // Calcular progreso hacia envío gratis
+    const getShippingProgress = () => {
+        const total = getSelectedTotal();
+        const percentage = Math.min((total / SHIPPING_THRESHOLD) * 100, 100);
+        const remaining = Math.max(SHIPPING_THRESHOLD - total, 0);
+        return { percentage, remaining, hasShipping: total >= SHIPPING_THRESHOLD };
     };
 
     const handleQuantityChange = (productId, newQuantity) => {
@@ -314,7 +314,7 @@ const Cart = () => {
                                     ></div>
                                 </div>
                                 <div style={styles.progressFooter}>
-                                    <span style={styles.progressAmount}>{formatPrice(getCartTotal())}</span>
+                                    <span style={styles.progressAmount}>{formatPrice(getSelectedTotal())}</span>
                                     <span style={styles.progressGoal}>{formatPrice(SHIPPING_THRESHOLD)}</span>
                                 </div>
                             </div>

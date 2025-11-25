@@ -43,3 +43,8 @@ Estas son las actualizaciones realizadas en el proyecto desde la última sincron
 - **Visibilidad de Productos Pendientes**: Se corrigió un error donde los productos pendientes no aparecían en el panel de administrador.
   - **Causa**: Las peticiones a la API (`cargarProductosPendientes`, `cargarProductos`, etc.) no incluían las credenciales de autenticación, por lo que el backend las trataba como anónimas y filtraba los datos sensibles.
   - **Solución**: Se implementó `getAxiosConfig()` en todas las llamadas `axios.get` relevantes para asegurar que el token de autenticación se envíe correctamente.
+
+### 🔄 Redirección y Navegación
+- **Redirección de Compradores**: Se implementó una lógica de redirección inteligente para que los usuarios vuelvan a su contexto original (ej. página de producto, carrito) después de registrarse.
+  - Archivos afectados: `Register.jsx`, `ProductDetail.jsx`, `Login.jsx`, `SimpleProtectedRoute.jsx`.
+- **Barra de Progreso del Carrito**: Se corrigió la lógica de la barra de envío gratis en `Cart.jsx` para que calcule el progreso basándose únicamente en los productos seleccionados, no en el total del carrito.
