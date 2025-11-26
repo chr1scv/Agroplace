@@ -870,7 +870,6 @@ class ReviewViewSet(viewsets.ModelViewSet):
             except Exception as e:
                 print(f"❌ Error al asignar usuario por defecto: {str(e)}")
 
-
 @api_view(['POST'])
 def chat_ia_vendedor(request):
     """
@@ -952,13 +951,11 @@ def chat_ia_vendedor(request):
 
     # --- 4. CONEXIÓN OPTIMIZADA ---
     
-    # Limpieza de URL a prueba de errores
-    base_url = settings.OLLAMA_API_URL.replace("/api/generate", "").replace("/api/chat", "")
-    if base_url.endswith("/"): base_url = base_url[:-1]
-    chat_url = f"{base_url}/api/chat"
+    # Usar directamente la URL de settings
+    chat_url = settings.OLLAMA_API_URL
     
     payload = {
-        "model": "llama3.2:1b", # 1B para velocidad (12s aprox)
+        "model": "llama3.2:1b",
         "messages": [
             {"role": "system", "content": system_message},
             {"role": "user", "content": pregunta}
@@ -966,12 +963,12 @@ def chat_ia_vendedor(request):
         "stream": False,
         "keep_alive": "60m",
         "options": {
-            "temperature": 0.3, # Precisión
-            "num_ctx": 2048     # Memoria suficiente
+            "temperature": 0.3,
+            "num_ctx": 2048
         }
     }
     
-    headers = {"Content-Type": "application/json", "ngrok-skip-browser-warning": "true"}
+    headers = {"Content-Type": "application/json"}
     
     try:
         response = requests.post(chat_url, json=payload, headers=headers, timeout=120)
