@@ -66,7 +66,7 @@ const AsistenteIA = ({ vendedor }) => {
                 <div className="ai-avatar">🤖</div>
                 <div>
                     <h2>Asistente AgroPlace</h2>
-                    <p>Potenciado por Llama 3.2</p>
+                    <p>Potenciado por Llama 3.2:1B</p>
                 </div>
             </div>
 

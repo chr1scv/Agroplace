@@ -760,7 +760,7 @@ const VendedorPanel = () => {
                                     { id: 'dashboard', icon: '📊', label: 'Dashboard' },
                                     { id: 'productos', icon: '📦', label: 'Productos' },
                                     { id: 'pedidos', icon: '🛒', label: 'Pedidos' },
-                                    { id: 'asistente', icon: '🤖', label: 'Asistente IA' },
+                                    { id: 'asistente', icon: '🤖', label: 'AgroIA' },
                                     { id: 'notificaciones', icon: '🔔', label: '' }
                                 ].map(tab => (
                                     <button

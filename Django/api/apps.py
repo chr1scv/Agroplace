@@ -9,35 +9,39 @@ class ApiConfig(AppConfig):
     name = 'api'
 
     def ready(self):
+        # Solo ejecutamos si es el servidor principal (runserver)
         if 'runserver' in sys.argv:
             threading.Thread(target=self.iniciar_calentamiento_ia).start()
 
     def iniciar_calentamiento_ia(self):
-        time.sleep(3)
+        time.sleep(3) # Esperamos que cargue la configuración
         from django.conf import settings
-        print("\n🔥 [OPTIMIZACIÓN] Iniciando pre-carga de Llama 3.2...")
+        
+        print("\n🔥 [SISTEMA] Iniciando pre-carga de IA en memoria RAM...")
         
         try:
-            base_url = getattr(settings, 'OLLAMA_API_URL', '').replace("/api/generate", "")
+            # Limpieza de URL para evitar errores
+            base_url = getattr(settings, 'OLLAMA_API_URL', '').replace("/api/generate", "").replace("/api/chat", "")
             if base_url.endswith("/"): base_url = base_url[:-1]
             chat_url = f"{base_url}/api/chat"
 
+            # Payload "Despertador"
             payload = {
-                "model": "llama3.2", # Coincide con views.py
+                "model": "llama3.2:1b", # Modelo Rápido
                 "messages": [{"role": "user", "content": "ping"}],
                 "stream": False,
-                "keep_alive": "60m", 
+                "keep_alive": "60m",    # Mantiene la IA viva 1 hora
                 "options": {"num_ctx": 1024}
             }
             
-            headers = {"ngrok-skip-browser-warning": "true"}
-            
             # Timeout corto, solo para despertar
             try:
-                requests.post(chat_url, json=payload, headers=headers, timeout=5)
-                print("✅ [OPTIMIZACIÓN] Señal enviada. IA cargando en RAM.\n")
+                requests.post(chat_url, json=payload, timeout=5)
+                print("✅ [SISTEMA] Señal enviada. La IA está lista y optimizada.\n")
             except requests.exceptions.ReadTimeout:
-                print("✅ [OPTIMIZACIÓN] Señal recibida (Timeout esperado).\n")
-                
+                print("✅ [SISTEMA] La IA está despertando (Timeout esperado).\n")
+            except Exception as e:
+                print(f"⚠️ [AVISO] La IA no respondió al ping: {e}")
+
         except Exception as e:
-            print(f"⚠️ [AVISO] No se pudo despertar a la IA: {str(e)}")
+            print(f"⚠️ [ERROR] Fallo en auto-warmup: {str(e)}")

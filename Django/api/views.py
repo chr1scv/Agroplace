@@ -1,23 +1,27 @@
-from django.conf import settings
-from django.core.cache import cache
-from rest_framework import viewsets, permissions, status
-from rest_framework.decorators import action, api_view, permission_classes
-from rest_framework.response import Response
-from django.db import transaction
-from django.db import transaction
-from django.db.models import Q, Sum, Count, Avg
+from django.db.models import Sum, Count
+from django.db.models.functions import TruncMonth
 from django.utils import timezone
+from django.core.cache import cache
 import datetime
+import requests
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework import status
+from django.conf import settings
+from .models import Producto, Pedido, DetallePedido
+from rest_framework import viewsets, permissions
+from rest_framework.decorators import action, permission_classes
+from django.db import transaction
+from django.db.models import Q
 from django.contrib.auth import authenticate, login, logout
 from django.middleware.csrf import get_token
 from django.views.decorators.csrf import csrf_exempt
-from .models import Usuario, Categoria, Producto, Pedido, DetallePedido, DireccionEnvio, Review
+from .models import Usuario, Categoria, DireccionEnvio, Review
 from .serializers import (
     UsuarioSerializer, CategoriaSerializer, ProductoSerializer, 
     PedidoSerializer, DireccionEnvioSerializer, RegistroSerializer,
     DetallePedidoSerializer, ReviewSerializer
 )
-import requests
 import json
 
 class UsuarioViewSet(viewsets.ModelViewSet):
@@ -674,14 +678,205 @@ class ReviewViewSet(viewsets.ModelViewSet):
             except Exception as e:
                 print(f"❌ Error al asignar usuario por defecto: {str(e)}")
 
+    
+    def perform_update(self, serializer):
+        # Para desarrollo: permitir actualizar sin restricciones
+        if self.request.user.is_authenticated and serializer.validated_data.get('principal', False):
+            DireccionEnvio.objects.filter(usuario=self.request.user, principal=True).update(principal=False)
+        serializer.save()
+
+# ==================== ENDPOINTS DE AUTENTICACIÓN ====================
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def get_csrf_token(request):
+    """Endpoint para obtener CSRF token - necesario para React"""
+    token = get_token(request)
+    response = Response({
+        'message': 'CSRF token obtenido exitosamente',
+        'csrfToken': token
+    })
+    response.set_cookie(
+        'csrftoken', 
+        token, 
+        max_age=3600, 
+        httponly=False,  # Para que React pueda leerlo
+        samesite='Lax'
+    )
+    return response
+
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def registro_usuario(request):
+    print("📨 Datos recibidos en registro:", request.data)  # DEBUG
+    
+    serializer = RegistroSerializer(data=request.data)
+    if serializer.is_valid():
+        user = serializer.save()
+        print(f"✅ Usuario {user.username} creado exitosamente en la base de datos!")  # DEBUG
+        
+        # Auto-login después del registro
+        login(request, user)
+        
+        return Response({
+            'user': UsuarioSerializer(user).data,
+            'message': 'Usuario registrado exitosamente en la base de datos'
+        }, status=status.HTTP_201_CREATED)
+    
+    print("❌ Errores de validación:", serializer.errors)  # DEBUG
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def login_usuario(request):
+    print("📨 Datos recibidos en login:", request.data)  # DEBUG
+    
+    username = request.data.get('username')
+    password = request.data.get('password')
+    
+    if not username or not password:
+        return Response(
+            {'error': 'Username y password son requeridos'}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    user = authenticate(request, username=username, password=password)
+    
+    if user is not None:
+        login(request, user)
+        print(f"✅ Login exitoso para usuario: {user.username}")  # DEBUG
+        return Response({
+            'user': UsuarioSerializer(user).data,
+            'message': 'Login exitoso'
+        })
+    
+    print("❌ Credenciales inválidas para usuario:", username)  # DEBUG
+    return Response(
+        {'error': 'Credenciales inválidas'}, 
+        status=status.HTTP_400_BAD_REQUEST
+    )
+
+@api_view(['POST'])
+def logout_usuario(request):
+    if request.user.is_authenticated:
+        logout(request)
+        return Response({'message': 'Logout exitoso'})
+    
+    return Response({'message': 'No estaba autenticado'})
+
+@api_view(['GET'])
+def get_current_user(request):
+    if request.user.is_authenticated:
+        serializer = UsuarioSerializer(request.user)
+        return Response(serializer.data)
+    
+    return Response(
+        {'error': 'No autenticado'}, 
+        status=status.HTTP_401_UNAUTHORIZED
+    )
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def dashboard_stats(request):
+    """Estadísticas para el dashboard según el tipo de usuario"""
+    user = request.user
+    
+    # Si no está autenticado, retornar estadísticas básicas o vacías
+    if not user.is_authenticated:
+        stats = {
+            'total_usuarios': Usuario.objects.count(),
+            'total_productos': Producto.objects.filter(activo=True).count(),
+            'total_pedidos': Pedido.objects.count(),
+            'total_categorias': Categoria.objects.filter(activa=True).count(),
+            'message': 'Estadísticas generales (usuario no autenticado)'
+        }
+        return Response(stats)
+    
+    # Usuario autenticado - aplicar lógica según tipo de usuario
+    if user.tipo_usuario == 'admin':
+        stats = {
+            'total_usuarios': Usuario.objects.count(),
+            'total_productos': Producto.objects.filter(activo=True).count(),
+            'total_pedidos': Pedido.objects.count(),
+            'ingresos_totales': sum(pedido.total for pedido in Pedido.objects.all() if pedido.total),
+            'total_categorias': Categoria.objects.filter(activa=True).count()
+        }
+    elif user.tipo_usuario == 'vendedor':
+        mis_productos = Producto.objects.filter(vendedor=user, activo=True)
+        pedidos_vendedor = Pedido.objects.filter(
+            detalles__producto__vendedor=user
+        ).distinct()
+        
+        stats = {
+            'total_productos': mis_productos.count(),
+            'productos_activos': mis_productos.filter(stock__gt=0).count(),
+            'total_pedidos': pedidos_vendedor.count(),
+            'ingresos_totales': sum(pedido.total for pedido in pedidos_vendedor if pedido.total),
+            'pedidos_pendientes': pedidos_vendedor.filter(estado='pendiente').count(),
+            'productos_sin_stock': mis_productos.filter(stock=0).count()
+        }
+    elif user.tipo_usuario == 'cliente':
+        mis_pedidos = Pedido.objects.filter(cliente=user)
+        
+        stats = {
+            'total_pedidos': mis_pedidos.count(),
+            'pedidos_pendientes': mis_pedidos.filter(estado='pendiente').count(),
+            'pedidos_entregados': mis_pedidos.filter(estado='entregado').count(),
+            'total_gastado': sum(pedido.total for pedido in mis_pedidos if pedido.total),
+            'direcciones_envio': DireccionEnvio.objects.filter(usuario=user).count()
+        }
+    else:
+        stats = {
+            'message': 'Tipo de usuario no reconocido',
+            'total_productos': Producto.objects.filter(activo=True).count()
+        }
+    
+    return Response(stats)
+
+class ReviewViewSet(viewsets.ModelViewSet):
+    queryset = Review.objects.all()
+    serializer_class = ReviewSerializer
+    permission_classes = [permissions.AllowAny]
+    
+    def get_queryset(self):
+        queryset = Review.objects.all()
+        
+        # Filtrar por producto
+        producto_id = self.request.query_params.get('producto')
+        if producto_id:
+            queryset = queryset.filter(producto_id=producto_id)
+            
+        return queryset.order_by('-fecha_creacion')
+
+    def perform_create(self, serializer):
+        print(f"📝 Intentando crear reseña. Usuario autenticado: {self.request.user.is_authenticated}")
+        
+        if self.request.user.is_authenticated:
+            print(f"👤 Asignando usuario autenticado: {self.request.user.username}")
+            serializer.save(usuario=self.request.user)
+        else:
+            # Fallback para desarrollo: asignar primer usuario disponible
+            print("⚠️ Usuario no autenticado. Buscando usuario por defecto...")
+            try:
+                default_user = Usuario.objects.filter(tipo_usuario='cliente').first() or Usuario.objects.first()
+                
+                if default_user:
+                    print(f"👤 Asignando usuario por defecto: {default_user.username}")
+                    serializer.save(usuario=default_user)
+                else:
+                    print("❌ No se encontró ningún usuario para asignar.")
+                    # Esto probablemente fallará si el modelo requiere usuario
+                    serializer.save()
+            except Exception as e:
+                print(f"❌ Error al asignar usuario por defecto: {str(e)}")
+
 
 @api_view(['POST'])
 def chat_ia_vendedor(request):
     """
-    Agente Inteligente AgroPlace 
-    - Modelo: Llama 3.2 (3B)
-    - Optimización: Keep-Alive 60m + Contexto 1024
-    - Velocidad: Caché de 5 minutos para preguntas repetidas.
+    Agente AgroPlace V-FINAL ("El Estratega")
+    - Capacidad: Métricas, Tendencias, Detalles de Venta, Consejos, Cultura General.
+    - Optimización: Caché, Contexto Bajo, Modelo 1B.
     """
     if not request.user.is_authenticated or request.user.tipo_usuario != 'vendedor':
         return Response({'error': 'Acceso denegado.'}, status=status.HTTP_403_FORBIDDEN)
@@ -692,96 +887,104 @@ def chat_ia_vendedor(request):
 
     vendedor = request.user
 
-    # --- 1. VERIFICACIÓN DE CACHÉ (VELOCIDAD SUPREMA) ---
-    # Creamos una llave única: ID del vendedor + Pregunta (en minúsculas)
-    cache_key = f"chat_ia_{vendedor.id}_{pregunta.lower()}"
-    respuesta_guardada = cache.get(cache_key)
+    # --- 1. CACHÉ INSTANTÁNEA (0.01s para preguntas repetidas) ---
+    cache_key = f"chat_final_{vendedor.id}_{pregunta.lower()}"
+    cached = cache.get(cache_key)
+    if cached:
+        print(f"⚡ [CACHE] Respuesta inmediata: '{pregunta}'")
+        return Response({'respuesta': cached})
 
-    if respuesta_guardada:
-        print(f"⚡ [CACHE] Respondiendo desde memoria instantánea: '{pregunta}'")
-        return Response({'respuesta': respuesta_guardada})
-
-    # --- 2. RECOPILACIÓN DE DATOS (Si no estaba en caché) ---
+    # --- 2. MINERÍA DE DATOS (Python hace el trabajo duro) ---
     
     productos = Producto.objects.filter(vendedor=vendedor)
     pedidos = Pedido.objects.filter(detalles__producto__vendedor=vendedor).distinct()
     
-    # Métricas
-    total_ingresos = sum(p.total for p in pedidos if p.total) or 0
-    cantidad_pedidos = pedidos.count()
+    # A. Finanzas y Tendencias
+    hoy = timezone.now()
+    inicio_mes = hoy.replace(day=1, hour=0, minute=0, second=0)
     
-    # Top Productos
-    top_productos = productos.order_by('-vendidos')[:3]
-    if top_productos:
-        top_nombres = ", ".join([f"{p.nombre} ({p.vendidos} vtas)" for p in top_productos])
-    else:
-        top_nombres = "Insuficientes datos."
+    ventas_historicas = pedidos.aggregate(sum=Sum('total'))['sum'] or 0
+    ventas_mes = pedidos.filter(fecha_pedido__gte=inicio_mes).aggregate(sum=Sum('total'))['sum'] or 0
+    pedidos_mes = pedidos.filter(fecha_pedido__gte=inicio_mes).count()
     
-    # Inventario
-    agotados = productos.filter(stock=0).count()
-    
-    # Última Venta
+    # B. Última Venta DETALLADA (Para responder "¿De qué fue?")
     ultimo = pedidos.order_by('-fecha_pedido').first()
     if ultimo:
         fecha = ultimo.fecha_pedido.strftime("%d/%m")
-        ultima_venta_txt = f"${ultimo.total:,.0f} ({fecha})"
+        # Obtenemos los productos específicos de esa venta
+        items = ultimo.detalles.filter(producto__vendedor=vendedor)
+        lista_items = ", ".join([f"{i.cantidad}x {i.producto.nombre}" for i in items])
+        
+        ultima_venta_txt = f"Monto: ${ultimo.total:,.0f} | Fecha: {fecha} | Contenido: {lista_items}"
     else:
-        ultima_venta_txt = "N/A"
+        ultima_venta_txt = "Aún no hay ventas registradas."
 
-    # --- 3. PROMPT DEL SISTEMA ---
+    # C. Análisis de Inventario y Consejos
+    agotados = productos.filter(stock=0)
+    top_prod = productos.order_by('-vendidos').first()
+    
+    consejos = []
+    if agotados.exists():
+        consejos.append(f"¡URGENTE! Repón stock de: {', '.join([p.nombre for p in agotados[:2]])}.")
+    if top_prod and top_prod.vendidos > 0:
+        consejos.append(f"Potencia tu producto estrella '{top_prod.nombre}'.")
+    elif not pedidos.exists():
+        consejos.append("Comparte tu perfil para conseguir tu primera venta.")
+        
+    consejo_final = " ".join(consejos) if consejos else "Tu negocio se ve saludable."
+
+    # --- 3. CEREBRO (PROMPT MAESTRO) ---
     
     system_message = f"""
-    Eres AgroIA agricultor Chileno y el asistente de negocios de {vendedor.first_name}.
-    
-    TUS DATOS REALES:
-    - Ventas: ${total_ingresos:,.0f} ({cantidad_pedidos} pedidos).
-    - Última: {ultima_venta_txt}.
-    - Top: {top_nombres}.
-    - Agotados: {agotados}.
+    Eres AgroIA, el consultor y agricultor chilenoexperto de {vendedor.first_name}. Tu misión es impulsar su negocio.
 
-    INSTRUCCIONES:
-    1. Si preguntan datos, usa los de arriba.
-    2. Si preguntan consejos, analiza el stock y productos top.
-    3. Si preguntan cultura general, responde con tu conocimiento.
-    4. Sé breve y profesional.
+    [DATOS EN TIEMPO REAL - ÚSALOS]
+    1. FINANZAS: Ventas este mes: ${ventas_mes:,.0f} ({pedidos_mes} pedidos). Total Histórico: ${ventas_historicas:,.0f}.
+    2. ÚLTIMA VENTA (Detalle): {ultima_venta_txt}.
+    3. ANÁLISIS Y CONSEJOS: {consejo_final}.
+
+    [TUS REGLAS DE RESPUESTA]
+    - NEGOCIO: Si preguntan "¿Cómo voy?", analiza las finanzas del mes y da los consejos.
+    - DETALLE: Si preguntan "¿Qué vendí?" o "¿De qué fue?", LEE el "Contenido" de la última venta.
+    - EXPERTO: Si preguntan de cultivos (ej: siembra, clima) o cultura general (historia, deportes), responde con tu conocimiento general. IGNORA los datos del negocio para estas preguntas.
+    - IDIOMA: Habla siempre en Español Latinoamericano. Sé breve y profesional.
     """
+
+    # --- 4. CONEXIÓN OPTIMIZADA ---
     
-    base_url = settings.OLLAMA_API_URL.replace("/api/generate", "")
+    # Limpieza de URL a prueba de errores
+    base_url = settings.OLLAMA_API_URL.replace("/api/generate", "").replace("/api/chat", "")
     if base_url.endswith("/"): base_url = base_url[:-1]
     chat_url = f"{base_url}/api/chat"
     
     payload = {
-        "model": "llama3.2",
+        "model": "llama3.2:1b", # 1B para velocidad (12s aprox)
         "messages": [
             {"role": "system", "content": system_message},
             {"role": "user", "content": pregunta}
         ],
         "stream": False,
-        "keep_alive": "60m",   
+        "keep_alive": "60m",
         "options": {
-            "temperature": 0.4, 
-            "num_ctx": 1024
+            "temperature": 0.3, # Precisión
+            "num_ctx": 2048     # Memoria suficiente
         }
     }
     
     headers = {"Content-Type": "application/json", "ngrok-skip-browser-warning": "true"}
     
     try:
-        # Timeout 120s (solo la primera vez tarda, luego caché o keep_alive vuelan)
         response = requests.post(chat_url, json=payload, headers=headers, timeout=120)
         
         if response.status_code == 200:
             ai_reply = response.json().get('message', {}).get('content', '')
-            
-            # --- GUARDAR EN CACHÉ ---
-            # Guardamos la respuesta por 300 segundos (5 minutos)
+            # Guardamos en caché por 5 minutos
             cache.set(cache_key, ai_reply, timeout=300)
-            
             return Response({'respuesta': ai_reply})
         else:
             print(f"⚠️ Error IA: {response.status_code}")
-            return Response({'respuesta': 'Dame un momento...'}, status=503)
+            return Response({'respuesta': 'Dame un momento para recalcular...'}, status=503)
             
     except Exception as e:
         print(f"❌ Error: {str(e)}")
-        return Response({'respuesta': 'Conectando...'}, status=503)
+        return Response({'respuesta': 'Conectando con el servidor de inteligencia...'}, status=503)
