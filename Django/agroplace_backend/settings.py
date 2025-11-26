@@ -12,7 +12,8 @@ DEBUG = True
 ALLOWED_HOSTS = [
     'localhost', 
     '127.0.0.1', 
-    '100.31.14.143'
+    '100.31.14.143',
+    '100-31-14-143.compute-1.amazonaws.com'
 ]
 
 INSTALLED_APPS = [

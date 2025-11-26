@@ -3,7 +3,7 @@
 import axios from 'axios';
 
 // Configurar la base URL de tu backend Django
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = 'http://100.31.14.143/api';
 
 const api = axios.create({
     baseURL: API_BASE_URL,
@@ -18,7 +18,7 @@ api.interceptors.response.use(
     (response) => response,
     (error) => {
         console.error('API Error:', error);
-        
+
         if (error.response) {
             switch (error.response.status) {
                 case 401:
@@ -42,7 +42,7 @@ api.interceptors.response.use(
         } else {
             console.error('Error de configuración:', error.message);
         }
-        
+
         return Promise.reject(error);
     }
 );
@@ -59,7 +59,7 @@ export const productService = {
             throw error;
         }
     },
-    
+
     // Obtener producto por ID
     getProductById: async (id) => {
         try {
@@ -70,7 +70,7 @@ export const productService = {
             throw error;
         }
     },
-    
+
     // Crear producto (solo vendedores/admin)
     createProduct: async (productData) => {
         try {
@@ -81,7 +81,7 @@ export const productService = {
             throw error;
         }
     },
-    
+
     // Actualizar producto
     updateProduct: async (id, productData) => {
         try {
@@ -92,7 +92,7 @@ export const productService = {
             throw error;
         }
     },
-    
+
     // Eliminar producto
     deleteProduct: async (id) => {
         try {
@@ -129,7 +129,7 @@ export const authService = {
             throw error;
         }
     },
-    
+
     // Registro con Django
     register: async (userData) => {
         try {
@@ -140,7 +140,7 @@ export const authService = {
             throw error;
         }
     },
-    
+
     // Logout
     logout: async () => {
         try {
@@ -151,7 +151,7 @@ export const authService = {
             throw error;
         }
     },
-    
+
     // Obtener usuario actual
     getCurrentUser: async () => {
         try {
@@ -175,7 +175,7 @@ export const orderService = {
             throw error;
         }
     },
-    
+
     // Crear pedido
     createOrder: async (orderData) => {
         try {
@@ -186,7 +186,7 @@ export const orderService = {
             throw error;
         }
     },
-    
+
     // Actualizar estado del pedido
     updateOrderStatus: async (id, status) => {
         try {
@@ -210,7 +210,7 @@ export const userService = {
             throw error;
         }
     },
-    
+
     // Obtener usuario por ID
     getUserById: async (id) => {
         try {

@@ -1,6 +1,6 @@
 class NotificationService {
     constructor() {
-        this.API_BASE = 'http://localhost:8000/api';
+        this.API_BASE = 'http://100.31.14.143/api';
     }
 
     async getUserNotifications(userId) {
@@ -63,7 +63,7 @@ class NotificationService {
             leida: false,
             prioridad: 'low'
         };
-        
+
         return await this.createNotification(notification);
     }
 
@@ -78,7 +78,7 @@ class NotificationService {
             prioridad: 'high',
             accion: '/admin/vendedores'
         };
-        
+
         return await this.createNotification(notification);
     }
 
@@ -100,7 +100,7 @@ class NotificationService {
             prioridad: 'medium',
             accion: `/pedidos/${orderId}`
         };
-        
+
         return await this.createNotification(notification);
     }
 }

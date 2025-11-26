@@ -2,7 +2,7 @@ class AuthService {
     constructor() {
         this.token = localStorage.getItem('token');
         this.user = JSON.parse(localStorage.getItem('user'));
-        this.API_BASE = 'http://localhost:8000/api';
+        this.API_BASE = 'http://100.31.14.143/api';
     }
 
     async login(username, password) {
