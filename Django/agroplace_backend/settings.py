@@ -1,4 +1,4 @@
-# settings.py - CONFIGURACIÓN DEFINITIVA COMPLETA Y CORREGIDA
+# settings.py - CONFIGURACIÓN DEFINITIVA
 import os
 from pathlib import Path
 import pymysql
@@ -12,7 +12,7 @@ DEBUG = True
 ALLOWED_HOSTS = [
     'localhost', 
     '127.0.0.1', 
-    '3.89.213.239'
+    '100.31.14.143'
 ]
 
 INSTALLED_APPS = [
@@ -32,7 +32,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',  # ← MANTENER CSRF HABILITADO
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -78,6 +78,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
     "http://localhost:3001",
     "http://127.0.0.1:3001",
+    "https://tu-dominio.com",  # ← Para producción
 ]
 
 CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
@@ -89,10 +90,11 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:3000", 
     "http://localhost:3001",
     "http://127.0.0.1:3001",
+    "https://tu-dominio.com",  # ← Para producción
 ]
 
 CSRF_COOKIE_SAMESITE = 'Lax'
-CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_HTTPONLY = False  # Para que React pueda leerlo
 CSRF_USE_SESSIONS = False
 
 # Configuración para archivos media
@@ -138,8 +140,6 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'api.Usuario'
 
-# CONFIGURACIÓN IA - VERSIÓN DEFINITIVA
-# =======================================================
 OLLAMA_API_URL = "http://127.0.0.1:11434/api/chat"
 
 # Configuración para producción (cuando DEBUG=False)
