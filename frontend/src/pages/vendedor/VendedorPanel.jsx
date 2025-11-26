@@ -7,6 +7,7 @@ import FormularioProducto from './FormularioProducto';
 import ProductoCard from './ProductoCard';
 import PedidoCard from './PedidoCard';
 import VendedorProfileMenu from '../../components/VendedorProfileMenu';
+import AsistenteIA from './AsistenteIA';
 
 const StatCard = ({ icon, label, value, colorClass, onClick }) => (
     <div className={`stat-card-modern ${colorClass}`} onClick={onClick} style={{ cursor: onClick ? 'pointer' : 'default' }}>
@@ -759,6 +760,7 @@ const VendedorPanel = () => {
                                     { id: 'dashboard', icon: '📊', label: 'Dashboard' },
                                     { id: 'productos', icon: '📦', label: 'Productos' },
                                     { id: 'pedidos', icon: '🛒', label: 'Pedidos' },
+                                    { id: 'asistente', icon: '🤖', label: 'Asistente IA' },
                                     { id: 'notificaciones', icon: '🔔', label: 'Alertas' }
                                 ].map(tab => (
                                     <button
@@ -791,6 +793,7 @@ const VendedorPanel = () => {
                 {activeTab === 'dashboard' && <DashboardTab />}
                 {activeTab === 'productos' && <ProductosTab />}
                 {activeTab === 'pedidos' && <PedidosTab />}
+                {activeTab === 'asistente' && <AsistenteIA vendedor={vendedor} />}
                 {activeTab === 'notificaciones' && <NotificacionesTab />}
             </main>
 

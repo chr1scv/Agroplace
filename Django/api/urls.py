@@ -23,4 +23,5 @@ urlpatterns = [
     path('auth/logout/', views.logout_usuario, name='logout'),
     path('auth/user/', views.get_current_user, name='current_user'),
     path('auth/dashboard/', views.dashboard_stats, name='dashboard_stats'),
+    path('chat/vendedor/', views.chat_ia_vendedor, name='chat_ia_vendedor'),
 ]

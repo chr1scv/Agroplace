@@ -6,12 +6,14 @@ from django.db.models import Q
 from django.contrib.auth import authenticate, login, logout
 from django.middleware.csrf import get_token
 from django.views.decorators.csrf import csrf_exempt
-from .models import Usuario, Categoria, Producto, Pedido, DetallePedido, DireccionEnvio
+from .models import Usuario, Categoria, Producto, Pedido, DetallePedido, DireccionEnvio, Review
 from .serializers import (
     UsuarioSerializer, CategoriaSerializer, ProductoSerializer, 
     PedidoSerializer, DireccionEnvioSerializer, RegistroSerializer,
-    DetallePedidoSerializer
+    DetallePedidoSerializer, ReviewSerializer
 )
+import requests
+import json
 
 class UsuarioViewSet(viewsets.ModelViewSet):
     queryset = Usuario.objects.all()
@@ -630,11 +632,6 @@ def dashboard_stats(request):
     
     return Response(stats)
 
-# Agregar al final de views.py
-
-from .models import Review
-from .serializers import ReviewSerializer
-
 class ReviewViewSet(viewsets.ModelViewSet):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
@@ -672,3 +669,79 @@ class ReviewViewSet(viewsets.ModelViewSet):
             except Exception as e:
                 print(f"❌ Error al asignar usuario por defecto: {str(e)}")
                 raise e
+
+@api_view(['POST'])
+def chat_ia_vendedor(request):
+    """
+    Endpoint para que el vendedor converse con la IA sobre su negocio.
+    """
+    if not request.user.is_authenticated or request.user.tipo_usuario != 'vendedor':
+        return Response(
+            {'error': 'Acceso denegado. Solo vendedores.'}, 
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    pregunta = request.data.get('pregunta', '')
+    if not pregunta:
+        return Response({'error': 'La pregunta es requerida'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # 1. Recopilar contexto del negocio
+    vendedor = request.user
+    productos = Producto.objects.filter(vendedor=vendedor)
+    pedidos = Pedido.objects.filter(detalles__producto__vendedor=vendedor).distinct()
+    
+    # Estadísticas básicas
+    total_ventas = sum(p.total for p in pedidos if p.total)
+    total_pedidos = pedidos.count()
+    productos_activos = productos.filter(activo=True).count()
+    productos_sin_stock = productos.filter(stock=0).count()
+    
+    # Productos más vendidos
+    top_productos = productos.order_by('-vendidos')[:5]
+    top_nombres = ", ".join([f"{p.nombre} ({p.vendidos} vendidos)" for p in top_productos])
+    
+    # Contexto para la IA
+    contexto = f"""
+    Eres un asistente de negocios experto para AgroPlace. Estás hablando con el vendedor {vendedor.first_name}.
+    
+    Datos de su negocio en tiempo real:
+    - Total Ingresos Históricos: ${total_ventas:,.0f}
+    - Total Pedidos: {total_pedidos}
+    - Productos Activos: {productos_activos}
+    - Productos Sin Stock: {productos_sin_stock}
+    - Top Productos: {top_nombres}
+    
+    Responde a la pregunta del usuario basándote en estos datos. Sé amable, motivador y breve.
+    """
+    
+    prompt_final = f"{contexto}\n\nPregunta del usuario: {pregunta}\n\nRespuesta:"
+
+    # 2. Enviar a la IA (Ngrok)
+    # URL PROPORCIONADA POR EL USUARIO
+    ngrok_url = "https://unaccelerative-stutteringly-ericka.ngrok-free.dev/api/generate"
+    
+    payload = {
+        "model": "llama3.2",
+        "prompt": prompt_final,
+        "stream": False
+    }
+    
+    try:
+        print(f"🤖 Enviando prompt a IA: {prompt_final[:100]}...")
+        response = requests.post(ngrok_url, json=payload, timeout=30)
+        
+        if response.status_code == 200:
+            ai_response = response.json().get('response', '')
+            return Response({'respuesta': ai_response})
+        else:
+            print(f"❌ Error IA: {response.status_code} - {response.text}")
+            return Response(
+                {'respuesta': 'Lo siento, mi cerebro de IA está un poco desconectado ahora. Intenta más tarde.'},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE
+            )
+    except Exception as e:
+        print(f"❌ Excepción conectando con IA: {str(e)}")
+        return Response(
+            {'respuesta': f'Error de conexión con la IA: {str(e)}'},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE
+        )
