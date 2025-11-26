@@ -761,7 +761,7 @@ const VendedorPanel = () => {
                                     { id: 'productos', icon: '📦', label: 'Productos' },
                                     { id: 'pedidos', icon: '🛒', label: 'Pedidos' },
                                     { id: 'asistente', icon: '🤖', label: 'Asistente IA' },
-                                    { id: 'notificaciones', icon: '🔔', label: 'Alertas' }
+                                    { id: 'notificaciones', icon: '🔔', label: '' }
                                 ].map(tab => (
                                     <button
                                         key={tab.id}
@@ -777,7 +777,7 @@ const VendedorPanel = () => {
 
                         <div className="navbar-right-modern">
                             <button className="notification-btn-modern">
-                                <span>🔔</span>
+                                <span></span>
                                 {notificaciones.filter(n => !n.leida).length > 0 && (
                                     <span className="notification-badge-modern"></span>
                                 )}

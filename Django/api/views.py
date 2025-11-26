@@ -1,3 +1,4 @@
+from django.conf import settings
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
@@ -718,7 +719,7 @@ def chat_ia_vendedor(request):
 
     # 2. Enviar a la IA (Ngrok)
     # URL PROPORCIONADA POR EL USUARIO
-    ngrok_url = "https://unaccelerative-stutteringly-ericka.ngrok-free.dev/api/generate"
+    ngrok_url = settings.OLLAMA_API_URL
     
     payload = {
         "model": "llama3.2",
@@ -726,17 +727,45 @@ def chat_ia_vendedor(request):
         "stream": False
     }
     
+    # === ESTRATEGIA LIMPIA: MODO API ===
+    # En lugar de fingir ser Chrome, somos honestos y usamos el header de salto
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "ngrok-skip-browser-warning": "true",  # El pase VIP simple
+        "User-Agent": "AgroPlace-Backend/1.0"  # Identificación simple
+    }
+    
+    # Payload
+    payload = {
+        "model": "llama3.2",
+        "prompt": prompt_final,
+        "stream": False
+    }
+    
     try:
-        print(f"🤖 Enviando prompt a IA: {prompt_final[:100]}...")
-        response = requests.post(ngrok_url, json=payload, timeout=30)
+        print(f"🤖 Conectando a IA ({ngrok_url})...")
         
+        # Petición limpia
+        response = requests.post(
+            ngrok_url, 
+            json=payload, 
+            headers=headers,  
+            timeout=300 # Un minuto de tolerancia máxima
+        )
+        
+        # DEBUG: Si falla, imprimir todo lo posible
+        if response.status_code != 200:
+            print(f"⚠️ Error Respuesta IA: {response.status_code}")
+            print(f"⚠️ Headers Respuesta: {response.headers}")
+            print(f"⚠️ Contenido: {response.text}")
+
         if response.status_code == 200:
             ai_response = response.json().get('response', '')
             return Response({'respuesta': ai_response})
         else:
-            print(f"❌ Error IA: {response.status_code} - {response.text}")
             return Response(
-                {'respuesta': 'Lo siento, mi cerebro de IA está un poco desconectado ahora. Intenta más tarde.'},
+                {'respuesta': f'Error técnico ({response.status_code}). El cerebro está dormido.'},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE
             )
     except Exception as e:

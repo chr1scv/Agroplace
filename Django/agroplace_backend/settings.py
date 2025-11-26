@@ -145,3 +145,6 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True  # Solo HTTPS en producción
     SESSION_COOKIE_SECURE = True
     SECURE_SSL_REDIRECT = True
+
+# Configuración de IA (URL Fija de Ngrok)
+OLLAMA_API_URL = "https://unaccelerative-stutteringly-ericka.ngrok-free.dev/api/generate"
