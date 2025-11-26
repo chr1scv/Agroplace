@@ -1,9 +1,13 @@
 from django.conf import settings
+from django.core.cache import cache
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from django.db import transaction
-from django.db.models import Q
+from django.db import transaction
+from django.db.models import Q, Sum, Count, Avg
+from django.utils import timezone
+import datetime
 from django.contrib.auth import authenticate, login, logout
 from django.middleware.csrf import get_token
 from django.views.decorators.csrf import csrf_exempt
@@ -669,108 +673,115 @@ class ReviewViewSet(viewsets.ModelViewSet):
                     serializer.save()
             except Exception as e:
                 print(f"❌ Error al asignar usuario por defecto: {str(e)}")
-                raise e
+
 
 @api_view(['POST'])
 def chat_ia_vendedor(request):
     """
-    Endpoint para que el vendedor converse con la IA sobre su negocio.
+    Agente Inteligente AgroPlace 
+    - Modelo: Llama 3.2 (3B)
+    - Optimización: Keep-Alive 60m + Contexto 1024
+    - Velocidad: Caché de 5 minutos para preguntas repetidas.
     """
     if not request.user.is_authenticated or request.user.tipo_usuario != 'vendedor':
-        return Response(
-            {'error': 'Acceso denegado. Solo vendedores.'}, 
-            status=status.HTTP_403_FORBIDDEN
-        )
+        return Response({'error': 'Acceso denegado.'}, status=status.HTTP_403_FORBIDDEN)
     
-    pregunta = request.data.get('pregunta', '')
+    pregunta = request.data.get('pregunta', '').strip()
     if not pregunta:
-        return Response({'error': 'La pregunta es requerida'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'Pregunta requerida'}, status=status.HTTP_400_BAD_REQUEST)
 
-    # 1. Recopilar contexto del negocio
     vendedor = request.user
+
+    # --- 1. VERIFICACIÓN DE CACHÉ (VELOCIDAD SUPREMA) ---
+    # Creamos una llave única: ID del vendedor + Pregunta (en minúsculas)
+    cache_key = f"chat_ia_{vendedor.id}_{pregunta.lower()}"
+    respuesta_guardada = cache.get(cache_key)
+
+    if respuesta_guardada:
+        print(f"⚡ [CACHE] Respondiendo desde memoria instantánea: '{pregunta}'")
+        return Response({'respuesta': respuesta_guardada})
+
+    # --- 2. RECOPILACIÓN DE DATOS (Si no estaba en caché) ---
+    
     productos = Producto.objects.filter(vendedor=vendedor)
     pedidos = Pedido.objects.filter(detalles__producto__vendedor=vendedor).distinct()
     
-    # Estadísticas básicas
-    total_ventas = sum(p.total for p in pedidos if p.total)
-    total_pedidos = pedidos.count()
-    productos_activos = productos.filter(activo=True).count()
-    productos_sin_stock = productos.filter(stock=0).count()
+    # Métricas
+    total_ingresos = sum(p.total for p in pedidos if p.total) or 0
+    cantidad_pedidos = pedidos.count()
     
-    # Productos más vendidos
-    top_productos = productos.order_by('-vendidos')[:5]
-    top_nombres = ", ".join([f"{p.nombre} ({p.vendidos} vendidos)" for p in top_productos])
+    # Top Productos
+    top_productos = productos.order_by('-vendidos')[:3]
+    if top_productos:
+        top_nombres = ", ".join([f"{p.nombre} ({p.vendidos} vtas)" for p in top_productos])
+    else:
+        top_nombres = "Insuficientes datos."
     
-    # Contexto para la IA
-    contexto = f"""
-    Eres un asistente de negocios experto para AgroPlace. Estás hablando con el vendedor {vendedor.first_name}.
+    # Inventario
+    agotados = productos.filter(stock=0).count()
     
-    Datos de su negocio en tiempo real:
-    - Total Ingresos Históricos: ${total_ventas:,.0f}
-    - Total Pedidos: {total_pedidos}
-    - Productos Activos: {productos_activos}
-    - Productos Sin Stock: {productos_sin_stock}
-    - Top Productos: {top_nombres}
+    # Última Venta
+    ultimo = pedidos.order_by('-fecha_pedido').first()
+    if ultimo:
+        fecha = ultimo.fecha_pedido.strftime("%d/%m")
+        ultima_venta_txt = f"${ultimo.total:,.0f} ({fecha})"
+    else:
+        ultima_venta_txt = "N/A"
+
+    # --- 3. PROMPT DEL SISTEMA ---
     
-    Responde a la pregunta del usuario basándote en estos datos. Sé amable, motivador y breve.
+    system_message = f"""
+    Eres AgroIA agricultor Chileno y el asistente de negocios de {vendedor.first_name}.
+    
+    TUS DATOS REALES:
+    - Ventas: ${total_ingresos:,.0f} ({cantidad_pedidos} pedidos).
+    - Última: {ultima_venta_txt}.
+    - Top: {top_nombres}.
+    - Agotados: {agotados}.
+
+    INSTRUCCIONES:
+    1. Si preguntan datos, usa los de arriba.
+    2. Si preguntan consejos, analiza el stock y productos top.
+    3. Si preguntan cultura general, responde con tu conocimiento.
+    4. Sé breve y profesional.
     """
     
-    prompt_final = f"{contexto}\n\nPregunta del usuario: {pregunta}\n\nRespuesta:"
-
-    # 2. Enviar a la IA (Ngrok)
-    # URL PROPORCIONADA POR EL USUARIO
-    ngrok_url = settings.OLLAMA_API_URL
+    base_url = settings.OLLAMA_API_URL.replace("/api/generate", "")
+    if base_url.endswith("/"): base_url = base_url[:-1]
+    chat_url = f"{base_url}/api/chat"
     
     payload = {
         "model": "llama3.2",
-        "prompt": prompt_final,
-        "stream": False
+        "messages": [
+            {"role": "system", "content": system_message},
+            {"role": "user", "content": pregunta}
+        ],
+        "stream": False,
+        "keep_alive": "60m",   
+        "options": {
+            "temperature": 0.4, 
+            "num_ctx": 1024
+        }
     }
     
-    # === ESTRATEGIA LIMPIA: MODO API ===
-    # En lugar de fingir ser Chrome, somos honestos y usamos el header de salto
-    headers = {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        "ngrok-skip-browser-warning": "true",  # El pase VIP simple
-        "User-Agent": "AgroPlace-Backend/1.0"  # Identificación simple
-    }
-    
-    # Payload
-    payload = {
-        "model": "llama3.2",
-        "prompt": prompt_final,
-        "stream": False
-    }
+    headers = {"Content-Type": "application/json", "ngrok-skip-browser-warning": "true"}
     
     try:
-        print(f"🤖 Conectando a IA ({ngrok_url})...")
+        # Timeout 120s (solo la primera vez tarda, luego caché o keep_alive vuelan)
+        response = requests.post(chat_url, json=payload, headers=headers, timeout=120)
         
-        # Petición limpia
-        response = requests.post(
-            ngrok_url, 
-            json=payload, 
-            headers=headers,  
-            timeout=300 # Un minuto de tolerancia máxima
-        )
-        
-        # DEBUG: Si falla, imprimir todo lo posible
-        if response.status_code != 200:
-            print(f"⚠️ Error Respuesta IA: {response.status_code}")
-            print(f"⚠️ Headers Respuesta: {response.headers}")
-            print(f"⚠️ Contenido: {response.text}")
-
         if response.status_code == 200:
-            ai_response = response.json().get('response', '')
-            return Response({'respuesta': ai_response})
+            ai_reply = response.json().get('message', {}).get('content', '')
+            
+            # --- GUARDAR EN CACHÉ ---
+            # Guardamos la respuesta por 300 segundos (5 minutos)
+            cache.set(cache_key, ai_reply, timeout=300)
+            
+            return Response({'respuesta': ai_reply})
         else:
-            return Response(
-                {'respuesta': f'Error técnico ({response.status_code}). El cerebro está dormido.'},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE
-            )
+            print(f"⚠️ Error IA: {response.status_code}")
+            return Response({'respuesta': 'Dame un momento...'}, status=503)
+            
     except Exception as e:
-        print(f"❌ Excepción conectando con IA: {str(e)}")
-        return Response(
-            {'respuesta': f'Error de conexión con la IA: {str(e)}'},
-            status=status.HTTP_503_SERVICE_UNAVAILABLE
-        )
+        print(f"❌ Error: {str(e)}")
+        return Response({'respuesta': 'Conectando...'}, status=503)
