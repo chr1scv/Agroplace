@@ -4,9 +4,9 @@ import { useNavigate } from 'react-router-dom';
 const Home = () => {
     const [isScrolled, setIsScrolled] = useState(false);
     const [currentSlide, setCurrentSlide] = useState(0);
-    const navigate = useNavigate(); // ✅ Agregar hook de navegación
+    const [hoveredFeature, setHoveredFeature] = useState(null);
+    const navigate = useNavigate();
 
-    // Detectar scroll para efecto en el header
     useEffect(() => {
         const handleScroll = () => {
             setIsScrolled(window.scrollY > 50);
@@ -15,7 +15,6 @@ const Home = () => {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    // Carrusel automático
     useEffect(() => {
         const timer = setInterval(() => {
             setCurrentSlide((prev) => (prev + 1) % testimonials.length);
@@ -27,204 +26,319 @@ const Home = () => {
         {
             text: "Productos frescos y de calidad excepcional. Agroplace cambió mi forma de comprar.",
             author: "María González",
-            role: "Consumidora"
+            role: "Consumidora",
+            image: "👩‍🌾"
         },
         {
             text: "Como agricultor, encontré una plataforma que valora mi trabajo y me conecta directamente con clientes.",
             author: "Pedro Morales",
-            role: "Productor"
+            role: "Productor",
+            image: "👨‍🌾"
         },
         {
             text: "La transparencia y el comercio justo hacen toda la diferencia. Totalmente recomendado.",
             author: "Laura Díaz",
-            role: "Consumidora"
+            role: "Consumidora",
+            image: "👩‍💼"
         }
     ];
 
     const features = [
         {
-            icon: (
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 2L2 7l10 5 10-5-10-5z" />
-                    <path d="M2 17l10 5 10-5M2 12l10 5 10-5" />
-                </svg>
-            ),
+            icon: '🥬',
             title: "Productos Frescos",
-            description: "Directo del campo a tu mesa, sin intermediarios ni procesos artificiales"
+            description: "Recibe frutas y verduras del día a tu puerta, garantizando máxima frescura y nutrientes"
         },
         {
-            icon: (
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                    <circle cx="9" cy="7" r="4" />
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87m-4-12a4 4 0 0 1 0 7.75" />
-                </svg>
-            ),
+            icon: '🌱',
             title: "Apoyo Local",
-            description: "Compras directas a pequeños y medianos productores agrícolas"
+            description: "Conecta directamente con agricultores locales y pequeños productores de tu región"
         },
         {
-            icon: (
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="1" y="3" width="15" height="13" />
-                    <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
-                    <circle cx="5.5" cy="18.5" r="2.5" />
-                    <circle cx="18.5" cy="18.5" r="2.5" />
-                </svg>
-            ),
+            icon: '🚚',
             title: "Entrega Rápida",
-            description: "Sistema logístico eficiente que garantiza frescura en cada entrega"
+            description: "Logística eficiente con entregas en 24-48 horas en toda el área metropolitana"
         },
         {
-            icon: (
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                </svg>
-            ),
+            icon: '💚',
             title: "Comercio Justo",
-            description: "Precios transparentes y equitativos para productores y consumidores"
+            description: "Precios transparentes y justos que benefician tanto a productores como consumidores"
         }
     ];
 
     const stats = [
-        { number: "+500", label: "Productos Disponibles" },
-        { number: "+200", label: "Agricultores Activos" },
-        { number: "+1000", label: "Clientes Satisfechos" },
-        { number: "4.8", label: "Valoración Promedio" }
+        { number: "+500", label: "Productos", sublabel: "Disponibles" },
+        { number: "+200", label: "Agricultores", sublabel: "Activos" },
+        { number: "+5K", label: "Clientes", sublabel: "Satisfechos" },
+        { number: "4.8★", label: "Valoración", sublabel: "Promedio" }
+    ];
+
+    const categories = [
+        { name: "Frutas Frescas", emoji: "🍎", count: "120+" },
+        { name: "Verduras", emoji: "🥕", count: "85+" },
+        { name: "Orgánicos", emoji: "🌿", count: "60+" },
+        { name: "Productos Locales", emoji: "🏡", count: "150+" }
     ];
 
     return (
         <div style={styles.pageContainer}>
-            {/* Header Personalizado del Home */}
+            {/* Header Mejorado */}
             <header style={{
                 ...styles.header,
+                position: 'fixed',
                 background: isScrolled
-                    ? 'rgba(4, 71, 44, 0.95)'
-                    : 'rgba(4, 71, 44, 0.9)',
-                backdropFilter: isScrolled ? 'blur(10px)' : 'blur(5px)',
+                    ? 'rgba(10, 13, 16, 0.98)'
+                    : 'rgba(10, 13, 16, 0.95)',
+                backdropFilter: 'blur(10px)',
+                boxShadow: isScrolled 
+                    ? '0 10px 30px rgba(74, 222, 128, 0.1)' 
+                    : '0 4px 15px rgba(0, 0, 0, 0.2)',
+                borderBottom: `1px solid rgba(74, 222, 128, ${isScrolled ? 0.2 : 0.05})`,
             }}>
                 <div style={styles.headerContainer}>
                     <div style={styles.logo} onClick={() => navigate('/')}>
-                        <div style={styles.logoIcon}>
-                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                            </svg>
+                        <div style={styles.logoIcon}>🌾</div>
+                        <div>
+                            <span style={styles.logoText}>Agroplace</span>
+                            <div style={styles.logoSubtext}>Campo a Mesa</div>
                         </div>
-                        <span style={styles.logoText}>Agroplace</span>
                     </div>
 
                     <nav style={styles.nav}>
-                        <div style={styles.navLink} onClick={() => navigate('/')}>Inicio</div>
-                        <div style={styles.navLink} onClick={() => navigate('/productos')}>Productos</div>
-                        <div style={styles.navLink} onClick={() => navigate('/nosotros')}>Nosotros</div>
-                        <div style={styles.navLink} onClick={() => navigate('/contacto')}>Contacto</div>
+                        {['Inicio', 'Productos', 'Nosotros', 'Contacto'].map((item, idx) => (
+                            <div
+                                key={idx}
+                                style={styles.navLink}
+                                onClick={() => navigate(item === 'Inicio' ? '/' : `/${item.toLowerCase()}`)}
+                                onMouseEnter={(e) => e.currentTarget.style.color = '#4ade80'}
+                                onMouseLeave={(e) => e.currentTarget.style.color = '#d1d5db'}
+                            >
+                                {item}
+                            </div>
+                        ))}
                     </nav>
 
                     <div style={styles.authButtons}>
-                        <div style={styles.loginBtn} onClick={() => navigate('/login')}>Iniciar Sesión</div>
-                        <div style={styles.registerBtn} onClick={() => navigate('/registro')}>Registrarse</div>
+                        <div 
+                            style={styles.loginBtn}
+                            onClick={() => navigate('/login')}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.borderColor = '#4ade80';
+                                e.currentTarget.style.color = '#4ade80';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.borderColor = '#2d3748';
+                                e.currentTarget.style.color = '#d1d5db';
+                            }}
+                        >
+                            Iniciar Sesión
+                        </div>
+                        <div 
+                            style={styles.registerBtn}
+                            onClick={() => navigate('/registro')}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = 'translateY(-2px)';
+                                e.currentTarget.style.boxShadow = '0 12px 25px rgba(74, 222, 128, 0.4)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = '0 5px 15px rgba(74, 222, 128, 0.3)';
+                            }}
+                        >
+                            Registrarse
+                        </div>
                     </div>
                 </div>
             </header>
+            
+            <div style={{ height: '4.5rem' }}></div>
 
-            {/* Hero Section */}
+            {/* Hero Section Mejorado */}
             <section style={styles.hero}>
+                {/* Imagen de fondo alargada + blur */}
+                <div style={styles.heroBgWrap} aria-hidden="true">
+                    <img
+                        src="https://img.freepik.com/fotos-premium/trabajar-como-ingeniero-agronomo_891336-3656.jpg?w=2000"
+                        alt=""
+                        loading="lazy"
+                        style={styles.heroBgImage}
+                    />
+                </div>
+
+                {/* Overlay sutil para contraste */}
                 <div style={styles.heroOverlay}></div>
+
                 <div style={styles.heroContent}>
                     <div style={styles.heroText}>
+                        <div style={styles.heroTag}>🚀 Revolución Agrícola Digital</div>
                         <h1 style={styles.heroTitle}>
-                            Conectamos el campo <span style={styles.highlight}>con tu mesa</span>
+                            Conectamos el <span style={styles.highlight}>campo</span> con <span style={styles.highlight}>tu mesa</span>
                         </h1>
                         <p style={styles.heroSubtitle}>
-                            Productos agrícolas frescos, directo de productores locales.
-                            Calidad, transparencia y apoyo real al campo chileno.
+                            Descubre productos agrícolas frescos directos de pequeños productores locales. 
+                            Calidad garantizada, precios justos y apoyo real al campo chileno.
                         </p>
                         <div style={styles.heroCTA}>
-                            <div style={styles.ctaPrimary} onClick={() => navigate('/productos')}>
+                            <div 
+                                style={styles.ctaPrimary}
+                                onClick={() => navigate('/productos')}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(-3px)';
+                                    e.currentTarget.style.boxShadow = '0 15px 35px rgba(74, 222, 128, 0.4)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(0)';
+                                    e.currentTarget.style.boxShadow = '0 5px 15px rgba(74, 222, 128, 0.3)';
+                                }}
+                            >
                                 Explorar Productos
                             </div>
-                            <div style={styles.ctaSecondary} onClick={() => navigate('/registro')}>
+                            <div 
+                                style={styles.ctaSecondary}
+                                onClick={() => navigate('/registro')}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.borderColor = '#4ade80';
+                                    e.currentTarget.style.color = '#4ade80';
+                                    e.currentTarget.style.background = 'rgba(74, 222, 128, 0.05)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.borderColor = '#2d3748';
+                                    e.currentTarget.style.color = '#f9fafb';
+                                    e.currentTarget.style.background = 'transparent';
+                                }}
+                            >
                                 Unirse Ahora
+                            </div>
+                        </div>
+                        <div style={styles.heroStats}>
+                            <div style={styles.heroStat}>
+                                <span style={styles.heroStatNumber}>2000+</span>
+                                <span style={styles.heroStatLabel}>pedidos/mes</span>
+                            </div>
+                            <div style={styles.heroStat}>
+                                <span style={styles.heroStatNumber}>4.8/5</span>
+                                <span style={styles.heroStatLabel}>satisfacción</span>
+                            </div>
+                            <div style={styles.heroStat}>
+                                <span style={styles.heroStatNumber}>24h</span>
+                                <span style={styles.heroStatLabel}>entrega</span>
                             </div>
                         </div>
                     </div>
                     <div style={styles.heroImageContainer}>
-                        <img
-                            src="/img/logo-banner-agroplace.png"
-                            alt="Agroplace - Conectando el campo"
-                            style={styles.heroImage}
-                        />
+                        <div style={styles.heroImageBox}>
+                            <img
+                                src="/img/logo-banner-agroplace.png"
+                                alt="Agroplace"
+                                style={styles.heroImage}
+                                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05) rotate(2deg)'}
+                                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1) rotate(0deg)'}
+                            />
+                        </div>
                     </div>
                 </div>
             </section>
 
-            {/* Features Section */}
-            <section style={styles.features}>
+            {/* Categorías Section */}
+            <section style={styles.categoriesSection}>
                 <div style={styles.container}>
-                    <h2 style={styles.sectionTitle}>¿Por qué elegir Agroplace?</h2>
-                    <div style={styles.featuresGrid}>
-                        {features.map((feature, index) => (
+                    <h2 style={styles.sectionTitle}>Explora por Categoría</h2>
+                    <div style={styles.categoriesGrid}>
+                        {categories.map((cat, idx) => (
                             <div
-                                key={index}
-                                style={styles.featureCard}
+                                key={idx}
+                                style={styles.categoryCard}
                                 onMouseEnter={(e) => {
                                     e.currentTarget.style.transform = 'translateY(-8px)';
-                                    e.currentTarget.style.borderColor = '#2d7a3e';
+                                    e.currentTarget.style.borderColor = '#4ade80';
                                 }}
                                 onMouseLeave={(e) => {
                                     e.currentTarget.style.transform = 'translateY(0)';
-                                    e.currentTarget.style.borderColor = '#374151';
+                                    e.currentTarget.style.borderColor = '#2d3748';
                                 }}
                             >
-                                <div style={styles.featureIcon}>{feature.icon}</div>
-                                <h3 style={styles.featureTitle}>{feature.title}</h3>
-                                <p style={styles.featureDescription}>{feature.description}</p>
+                                <div style={styles.categoryEmoji}>{cat.emoji}</div>
+                                <h3 style={styles.categoryName}>{cat.name}</h3>
+                                <p style={styles.categoryCount}>{cat.count}</p>
                             </div>
                         ))}
                     </div>
                 </div>
             </section>
 
-            {/* Stats Section */}
+            {/* Features Section Mejorado */}
+            <section style={styles.features}>
+                <div style={styles.container}>
+                    <h2 style={styles.sectionTitle}>¿Por qué Agroplace?</h2>
+                    <div style={styles.featuresGrid}>
+                        {features.map((feature, idx) => (
+                            <div
+                                key={idx}
+                                style={{
+                                    ...styles.featureCard,
+                                    borderColor: hoveredFeature === idx ? '#4ade80' : '#2d3748',
+                                    transform: hoveredFeature === idx ? 'translateY(-10px)' : 'translateY(0)',
+                                }}
+                                onMouseEnter={() => setHoveredFeature(idx)}
+                                onMouseLeave={() => setHoveredFeature(null)}
+                            >
+                                <div style={styles.featureIconNew}>{feature.icon}</div>
+                                <h3 style={styles.featureTitle}>{feature.title}</h3>
+                                <p style={styles.featureDescription}>{feature.description}</p>
+                                <div style={styles.featureArrow}>→</div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* Stats Section Mejorado */}
             <section style={styles.stats}>
                 <div style={styles.container}>
                     <div style={styles.statsGrid}>
-                        {stats.map((stat, index) => (
-                            <div key={index} style={styles.statCard}>
+                        {stats.map((stat, idx) => (
+                            <div 
+                                key={idx} 
+                                style={styles.statCard}
+                                onMouseEnter={(e) => e.currentTarget.style.borderColor = '#4ade80'}
+                                onMouseLeave={(e) => e.currentTarget.style.borderColor = '#2d3748'}
+                            >
                                 <div style={styles.statNumber}>{stat.number}</div>
                                 <div style={styles.statLabel}>{stat.label}</div>
+                                <div style={styles.statSublabel}>{stat.sublabel}</div>
                             </div>
                         ))}
                     </div>
                 </div>
             </section>
 
-            {/* Testimonials Carousel */}
+            {/* Testimonials Mejorado */}
             <section style={styles.testimonials}>
                 <div style={styles.container}>
-                    <h2 style={styles.sectionTitle}>Lo que dicen nuestros usuarios</h2>
+                    <h2 style={styles.sectionTitle}>Historias de Nuestros Usuarios</h2>
                     <div style={styles.carouselContainer}>
                         <div style={styles.testimonialCard}>
-                            <div style={styles.quoteIcon}>
-                                <svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M6 17h3l2-4V7H5v6h3zm8 0h3l2-4V7h-6v6h3z" />
-                                </svg>
+                            <div style={styles.testimonialImage}>
+                                {testimonials[currentSlide].image}
                             </div>
+                            <div style={styles.quoteIcon}>❝</div>
                             <p style={styles.testimonialText}>{testimonials[currentSlide].text}</p>
                             <div style={styles.testimonialAuthor}>
                                 <div style={styles.authorName}>{testimonials[currentSlide].author}</div>
                                 <div style={styles.authorRole}>{testimonials[currentSlide].role}</div>
+                                <div style={styles.authorRating}>⭐⭐⭐⭐⭐</div>
                             </div>
                         </div>
                         <div style={styles.carouselDots}>
-                            {testimonials.map((_, index) => (
+                            {testimonials.map((_, idx) => (
                                 <div
-                                    key={index}
+                                    key={idx}
                                     style={{
                                         ...styles.dot,
-                                        background: index === currentSlide ? '#2d7a3e' : '#374151'
+                                        background: idx === currentSlide ? '#4ade80' : '#374151',
+                                        transform: idx === currentSlide ? 'scale(1.3)' : 'scale(1)',
                                     }}
-                                    onClick={() => setCurrentSlide(index)}
+                                    onClick={() => setCurrentSlide(idx)}
                                 />
                             ))}
                         </div>
@@ -232,39 +346,76 @@ const Home = () => {
                 </div>
             </section>
 
-            {/* CTA Section */}
+            {/* CTA Section Final */}
             <section style={styles.cta}>
                 <div style={styles.container}>
                     <div style={styles.ctaContent}>
-                        <h2 style={styles.ctaTitle}>¿Listo para comenzar?</h2>
+                        <h2 style={styles.ctaTitle}>¿Listo para Comprar Diferente?</h2>
                         <p style={styles.ctaText}>
-                            Únete a nuestra comunidad y descubre la diferencia de comprar directamente del campo
+                            Únete a miles de clientes que ya disfrutan de productos frescos directamente del campo
                         </p>
-                        <div style={styles.ctaButton} onClick={() => navigate('/registro')}>
+                        <div 
+                            style={styles.ctaButton}
+                            onClick={() => navigate('/registro')}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = 'translateY(-3px)';
+                                e.currentTarget.style.boxShadow = '0 20px 40px rgba(74, 222, 128, 0.5)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = '0 10px 25px rgba(74, 222, 128, 0.3)';
+                            }}
+                        >
                             Crear Cuenta Gratis
                         </div>
                     </div>
                 </div>
             </section>
+
+            {/* Footer Básico */}
+            <footer style={styles.footer}>
+                <div style={styles.container}>
+                    <div style={styles.footerContent}>
+                        <div style={styles.footerSection}>
+                            <h4 style={styles.footerTitle}>Agroplace</h4>
+                            <p style={styles.footerText}>Conectando el campo con tu mesa</p>
+                        </div>
+                        <div style={styles.footerSection}>
+                            <h4 style={styles.footerTitle}>Enlaces</h4>
+                            <p style={styles.footerLink}>Productos</p>
+                            <p style={styles.footerLink}>Nosotros</p>
+                            <p style={styles.footerLink}>Contacto</p>
+                        </div>
+                        <div style={styles.footerSection}>
+                            <h4 style={styles.footerTitle}>Legal</h4>
+                            <p style={styles.footerLink}>Términos y Condiciones</p>
+                            <p style={styles.footerLink}>Privacidad</p>
+                        </div>
+                    </div>
+                    <div style={styles.footerBottom}>
+                        <p>© 2025 Agroplace. Todos los derechos reservados.</p>
+                    </div>
+                </div>
+            </footer>
         </div>
     );
 };
 
 const styles = {
-    // Page Container
     pageContainer: {
         minHeight: '100vh',
-        background: '#0f1419',
-        color: '#e5e7eb',
+        background: '#0a0d10',
+        color: '#f9fafb',
+        fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
     },
 
     // Header
     header: {
-        position: 'relative',
+        position: 'fixed',
         top: 0,
+        width: '100%',
         zIndex: 1000,
         padding: '1rem 0',
-        borderBottom: '1px solid rgba(45, 122, 62, 0.2)',
         transition: 'all 0.3s ease',
     },
     headerContainer: {
@@ -275,38 +426,39 @@ const styles = {
         justifyContent: 'space-between',
         alignItems: 'center',
         gap: '2rem',
-        flexWrap: 'wrap',
     },
     logo: {
         display: 'flex',
         alignItems: 'center',
         gap: '0.75rem',
-        textDecoration: 'none',
-        color: '#e5e7eb',
-        fontSize: '1.5rem',
-        fontWeight: 'bold',
+        cursor: 'pointer',
+        fontSize: '1.2rem',
+        fontWeight: '700',
     },
     logoIcon: {
-        color: '#2d7a3e',
-        display: 'flex',
-        alignItems: 'center',
+        fontSize: '2rem',
     },
     logoText: {
-        background: 'linear-gradient(135deg, #2d7a3e, #47a855)',
+        background: 'linear-gradient(135deg, #4ade80, #78ff99)',
         WebkitBackgroundClip: 'text',
         WebkitTextFillColor: 'transparent',
         backgroundClip: 'text',
+        display: 'block',
+    },
+    logoSubtext: {
+        fontSize: '0.7rem',
+        color: '#9ca3af',
+        fontWeight: '400',
+        marginTop: '2px',
     },
     nav: {
         display: 'flex',
-        gap: '2rem',
+        gap: '3rem',
         alignItems: 'center',
-        flexWrap: 'wrap',
     },
     navLink: {
         color: '#d1d5db',
-        textDecoration: 'none',
-        fontSize: '0.95rem',
+        fontSize: '1rem',
         fontWeight: '500',
         transition: 'color 0.3s ease',
         cursor: 'pointer',
@@ -315,42 +467,58 @@ const styles = {
         display: 'flex',
         gap: '1rem',
         alignItems: 'center',
-        flexWrap: 'wrap',
     },
     loginBtn: {
         color: '#d1d5db',
-        textDecoration: 'none',
-        padding: '0.6rem 1.5rem',
-        border: '1px solid #374151',
-        borderRadius: '8px',
+        padding: '0.7rem 1.6rem',
+        border: '1px solid #2d3748',
+        borderRadius: '20px',
         fontSize: '0.9rem',
         fontWeight: '600',
         transition: 'all 0.3s ease',
         cursor: 'pointer',
-        display: 'inline-block',
+        background: 'transparent',
     },
     registerBtn: {
-        background: 'linear-gradient(135deg, #2d7a3e, #47a855)',
-        color: 'white',
-        textDecoration: 'none',
-        padding: '0.6rem 1.5rem',
-        borderRadius: '8px',
+        background: 'linear-gradient(135deg, #4ade80, #22c55e)',
+        color: '#0a0d10',
+        padding: '0.7rem 1.6rem',
+        borderRadius: '20px',
         fontSize: '0.9rem',
-        fontWeight: '600',
+        fontWeight: '700',
         border: 'none',
         transition: 'all 0.3s ease',
         cursor: 'pointer',
-        display: 'inline-block',
+        boxShadow: '0 5px 15px rgba(74, 222, 128, 0.3)',
     },
 
-    // Hero Section
+    // Hero
     hero: {
         position: 'relative',
-        minHeight: '600px',
+        minHeight: '750px',
         display: 'flex',
         alignItems: 'center',
-        padding: '4rem 2rem',
+        padding: '6rem 2rem 4rem',
         overflow: 'hidden',
+    },
+    heroBgWrap: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        top: 0,
+        bottom: 0,
+        overflow: 'hidden',
+        zIndex: 0,
+        display: 'block',
+    },
+    heroBgImage: {
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover',
+        objectPosition: 'center',
+        filter: 'blur(6px) brightness(0.55)',
+        transform: 'scale(1.05)',
+        transition: 'transform 0.6s ease',
     },
     heroOverlay: {
         position: 'absolute',
@@ -358,82 +526,161 @@ const styles = {
         left: 0,
         right: 0,
         bottom: 0,
-        background: 'radial-gradient(circle at 30% 50%, rgba(45, 122, 62, 0.1) 0%, transparent 50%)',
+        background: `
+            radial-gradient(circle at 20% 50%, rgba(74, 222, 128, 0.08) 0%, transparent 50%),
+            radial-gradient(circle at 80% 80%, rgba(74, 222, 128, 0.05) 0%, transparent 50%)
+        `,
+        pointerEvents: 'none',
     },
     heroContent: {
         maxWidth: '1400px',
         margin: '0 auto',
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+        gridTemplateColumns: '1fr 1fr',
         gap: '4rem',
         alignItems: 'center',
         position: 'relative',
         zIndex: 1,
+        width: '100%',
     },
     heroText: {
-        maxWidth: '600px',
+        maxWidth: '650px',
+    },
+    heroTag: {
+        display: 'inline-block',
+        background: 'rgba(74, 222, 128, 0.1)',
+        color: '#4ade80',
+        padding: '0.5rem 1rem',
+        borderRadius: '20px',
+        fontSize: '0.85rem',
+        fontWeight: '600',
+        marginBottom: '1.5rem',
+        border: '1px solid rgba(74, 222, 128, 0.3)',
     },
     heroTitle: {
-        fontSize: 'clamp(2rem, 5vw, 3.5rem)',
-        fontWeight: 'bold',
+        fontSize: '3.5rem',
+        fontWeight: '900',
         marginBottom: '1.5rem',
         lineHeight: 1.2,
         color: '#f9fafb',
+        letterSpacing: '-1px',
     },
     highlight: {
-        background: 'linear-gradient(135deg, #2d7a3e, #47a855)',
+        background: 'linear-gradient(90deg, #4ade80, #78ff99)',
         WebkitBackgroundClip: 'text',
         WebkitTextFillColor: 'transparent',
         backgroundClip: 'text',
     },
     heroSubtitle: {
-        fontSize: 'clamp(1rem, 2vw, 1.2rem)',
-        color: '#9ca3af',
-        marginBottom: '2rem',
-        lineHeight: 1.6,
+        fontSize: '1.2rem',
+        color: '#c0c0c0',
+        marginBottom: '2.5rem',
+        lineHeight: 1.8,
     },
     heroCTA: {
         display: 'flex',
-        gap: '1rem',
-        flexWrap: 'wrap',
+        gap: '1.5rem',
+        marginBottom: '3rem',
     },
     ctaPrimary: {
-        background: 'linear-gradient(135deg, #2d7a3e, #47a855)',
-        color: 'white',
-        textDecoration: 'none',
-        padding: '1rem 2rem',
-        borderRadius: '8px',
-        fontWeight: '600',
-        fontSize: '1rem',
+        background: 'linear-gradient(135deg, #4ade80, #22c55e)',
+        color: '#0a0d10',
+        padding: '1.1rem 2.8rem',
+        borderRadius: '12px',
+        fontWeight: '700',
+        fontSize: '1.1rem',
         transition: 'all 0.3s ease',
         border: 'none',
         cursor: 'pointer',
-        display: 'inline-block',
+        boxShadow: '0 5px 15px rgba(74, 222, 128, 0.3)',
     },
     ctaSecondary: {
         background: 'transparent',
-        color: '#d1d5db',
-        textDecoration: 'none',
-        padding: '1rem 2rem',
-        borderRadius: '8px',
+        color: '#f9fafb',
+        padding: '1.1rem 2.8rem',
+        borderRadius: '12px',
         fontWeight: '600',
-        fontSize: '1rem',
-        border: '2px solid #374151',
+        fontSize: '1.1rem',
+        border: '2px solid #2d3748',
         transition: 'all 0.3s ease',
         cursor: 'pointer',
-        display: 'inline-block',
+    },
+    heroStats: {
+        display: 'flex',
+        gap: '3rem',
+        paddingTop: '2rem',
+        borderTop: '1px solid rgba(74, 222, 128, 0.1)',
+    },
+    heroStat: {
+        display: 'flex',
+        flexDirection: 'column',
+    },
+    heroStatNumber: {
+        fontSize: '1.5rem',
+        fontWeight: '800',
+        color: '#4ade80',
+    },
+    heroStatLabel: {
+        fontSize: '0.85rem',
+        color: '#9ca3af',
     },
     heroImageContainer: {
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
     },
+    heroImageBox: {
+        position: 'relative',
+        width: '100%',
+        maxWidth: '500px',
+        aspectRatio: '1',
+        background: 'radial-gradient(circle at 30% 30%, rgba(74, 222, 128, 0.1), transparent)',
+        borderRadius: '20px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '2rem',
+    },
     heroImage: {
         maxWidth: '100%',
-        width: '400px',
         height: 'auto',
-        filter: 'drop-shadow(0 20px 40px rgba(45, 122, 62, 0.4))',
+        filter: 'drop-shadow(0 25px 50px rgba(74, 222, 128, 0.2))',
         transition: 'transform 0.3s ease',
+    },
+
+    // Categorías
+    categoriesSection: {
+        padding: '6rem 2rem',
+        background: '#131821',
+    },
+    categoriesGrid: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+        gap: '2rem',
+    },
+    categoryCard: {
+        background: '#1a1f2c',
+        padding: '2rem',
+        borderRadius: '16px',
+        border: '1px solid #2d3748',
+        textAlign: 'center',
+        transition: 'all 0.3s ease',
+        cursor: 'pointer',
+    },
+    categoryEmoji: {
+        fontSize: '3rem',
+        marginBottom: '1rem',
+    },
+    categoryName: {
+        fontSize: '1.2rem',
+        fontWeight: '700',
+        marginBottom: '0.5rem',
+        color: '#f9fafb',
+    },
+    categoryCount: {
+        fontSize: '0.9rem',
+        color: '#4ade80',
+        fontWeight: '600',
     },
 
     // Container
@@ -443,130 +690,162 @@ const styles = {
         padding: '0 2rem',
     },
 
-    // Features
-    features: {
-        padding: '6rem 2rem',
-        background: '#1a1f2e',
-    },
+    // Section Title
     sectionTitle: {
-        fontSize: 'clamp(2rem, 4vw, 2.5rem)',
-        fontWeight: 'bold',
+        fontSize: '2.8rem',
+        fontWeight: '900',
         textAlign: 'center',
         marginBottom: '4rem',
         color: '#f9fafb',
+        letterSpacing: '-0.5px',
+    },
+
+    // Features
+    features: {
+        padding: '8rem 2rem',
+        background: '#0a0d10',
     },
     featuresGrid: {
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-        gap: '2rem',
+        gap: '2.5rem',
     },
     featureCard: {
-        background: 'rgba(31, 41, 55, 0.5)',
-        padding: '2rem',
-        borderRadius: '12px',
-        border: '1px solid #374151',
+        background: '#1a1f2c',
+        padding: '2.5rem',
+        borderRadius: '16px',
+        border: '1px solid #2d3748',
         transition: 'all 0.3s ease',
         cursor: 'pointer',
+        position: 'relative',
+        overflow: 'hidden',
     },
-    featureIcon: {
-        color: '#2d7a3e',
+    featureIconNew: {
+        fontSize: '3rem',
         marginBottom: '1.5rem',
+        display: 'block',
     },
     featureTitle: {
-        fontSize: '1.25rem',
-        fontWeight: 'bold',
+        fontSize: '1.4rem',
+        fontWeight: '700',
         marginBottom: '1rem',
         color: '#f9fafb',
     },
     featureDescription: {
-        color: '#9ca3af',
-        lineHeight: 1.6,
-        fontSize: '0.95rem',
+        color: '#c0c0c0',
+        lineHeight: 1.7,
+        fontSize: '1rem',
+    },
+    featureArrow: {
+        position: 'absolute',
+        right: '1.5rem',
+        bottom: '1.5rem',
+        fontSize: '2rem',
+        color: '#4ade80',
+        opacity: 0,
+        transition: 'all 0.3s ease',
     },
 
     // Stats
     stats: {
         padding: '6rem 2rem',
-        background: 'linear-gradient(135deg, rgba(45, 122, 62, 0.1), rgba(4, 71, 44, 0.1))',
+        background: 'linear-gradient(135deg, rgba(74, 222, 128, 0.05), rgba(10, 13, 16, 0.5))',
     },
     statsGrid: {
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
         gap: '2rem',
     },
     statCard: {
         textAlign: 'center',
-        padding: '2rem',
-        background: 'rgba(31, 41, 55, 0.5)',
-        borderRadius: '12px',
-        border: '1px solid #374151',
+        padding: '2.5rem',
+        background: '#1a1f2c',
+        borderRadius: '16px',
+        border: '1px solid #2d3748',
+        transition: 'all 0.3s ease',
     },
     statNumber: {
-        fontSize: 'clamp(2rem, 4vw, 3rem)',
-        fontWeight: 'bold',
-        background: 'linear-gradient(135deg, #2d7a3e, #47a855)',
+        fontSize: '2.8rem',
+        fontWeight: '900',
+        background: 'linear-gradient(135deg, #4ade80, #78ff99)',
         WebkitBackgroundClip: 'text',
         WebkitTextFillColor: 'transparent',
         backgroundClip: 'text',
         marginBottom: '0.5rem',
     },
     statLabel: {
+        color: '#d1d5db',
+        fontSize: '1rem',
+        fontWeight: '700',
+    },
+    statSublabel: {
         color: '#9ca3af',
-        fontSize: '0.95rem',
+        fontSize: '0.85rem',
+        marginTop: '0.25rem',
     },
 
     // Testimonials
     testimonials: {
-        padding: '6rem 2rem',
-        background: '#0f1419',
+        padding: '8rem 2rem',
+        background: '#131821',
     },
     carouselContainer: {
-        maxWidth: '800px',
+        maxWidth: '900px',
         margin: '0 auto',
     },
     testimonialCard: {
-        background: 'rgba(31, 41, 55, 0.5)',
+        background: '#1a1f2c',
         padding: '3rem',
-        borderRadius: '12px',
-        border: '1px solid #374151',
+        borderRadius: '16px',
+        border: '1px solid #2d3748',
         textAlign: 'center',
+        boxShadow: '0 10px 40px rgba(0, 0, 0, 0.4)',
+    },
+    testimonialImage: {
+        fontSize: '4rem',
+        marginBottom: '1rem',
     },
     quoteIcon: {
-        color: '#2d7a3e',
-        marginBottom: '1.5rem',
-        opacity: 0.5,
-        display: 'flex',
-        justifyContent: 'center',
+        fontSize: '4rem',
+        color: '#4ade80',
+        opacity: 0.4,
+        marginBottom: '1rem',
     },
     testimonialText: {
-        fontSize: '1.1rem',
-        color: '#d1d5db',
+        fontSize: '1.3rem',
+        color: '#f9fafb',
         marginBottom: '2rem',
         lineHeight: 1.8,
         fontStyle: 'italic',
     },
     testimonialAuthor: {
-        borderTop: '1px solid #374151',
+        borderTop: '1px solid #2d3748',
         paddingTop: '1.5rem',
     },
     authorName: {
-        fontWeight: 'bold',
-        color: '#f9fafb',
+        fontWeight: '700',
+        color: '#4ade80',
+        fontSize: '1.1rem',
         marginBottom: '0.25rem',
     },
     authorRole: {
-        color: '#9ca3af',
+        color: '#c0c0c0',
+        fontSize: '0.95rem',
+        marginBottom: '0.5rem',
+    },
+    authorRating: {
         fontSize: '0.9rem',
+        marginTop: '0.5rem',
     },
     carouselDots: {
         display: 'flex',
         justifyContent: 'center',
-        gap: '0.5rem',
-        marginTop: '2rem',
+        gap: '0.75rem',
+        marginTop: '2.5rem',
     },
     dot: {
-        width: '10px',
-        height: '10px',
+        width: '12px',
+        height: '12px',
         borderRadius: '50%',
         cursor: 'pointer',
         transition: 'all 0.3s ease',
@@ -574,38 +853,82 @@ const styles = {
 
     // CTA
     cta: {
-        padding: '6rem 2rem',
-        background: 'linear-gradient(135deg, rgba(45, 122, 62, 0.15), rgba(4, 71, 44, 0.15))',
+        padding: '8rem 2rem',
+        background: 'linear-gradient(135deg, #1a1f2c, #0a0d10)',
     },
     ctaContent: {
         textAlign: 'center',
-        maxWidth: '600px',
+        maxWidth: '700px',
         margin: '0 auto',
+        padding: '3.5rem',
+        borderRadius: '20px',
+        background: 'linear-gradient(135deg, #1a1f2c, #131821)',
+        border: '1px solid rgba(74, 222, 128, 0.2)',
+        boxShadow: '0 15px 40px rgba(0, 0, 0, 0.3)',
     },
     ctaTitle: {
-        fontSize: 'clamp(2rem, 4vw, 2.5rem)',
-        fontWeight: 'bold',
+        fontSize: '2.8rem',
+        fontWeight: '900',
         marginBottom: '1rem',
         color: '#f9fafb',
     },
     ctaText: {
         fontSize: '1.1rem',
-        color: '#9ca3af',
-        marginBottom: '2rem',
-        lineHeight: 1.6,
+        color: '#c0c0c0',
+        marginBottom: '2.5rem',
+        lineHeight: 1.8,
     },
     ctaButton: {
         display: 'inline-block',
-        background: 'linear-gradient(135deg, #2d7a3e, #47a855)',
-        color: 'white',
-        textDecoration: 'none',
-        padding: '1rem 2.5rem',
-        borderRadius: '8px',
-        fontWeight: '600',
-        fontSize: '1.1rem',
+        background: 'linear-gradient(135deg, #4ade80, #22c55e)',
+        color: '#0a0d10',
+        padding: '1.2rem 3.5rem',
+        borderRadius: '12px',
+        fontWeight: '700',
+        fontSize: '1.2rem',
         transition: 'all 0.3s ease',
         border: 'none',
         cursor: 'pointer',
+        boxShadow: '0 10px 25px rgba(74, 222, 128, 0.3)',
+    },
+
+    // Footer
+    footer: {
+        padding: '3rem 2rem',
+        background: '#131821',
+        borderTop: '1px solid #2d3748',
+    },
+    footerContent: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+        gap: '3rem',
+        marginBottom: '2rem',
+    },
+    footerSection: {
+        color: '#d1d5db',
+    },
+    footerTitle: {
+        fontWeight: '700',
+        marginBottom: '1rem',
+        color: '#f9fafb',
+    },
+    footerText: {
+        color: '#9ca3af',
+        fontSize: '0.95rem',
+    },
+    footerLink: {
+        color: '#9ca3af',
+        fontSize: '0.95rem',
+        marginBottom: '0.5rem',
+        cursor: 'pointer',
+        transition: 'color 0.3s ease',
+    },
+    footerBottom: {
+        textAlign: 'center',
+        paddingTop: '2rem',
+        borderTop: '1px solid #2d3748',
+        color: '#9ca3af',
+        fontSize: '0.95rem',
     },
 };
 

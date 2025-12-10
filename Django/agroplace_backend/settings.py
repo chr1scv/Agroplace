@@ -61,9 +61,9 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'agroplace_db',
-        'USER': 'admin',
-        'PASSWORD': 'admin123',
-        'HOST': 'agroplace-mysql.cr48swwciw4h.us-east-1.rds.amazonaws.com',
+        'USER': 'root',
+        'PASSWORD': '',
+        'HOST': '127.0.0.1',
         'PORT': '3306',
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
